@@ -1,268 +1,392 @@
-# ⚡ Stogram Quick Start Guide
+# ⚡ Быстрый старт Stogram
 
-Get Stogram up and running in 5 minutes!
+Это руководство поможет вам быстро запустить Stogram на вашей локальной машине.
 
-## 🚀 Fastest Way to Start
+---
 
-### One-Command Setup (Recommended)
+## 📋 Требования
+
+Перед началом убедитесь, что у вас установлено:
+
+- **Node.js** 18 или выше
+- **npm** или **yarn**
+- **PostgreSQL** 15 или выше
+- **Docker и Docker Compose** (опционально, для контейнеризованного запуска)
+- **Redis** (опционально, для кэширования)
+
+---
+
+## 🚀 Быстрая установка (5 минут)
+
+### Вариант 1: Использование скрипта автоматической установки
 
 ```bash
+# Клонируйте репозиторий
+git clone <repository-url>
+cd stogram
+
+# Запустите скрипт быстрого старта
+chmod +x quick-start.sh
 ./quick-start.sh
 ```
 
-That's it! The script will:
-- ✅ Create environment files
-- ✅ Generate secure JWT secret
-- ✅ Start all Docker containers
-- ✅ Run database migrations
-- ✅ Launch the application
+Скрипт автоматически:
+- Установит все зависимости
+- Настроит переменные окружения
+- Запустит Docker контейнеры для PostgreSQL и Redis
+- Выполнит миграции базы данных
+- Запустит приложение
 
-**Access at:**
-- 🌐 Application: http://localhost
-- 🔧 API: http://localhost:3001
+### Вариант 2: Ручная установка
 
----
-
-## 🐳 Manual Docker Setup
-
-If you prefer manual control:
+#### Шаг 1: Клонируйте репозиторий
 
 ```bash
-# 1. Create environment files
-cp .env.example .env
-cp server/.env.example server/.env
-cp client/.env.example client/.env
-
-# 2. Generate JWT secret
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-# Add the output to server/.env as JWT_SECRET
-
-# 3. Start containers
-docker-compose up -d
-
-# 4. Run migrations
-docker-compose exec server npx prisma migrate deploy
-
-# 5. Open your browser
-open http://localhost
+git clone <repository-url>
+cd stogram
 ```
 
----
-
-## 💻 Local Development Setup
-
-For active development without Docker:
+#### Шаг 2: Установите зависимости
 
 ```bash
-# 1. Install dependencies
 npm run install:all
+```
 
-# 2. Setup environment
-cp server/.env.example server/.env
-cp client/.env.example client/.env
-# Edit server/.env with your configuration
+Это установит зависимости для клиента и сервера.
 
-# 3. Start PostgreSQL & Redis
-docker-compose up -d postgres redis
+#### Шаг 3: Настройте переменные окружения
 
-# 4. Setup database
+**Сервер:**
+```bash
 cd server
-npx prisma generate
-npx prisma migrate dev
-cd ..
+cp .env.example .env
+nano .env  # или используйте ваш любимый редактор
+```
 
-# 5. Start dev servers
+Минимальная конфигурация `.env`:
+```env
+# База данных
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/stogram"
+
+# JWT секрет (генерируйте безопасный ключ)
+JWT_SECRET="your-very-secure-secret-key-change-this"
+
+# Порт сервера
+PORT=3001
+
+# URL клиента (для CORS)
+CLIENT_URL="http://localhost:5173"
+
+# Опционально: Redis
+REDIS_URL="redis://localhost:6379"
+```
+
+**Клиент:**
+```bash
+cd ../client
+cp .env.example .env
+nano .env
+```
+
+Конфигурация `.env`:
+```env
+VITE_API_URL=http://localhost:3001
+VITE_WS_URL=ws://localhost:3001
+```
+
+#### Шаг 4: Запустите базу данных
+
+**С Docker:**
+```bash
+cd ..
+docker-compose up -d postgres redis
+```
+
+**Без Docker:** Убедитесь, что PostgreSQL запущен и создайте базу данных:
+```bash
+createdb stogram
+```
+
+#### Шаг 5: Выполните миграции базы данных
+
+```bash
+cd server
+npx prisma migrate dev
+npx prisma generate
+cd ..
+```
+
+#### Шаг 6: Запустите приложение
+
+```bash
 npm run dev
 ```
 
-**Access at:**
+Приложение запустится на:
 - 🌐 Frontend: http://localhost:5173
-- 🔧 Backend: http://localhost:3001
+- 🔌 Backend API: http://localhost:3001
+- 📡 WebSocket: ws://localhost:3001
 
 ---
 
-## ✅ Verify Installation
+## 🐳 Быстрый запуск с Docker
 
-Run the verification script to check everything:
+Самый простой способ запустить Stogram - использовать Docker Compose.
+
+### Шаг 1: Настройте переменные окружения
 
 ```bash
+cp .env.example .env
+nano .env  # настройте если нужно
+```
+
+### Шаг 2: Запустите все сервисы
+
+```bash
+docker-compose up -d --build
+```
+
+Это запустит:
+- PostgreSQL базу данных
+- Redis для кэширования
+- Backend сервер
+- Frontend приложение
+- Nginx обратный прокси
+
+### Шаг 3: Выполните миграции
+
+```bash
+docker-compose exec server npx prisma migrate deploy
+```
+
+### Шаг 4: Откройте приложение
+
+Перейдите в браузере на http://localhost
+
+---
+
+## 🧪 Проверка установки
+
+Используйте скрипт проверки для диагностики:
+
+```bash
+chmod +x verify-setup.sh
 ./verify-setup.sh
 ```
 
-This will check:
-- Prerequisites (Node.js, npm, Docker)
-- Project structure
-- Configuration files
-- Dependencies
+Скрипт проверит:
+- ✅ Установку Node.js и npm
+- ✅ Подключение к PostgreSQL
+- ✅ Подключение к Redis (если настроен)
+- ✅ Наличие необходимых файлов
+- ✅ Правильность переменных окружения
 
 ---
 
-## 📝 First Steps
+## 👤 Создание первого пользователя
 
-### 1. Create Your Account
+После запуска приложения:
 
-1. Open http://localhost (or http://localhost:5173 for dev)
-2. Click "Sign up"
-3. Fill in:
-   - Email
-   - Username
-   - Password (min 8 characters)
-4. Click "Create Account"
+1. Откройте http://localhost:5173
+2. Нажмите "Регистрация"
+3. Заполните форму:
+   - Email: your-email@example.com
+   - Имя пользователя: yourusername
+   - Пароль: (минимум 6 символов)
+4. Нажмите "Зарегистрироваться"
 
-### 2. Start Chatting
-
-1. Click "New Chat"
-2. Search for a user
-3. Select and create chat
-4. Start messaging!
-
-### 3. Try Features
-
-- 💬 Send messages
-- 📁 Upload files (drag & drop)
-- 📞 Make audio calls
-- 📹 Start video calls
-- 👥 Create group chats
-- 🔍 Search users and chats
+Вы автоматически войдете в систему!
 
 ---
 
-## 🛠️ Common Commands
+## 📱 Основные функции для тестирования
 
-### Docker Commands
+### 1. Создайте чат
+
+- Нажмите кнопку "+" в списке чатов
+- Выберите тип чата (приватный, группа, канал)
+- Добавьте участников
+- Начните общение!
+
+### 2. Отправьте сообщение
+
+- Откройте чат
+- Введите текст в поле ввода
+- Нажмите Enter или кнопку отправки
+- Попробуйте упоминания (@username) и хэштеги (#tag)
+
+### 3. Попробуйте медиа
+
+- Нажмите на кнопку скрепки
+- Загрузите изображение, видео или файл
+- Запишите голосовое сообщение
+
+### 4. Создайте бота
+
+- Откройте Настройки → Боты
+- Нажмите "Создать бота"
+- Заполните информацию
+- Скопируйте токен для использования Bot API
+
+### 5. Настройте вебхук
+
+- В настройках бота выберите "Вебхуки"
+- Добавьте URL вашего сервера
+- Выберите события для подписки
+- Сохраните
+
+---
+
+## 🔧 Полезные команды
+
+### Разработка
 
 ```bash
-# Start
-docker-compose up -d
-
-# Stop
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Restart service
-docker-compose restart server
-
-# Rebuild
-docker-compose up -d --build
-```
-
-### Development Commands
-
-```bash
-# Start dev servers
+# Запустить dev серверы
 npm run dev
 
-# Build for production
+# Запустить только клиент
+npm run dev:client
+
+# Запустить только сервер
+npm run dev:server
+```
+
+### База данных
+
+```bash
+# Создать миграцию
+cd server && npx prisma migrate dev --name your_migration_name
+
+# Применить миграции в продакшн
+cd server && npx prisma migrate deploy
+
+# Сгенерировать Prisma Client
+cd server && npx prisma generate
+
+# Открыть Prisma Studio (GUI для БД)
+cd server && npx prisma studio
+
+# Сбросить базу данных (ОСТОРОЖНО!)
+cd server && npx prisma migrate reset
+```
+
+### Docker
+
+```bash
+# Запустить все контейнеры
+docker-compose up -d
+
+# Остановить контейнеры
+docker-compose down
+
+# Просмотр логов
+docker-compose logs -f
+
+# Пересобрать контейнеры
+docker-compose up -d --build
+
+# Удалить все (включая volumes)
+docker-compose down -v
+```
+
+### Продакшн сборка
+
+```bash
+# Собрать клиент
 npm run build
 
-# Run server only
-npm run dev:server
-
-# Run client only
-npm run dev:client
-```
-
-### Database Commands
-
-```bash
-cd server
-
-# Generate Prisma Client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate dev
-
-# Reset database
-npx prisma migrate reset
-
-# Open Prisma Studio
-npx prisma studio
+# Запустить сервер
+npm start
 ```
 
 ---
 
-## 🔧 Configuration
+## 🐛 Решение проблем
 
-### Essential Environment Variables
-
-**server/.env:**
-```bash
-NODE_ENV=development
-PORT=3001
-DATABASE_URL=postgresql://stogram:stogram_password@localhost:5432/stogram_db
-JWT_SECRET=your-generated-secret-here
-```
-
-**client/.env:**
-```bash
-VITE_API_URL=http://localhost:3001
-VITE_WS_URL=http://localhost:3001
-```
-
----
-
-## 📚 Next Steps
-
-- 📖 Read the [User Guide](USER_GUIDE.md) for features
-- 🚀 See [Deployment Guide](DEPLOYMENT.md) for production
-- 🤝 Check [Contributing Guide](CONTRIBUTING.md) to contribute
-- 🎯 View [Features Roadmap](FEATURES.md) for upcoming features
-
----
-
-## ❓ Troubleshooting
-
-### Port Already in Use
+### Проблема: "Port 5173 already in use"
 
 ```bash
-# Find process using port 3001
-lsof -i :3001
+# Найти процесс использующий порт
+lsof -i :5173
 
-# Kill process
+# Убить процесс
 kill -9 <PID>
 ```
 
-### Database Connection Failed
+### Проблема: "Cannot connect to database"
 
 ```bash
-# Check PostgreSQL is running
+# Проверьте статус PostgreSQL
+sudo systemctl status postgresql
+
+# Или с Docker
 docker-compose ps postgres
 
-# Restart PostgreSQL
-docker-compose restart postgres
-
-# Check logs
-docker-compose logs postgres
+# Проверьте DATABASE_URL в .env
+echo $DATABASE_URL
 ```
 
-### Build Errors
+### Проблема: "Prisma Client error"
 
 ```bash
-# Clear node_modules and reinstall
-rm -rf node_modules client/node_modules server/node_modules
-npm run install:all
+# Регенерируйте Prisma Client
+cd server
+npx prisma generate
 
-# Clear Docker cache
-docker-compose down -v
-docker-compose up -d --build
+# Если не помогло, удалите node_modules и переустановите
+rm -rf node_modules
+npm install
+npx prisma generate
+```
+
+### Проблема: "CORS errors"
+
+Убедитесь, что в `server/.env`:
+```env
+CLIENT_URL="http://localhost:5173"
+```
+
+И в `client/.env`:
+```env
+VITE_API_URL=http://localhost:3001
+VITE_WS_URL=ws://localhost:3001
 ```
 
 ---
 
-## 💬 Need Help?
+## 📚 Следующие шаги
 
-- 📧 Email: support@stogram.com
-- 💬 Discord: [Join Community](https://discord.gg/stogram)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/stogram/issues)
-- 📖 Docs: See all `.md` files in the root directory
+После успешного запуска:
+
+1. 📖 Прочитайте [ДОКУМЕНТАЦИЯ.md](./ДОКУМЕНТАЦИЯ.md) для полной документации
+2. 👥 Изучите [USER_GUIDE.md](./USER_GUIDE.md) для руководства пользователя
+3. 🤝 Прочитайте [CONTRIBUTING.md](./CONTRIBUTING.md) если хотите участвовать в разработке
+4. 🚀 Изучите [DEPLOYMENT.md](./DEPLOYMENT.md) для развертывания в продакшн
+5. 🔒 Ознакомьтесь с [SECURITY.md](./SECURITY.md) для рекомендаций по безопасности
 
 ---
 
-## 🎉 You're Ready!
+## 🆘 Получить помощь
 
-Start building your messaging community with Stogram!
+Если возникли проблемы:
 
-**Happy chatting! 💬**
+- 📧 Email: support@stogram.com
+- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/stogram/issues)
+- 💬 Discord: [Сообщество Stogram](https://discord.gg/stogram)
+
+---
+
+## 🎉 Готово!
+
+Теперь у вас запущен полнофункциональный мессенджер Stogram! 
+
+Начните исследовать все функции:
+- 💬 Обмен сообщениями
+- 📞 Видео звонки
+- 🤖 Боты
+- 🎭 Стикеры
+- 📁 Папки чатов
+- И многое другое!
+
+**Приятного использования!** 🚀
