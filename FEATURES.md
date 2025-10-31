@@ -95,17 +95,18 @@
 - 🔲 Device management
 
 #### Advanced Messaging
-- 🔲 Voice messages (record and send)
-- 🔲 Message reactions (emoji)
+- ✅ Voice messages (record and send)
+- ✅ Message reactions (emoji)
 - 🔲 Message forwarding
-- 🔲 Message pinning
+- ✅ Message pinning
 - 🔲 Draft messages
-- 🔲 Scheduled messages
+- ✅ Scheduled messages
 - 🔲 Self-destructing messages
-- 🔲 Message search within chat
-- 🔲 Global message search
-- 🔲 Mentions in groups (@username)
-- 🔲 Hashtags
+- ✅ Message search within chat
+- ✅ Global message search
+- ✅ Mentions in groups (@username)
+- ✅ Hashtags
+- ✅ Silent messages (quiet mode)
 
 #### Media Features
 - 🔲 Image compression before upload
@@ -135,8 +136,8 @@
 - 🔲 Channel discovery
 
 #### Call Features
-- 🔲 Group voice calls (up to 10 people)
-- 🔲 Group video calls (up to 4 people)
+- ✅ Group voice calls (up to 10 people)
+- ✅ Group video calls (up to 4 people)
 - 🔲 Screen sharing
 - 🔲 Call recording
 - 🔲 Noise cancellation
@@ -145,11 +146,11 @@
 - 🔲 Call waiting
 
 #### Notifications
-- 🔲 Push notifications
+- ✅ Push notifications
 - 🔲 Email notifications
 - 🔲 Custom notification sounds
-- 🔲 Notification badges
-- 🔲 Silent mode
+- ✅ Notification badges (unread count)
+- ✅ Silent mode (mute chats)
 - 🔲 Notification scheduling
 
 #### User Experience
@@ -163,15 +164,16 @@
 - 🔲 Copy/paste images
 - 🔲 Message selection mode
 - 🔲 Archive chats
-- 🔲 Mute chats
-- 🔲 Chat folders/categories
+- ✅ Mute chats
+- ✅ Chat folders/categories
+- ✅ Favorite chats
 
 #### Privacy & Settings
-- 🔲 Block users
+- ✅ Block users
 - 🔲 Report users/messages
-- 🔲 Last seen privacy
-- 🔲 Profile photo privacy
-- 🔲 Online status privacy
+- ✅ Last seen privacy
+- ✅ Profile photo privacy
+- ✅ Online status privacy
 - 🔲 Read receipt privacy
 - 🔲 Group privacy settings
 - 🔲 Data export
@@ -194,6 +196,7 @@
 
 #### Integration
 - 🔲 OAuth login (Google, Facebook)
+- ✅ Telegram integration (see TELEGRAM_INTEGRATION.md)
 - 🔲 Third-party integrations
 - 🔲 API for developers
 - 🔲 Zapier integration
@@ -201,7 +204,7 @@
 
 #### Advanced Features
 - 🔲 End-to-end encryption
-- 🔲 Secret chats
+- ✅ Secret chats
 - 🔲 Cloud storage integration
 - 🔲 Message translation
 - 🔲 Voice-to-text

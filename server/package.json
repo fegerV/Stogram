@@ -14,7 +14,7 @@
     "generate-vapid-keys": "ts-node src/scripts/generateVapidKeys.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^6.18.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -47,7 +47,7 @@
     "@types/uuid": "^9.0.7",
     "@types/web-push": "^3.6.3",
     "nodemon": "^3.0.2",
-    "prisma": "^5.7.1",
+    "prisma": "^6.18.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
