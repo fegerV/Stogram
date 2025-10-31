@@ -47,3 +47,5 @@ export const authenticate = async (
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
+
+export const auth = authenticate;

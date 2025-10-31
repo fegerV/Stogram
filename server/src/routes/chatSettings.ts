@@ -7,7 +7,10 @@ import {
   unmuteChat,
   toggleFavorite,
   updateUnreadCount,
-  resetUnreadCount
+  resetUnreadCount,
+  archiveChat,
+  unarchiveChat,
+  getArchivedChats
 } from '../controllers/chatSettingsController';
 
 const router = express.Router();
@@ -19,5 +22,8 @@ router.post('/:chatId/unmute', auth, unmuteChat);
 router.post('/:chatId/favorite', auth, toggleFavorite);
 router.put('/:chatId/unread', auth, updateUnreadCount);
 router.post('/:chatId/unread/reset', auth, resetUnreadCount);
+router.post('/:chatId/archive', auth, archiveChat);
+router.post('/:chatId/unarchive', auth, unarchiveChat);
+router.get('/archived/all', auth, getArchivedChats);
 
 export default router;

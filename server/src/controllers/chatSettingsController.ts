@@ -232,3 +232,102 @@ export const resetUnreadCount = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to reset unread count' });
   }
 };
+
+// Архивировать чат
+export const archiveChat = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { chatId } = req.params;
+
+    const settings = await prisma.chatSettings.upsert({
+      where: {
+        userId_chatId: {
+          userId,
+          chatId
+        }
+      },
+      update: {
+        isArchived: true
+      },
+      create: {
+        userId,
+        chatId,
+        isArchived: true
+      }
+    });
+
+    res.json({ settings, message: 'Chat archived successfully' });
+  } catch (error) {
+    console.error('Archive chat error:', error);
+    res.status(500).json({ error: 'Failed to archive chat' });
+  }
+};
+
+// Разархивировать чат
+export const unarchiveChat = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { chatId } = req.params;
+
+    const settings = await prisma.chatSettings.upsert({
+      where: {
+        userId_chatId: {
+          userId,
+          chatId
+        }
+      },
+      update: {
+        isArchived: false
+      },
+      create: {
+        userId,
+        chatId,
+        isArchived: false
+      }
+    });
+
+    res.json({ settings, message: 'Chat unarchived successfully' });
+  } catch (error) {
+    console.error('Unarchive chat error:', error);
+    res.status(500).json({ error: 'Failed to unarchive chat' });
+  }
+};
+
+// Получить архивированные чаты
+export const getArchivedChats = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+
+    const archivedSettings = await prisma.chatSettings.findMany({
+      where: {
+        userId,
+        isArchived: true
+      },
+      include: {
+        chat: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatar: true,
+                    status: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const chats = archivedSettings.map(s => s.chat);
+    res.json({ chats });
+  } catch (error) {
+    console.error('Get archived chats error:', error);
+    res.status(500).json({ error: 'Failed to get archived chats' });
+  }
+};

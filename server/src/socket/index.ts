@@ -207,6 +207,56 @@ export const initSocketHandlers = (io: Server) => {
       }
     });
 
+    socket.on('call:toggle-recording', async ({ callId, isRecording }) => {
+      try {
+        const call = await prisma.call.findUnique({
+          where: { id: callId },
+        });
+
+        if (!call) {
+          return socket.emit('error', { message: 'Call not found' });
+        }
+
+        if (call.initiatorId !== userId) {
+          return socket.emit('error', { message: 'Only initiator can control recording' });
+        }
+
+        await prisma.call.update({
+          where: { id: callId },
+          data: { isRecording },
+        });
+
+        io.to(`chat:${call.chatId}`).emit('call:recording-status', { callId, isRecording });
+      } catch (error) {
+        console.error('Call recording toggle error:', error);
+      }
+    });
+
+    socket.on('call:save-recording', async ({ callId, recordingUrl }) => {
+      try {
+        const call = await prisma.call.findUnique({
+          where: { id: callId },
+        });
+
+        if (!call) {
+          return socket.emit('error', { message: 'Call not found' });
+        }
+
+        if (call.initiatorId !== userId) {
+          return socket.emit('error', { message: 'Only initiator can save recording' });
+        }
+
+        await prisma.call.update({
+          where: { id: callId },
+          data: { recordingUrl, isRecording: false },
+        });
+
+        io.to(`chat:${call.chatId}`).emit('call:recording-saved', { callId, recordingUrl });
+      } catch (error) {
+        console.error('Call save recording error:', error);
+      }
+    });
+
     socket.on('webrtc:offer', ({ callId, to, offer }) => {
       const targetSocketId = userSockets.get(to);
       if (targetSocketId) {
