@@ -22,7 +22,7 @@ export default function CallModal({ chatId, callType, onClose }: CallModalProps)
     toggleAudio,
     toggleVideo,
     cleanup,
-  } = useWebRTC('call-id', true, 'remote-user-id');
+  } = useWebRTC(chatId, true, 'remote-user-id');
 
   useEffect(() => {
     startCall(callType === 'VIDEO');
@@ -42,7 +42,7 @@ export default function CallModal({ chatId, callType, onClose }: CallModalProps)
 
   const handleEndCall = () => {
     cleanup();
-    socketService.endCall('call-id');
+    socketService.endCall(chatId);
     onClose();
   };
 
