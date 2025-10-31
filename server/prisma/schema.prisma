@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  displayName   String?
+  avatar        String?
+  bio           String?
+  status        UserStatus @default(OFFLINE)
+  lastSeen      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  sentMessages     Message[]        @relation("MessageSender")
+  chatMembers      ChatMember[]
+  calls            Call[]           @relation("CallInitiator")
+  callParticipants CallParticipant[]
+  contacts         Contact[]        @relation("UserContacts")
+  contactOf        Contact[]        @relation("ContactUser")
+  
+  @@index([email])
+  @@index([username])
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  DO_NOT_DISTURB
+}
+
+model Chat {
+  id          String    @id @default(uuid())
+  name        String?
+  type        ChatType
+  avatar      String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  members     ChatMember[]
+  messages    Message[]
+  calls       Call[]
+  
+  @@index([type])
+}
+
+enum ChatType {
+  PRIVATE
+  GROUP
+  CHANNEL
+}
+
+model ChatMember {
+  id        String      @id @default(uuid())
+  userId    String
+  chatId    String
+  role      MemberRole  @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+  
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat      Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, chatId])
+  @@index([userId])
+  @@index([chatId])
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  content     String?
+  type        MessageType @default(TEXT)
+  senderId    String
+  chatId      String
+  replyToId   String?
+  fileUrl     String?
+  fileName    String?
+  fileSize    Int?
+  isEdited    Boolean     @default(false)
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  sender      User        @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  replyTo     Message?    @relation("MessageReply", fields: [replyToId], references: [id])
+  replies     Message[]   @relation("MessageReply")
+  
+  @@index([chatId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  VOICE
+  SYSTEM
+}
+
+model Call {
+  id            String      @id @default(uuid())
+  chatId        String
+  initiatorId   String
+  type          CallType
+  status        CallStatus  @default(CALLING)
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  
+  chat          Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  initiator     User        @relation("CallInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  participants  CallParticipant[]
+  
+  @@index([chatId])
+  @@index([status])
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  CALLING
+  ACTIVE
+  ENDED
+  MISSED
+  DECLINED
+}
+
+model CallParticipant {
+  id          String    @id @default(uuid())
+  callId      String
+  userId      String
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+  
+  call        Call      @relation(fields: [callId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([callId, userId])
+  @@index([callId])
+  @@index([userId])
+}
+
+model Contact {
+  id          String    @id @default(uuid())
+  userId      String
+  contactId   String
+  nickname    String?
+  createdAt   DateTime  @default(now())
+  
+  user        User      @relation("UserContacts", fields: [userId], references: [id], onDelete: Cascade)
+  contact     User      @relation("ContactUser", fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, contactId])
+  @@index([userId])
+}
