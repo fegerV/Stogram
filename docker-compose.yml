@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: stogram-postgres
+    environment:
+      POSTGRES_USER: stogram
+      POSTGRES_PASSWORD: stogram_password
+      POSTGRES_DB: stogram_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - stogram-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: stogram-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - stogram-network
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: stogram-server
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://stogram:stogram_password@postgres:5432/stogram_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - stogram-network
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: stogram-client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - stogram-network
+    restart: unless-stopped
+
+networks:
+  stogram-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
