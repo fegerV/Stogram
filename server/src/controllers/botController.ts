@@ -1,13 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import crypto from 'crypto';
+import { handleControllerError, handleNotFound, handleUnauthorized, handleForbidden, handleBadRequest } from '../utils/errorHandlers';
+import { generateBotToken, sendBotMessage as sendBotMessageService, getBotByToken } from '../services/botService';
 
 const prisma = new PrismaClient();
-
-// Генерация токена для бота
-const generateBotToken = (): string => {
-  return crypto.randomBytes(32).toString('hex');
-};
 
 // Создать нового бота
 export const createBot = async (req: Request, res: Response) => {
@@ -245,35 +241,38 @@ export const regenerateBotToken = async (req: Request, res: Response) => {
 export const sendBotMessage = async (req: Request, res: Response) => {
   try {
     const { token } = req.headers;
-    const { chatId, content, type } = req.body;
+    const { chatId, content, type, fileUrl, fileName, fileSize, thumbnailUrl } = req.body;
 
     if (!token) {
-      return res.status(401).json({ error: 'Bot token is required' });
+      return handleUnauthorized(res, 'Bot token is required');
     }
 
-    const bot = await prisma.bot.findUnique({
-      where: { token: token as string }
-    });
+    const bot = await getBotByToken(token as string);
 
     if (!bot || !bot.isActive) {
-      return res.status(401).json({ error: 'Invalid or inactive bot token' });
+      return handleUnauthorized(res, 'Invalid or inactive bot token');
     }
 
-    // TODO: Создать системного пользователя для бота или использовать владельца
-    // Для упрощения используем ownerId
-    const message = await prisma.message.create({
-      data: {
-        content,
-        type: type || 'TEXT',
-        senderId: bot.ownerId,
-        chatId,
-        isSent: true
-      }
+    // Use the bot service to send the message
+    // This properly handles bot message creation with validation
+    const message = await sendBotMessageService(bot, {
+      chatId,
+      content,
+      type: type || 'TEXT',
+      fileUrl,
+      fileName,
+      fileSize,
+      thumbnailUrl
     });
 
     res.status(201).json(message);
-  } catch (error) {
-    console.error('Error sending bot message:', error);
-    res.status(500).json({ error: 'Failed to send bot message' });
+  } catch (error: any) {
+    if (error.message === 'Chat not found or bot owner is not a member') {
+      return handleForbidden(res, error.message);
+    }
+    if (error.message === 'Bot is not active') {
+      return handleBadRequest(res, error.message);
+    }
+    handleControllerError(error, res, 'Failed to send bot message');
   }
 };

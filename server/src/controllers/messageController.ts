@@ -4,6 +4,10 @@ import { prisma } from '../index';
 import { z } from 'zod';
 import { processMedia } from '../services/mediaService';
 import { sendNewMessageNotification } from '../services/pushService';
+import { handleControllerError, handleNotFound, handleForbidden } from '../utils/errorHandlers';
+import { checkChatMembership } from '../utils/permissions';
+import { extractMentions, extractHashtags } from '../utils/textParsers';
+import { basicUserSelect } from '../utils/userSelect';
 
 const sendMessageSchema = z.object({
   content: z.string().optional(),
@@ -13,40 +17,16 @@ const sendMessageSchema = z.object({
   isSilent: z.boolean().optional(),
 });
 
-// Extract mentions (@username) from text
-function extractMentions(text: string): string[] {
-  const mentionRegex = /@(\w+)/g;
-  const mentions = [];
-  let match;
-  while ((match = mentionRegex.exec(text)) !== null) {
-    mentions.push(match[1]);
-  }
-  return [...new Set(mentions)]; // Remove duplicates
-}
-
-// Extract hashtags (#tag) from text
-function extractHashtags(text: string): string[] {
-  const hashtagRegex = /#(\w+)/g;
-  const hashtags = [];
-  let match;
-  while ((match = hashtagRegex.exec(text)) !== null) {
-    hashtags.push(match[1]);
-  }
-  return [...new Set(hashtags)]; // Remove duplicates
-}
-
 export const getMessages = async (req: AuthRequest, res: Response) => {
   try {
     const { chatId } = req.params;
     const userId = req.userId!;
     const { limit = 50, before } = req.query;
 
-    const isMember = await prisma.chatMember.findFirst({
-      where: { chatId, userId },
-    });
+    const isMember = await checkChatMembership(chatId, userId);
 
     if (!isMember) {
-      return res.status(403).json({ error: 'Not a member of this chat' });
+      return handleForbidden(res, 'Not a member of this chat');
     }
 
     const messages = await prisma.message.findMany({
@@ -57,21 +37,12 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
       },
       include: {
         sender: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-          },
+          select: basicUserSelect,
         },
         replyTo: {
           include: {
             sender: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-              },
+              select: basicUserSelect,
             },
           },
         },
@@ -82,8 +53,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
 
     res.json(messages.reverse());
   } catch (error) {
-    console.error('Get messages error:', error);
-    res.status(500).json({ error: 'Failed to fetch messages' });
+    handleControllerError(error, res, 'Failed to fetch messages');
   }
 };
 
@@ -93,12 +63,10 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const data = sendMessageSchema.parse(req.body);
 
-    const isMember = await prisma.chatMember.findFirst({
-      where: { chatId, userId },
-    });
+    const isMember = await checkChatMembership(chatId, userId);
 
     if (!isMember) {
-      return res.status(403).json({ error: 'Not a member of this chat' });
+      return handleForbidden(res, 'Not a member of this chat');
     }
 
     let fileUrl, fileName, fileSize, thumbnailUrl, duration, waveform;
@@ -160,21 +128,12 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       },
       include: {
         sender: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-          },
+          select: basicUserSelect,
         },
         replyTo: {
           include: {
             sender: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-              },
+              select: basicUserSelect,
             },
           },
         },
@@ -216,11 +175,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(message);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
-    }
-    console.error('Send message error:', error);
-    res.status(500).json({ error: 'Failed to send message' });
+    handleControllerError(error, res, 'Failed to send message');
   }
 };
 
@@ -235,11 +190,11 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
     });
 
     if (!message) {
-      return res.status(404).json({ error: 'Message not found' });
+      return handleNotFound(res, 'Message');
     }
 
     if (message.senderId !== userId) {
-      return res.status(403).json({ error: 'Permission denied' });
+      return handleForbidden(res);
     }
 
     const updatedMessage = await prisma.message.update({
@@ -247,20 +202,14 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
       data: { content, isEdited: true },
       include: {
         sender: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-          },
+          select: basicUserSelect,
         },
       },
     });
 
     res.json(updatedMessage);
   } catch (error) {
-    console.error('Edit message error:', error);
-    res.status(500).json({ error: 'Failed to edit message' });
+    handleControllerError(error, res, 'Failed to edit message');
   }
 };
 
@@ -274,11 +223,11 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
     });
 
     if (!message) {
-      return res.status(404).json({ error: 'Message not found' });
+      return handleNotFound(res, 'Message');
     }
 
     if (message.senderId !== userId) {
-      return res.status(403).json({ error: 'Permission denied' });
+      return handleForbidden(res);
     }
 
     await prisma.message.update({
@@ -288,7 +237,6 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {
-    console.error('Delete message error:', error);
-    res.status(500).json({ error: 'Failed to delete message' });
+    handleControllerError(error, res, 'Failed to delete message');
   }
 };
