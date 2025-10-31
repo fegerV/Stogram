@@ -7,6 +7,8 @@ import {
   getContacts,
   addContact,
   removeContact,
+  subscribeToPush,
+  updateTheme,
 } from '../controllers/userController';
 import { authenticate } from '../middleware/auth';
 import { upload } from '../middleware/upload';
@@ -22,5 +24,7 @@ router.delete('/contacts/:contactId', removeContact);
 router.get('/:userId', getUserById);
 router.patch('/profile', upload.single('avatar'), updateProfile);
 router.post('/change-password', changePassword);
+router.post('/push-subscription', subscribeToPush);
+router.patch('/theme', updateTheme);
 
 export default router;

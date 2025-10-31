@@ -6,6 +6,7 @@ import { useThemeStore } from './store/themeStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChatPage from './pages/ChatPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { socketService } from './services/socket';
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
           path="/register"
           element={isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
         />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route
           path="/*"
           element={isAuthenticated ? <ChatPage /> : <Navigate to="/login" />}
