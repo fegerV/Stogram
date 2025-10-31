@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Stogram Logo](https://via.placeholder.com/150x150/0088cc/ffffff?text=Stogram)
+![Stogram Logo]([https://via.placeholder.com/150x150/0088cc/ffffff?text=Stogram](https://s3.iimg.su/s/31/th_gDR2WHgxsYtJ8dedtLK18pvduN1dnk8QEonQ95Ii.png)](https://iimg.su/i/DR2WHg))
 
 **A modern, feature-rich Progressive Web Application (PWA) messenger built with React and Node.js**
 
