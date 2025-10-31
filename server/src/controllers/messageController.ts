@@ -2,11 +2,14 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../index';
 import { z } from 'zod';
+import { processMedia } from '../services/mediaService';
+import { sendNewMessageNotification } from '../services/pushService';
 
 const sendMessageSchema = z.object({
   content: z.string().optional(),
-  type: z.enum(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'VOICE']).default('TEXT'),
+  type: z.enum(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'VOICE', 'GIF']).default('TEXT'),
   replyToId: z.string().optional(),
+  scheduledFor: z.string().optional(),
 });
 
 export const getMessages = async (req: AuthRequest, res: Response) => {
@@ -75,12 +78,39 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Not a member of this chat' });
     }
 
-    let fileUrl, fileName, fileSize;
+    let fileUrl, fileName, fileSize, thumbnailUrl, duration, waveform;
+    
+    // Process uploaded file
     if (req.file) {
       fileUrl = `/uploads/${req.file.filename}`;
       fileName = req.file.originalname;
       fileSize = req.file.size;
+
+      // Process media (compress, generate thumbnails, etc.)
+      try {
+        const mediaResult = await processMedia(req.file.path, req.file.mimetype);
+        
+        if (mediaResult.compressedPath) {
+          fileUrl = mediaResult.compressedPath.replace(/^.*\/uploads/, '/uploads');
+        }
+        if (mediaResult.thumbnailPath) {
+          thumbnailUrl = mediaResult.thumbnailPath.replace(/^.*\/uploads/, '/uploads');
+        }
+        if (mediaResult.duration) {
+          duration = mediaResult.duration;
+        }
+        if (mediaResult.waveform) {
+          waveform = mediaResult.waveform;
+        }
+      } catch (error) {
+        console.error('Media processing error:', error);
+        // Continue with original file if processing fails
+      }
     }
+
+    // Parse scheduled date if provided
+    const scheduledFor = data.scheduledFor ? new Date(data.scheduledFor) : undefined;
+    const isSent = !scheduledFor; // If not scheduled, mark as sent immediately
 
     const message = await prisma.message.create({
       data: {
@@ -92,6 +122,11 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         fileUrl,
         fileName,
         fileSize,
+        thumbnailUrl,
+        duration,
+        waveform,
+        scheduledFor,
+        isSent,
       },
       include: {
         sender: {
@@ -120,6 +155,34 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       where: { id: chatId },
       data: { updatedAt: new Date() },
     });
+
+    // Send push notifications to other members (only if sent immediately)
+    if (isSent) {
+      const chat = await prisma.chat.findUnique({
+        where: { id: chatId },
+        include: { members: true },
+      });
+
+      if (chat) {
+        const otherMembers = chat.members.filter((m) => m.userId !== userId);
+        const sender = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { displayName: true, username: true },
+        });
+
+        if (sender) {
+          const senderName = sender.displayName || sender.username;
+          otherMembers.forEach((member) => {
+            sendNewMessageNotification(
+              member.userId,
+              senderName,
+              data.content || 'Sent a file',
+              chatId
+            ).catch(console.error);
+          });
+        }
+      }
+    }
 
     res.status(201).json(message);
   } catch (error) {

@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../index';
 import bcrypt from 'bcryptjs';
+import { savePushSubscription } from '../services/pushService';
 
 export const searchUsers = async (req: AuthRequest, res: Response) => {
   try {
@@ -235,5 +236,44 @@ export const removeContact = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Remove contact error:', error);
     res.status(500).json({ error: 'Failed to remove contact' });
+  }
+};
+
+export const subscribeToPush = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { subscription } = req.body;
+
+    if (!subscription) {
+      return res.status(400).json({ error: 'Subscription data required' });
+    }
+
+    await savePushSubscription(userId, JSON.stringify(subscription));
+
+    res.json({ message: 'Push subscription saved successfully' });
+  } catch (error) {
+    console.error('Subscribe to push error:', error);
+    res.status(500).json({ error: 'Failed to save push subscription' });
+  }
+};
+
+export const updateTheme = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { theme } = req.body;
+
+    if (!theme || (theme !== 'light' && theme !== 'dark')) {
+      return res.status(400).json({ error: 'Valid theme required (light or dark)' });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { theme },
+    });
+
+    res.json({ message: 'Theme updated successfully', theme });
+  } catch (error) {
+    console.error('Update theme error:', error);
+    res.status(500).json({ error: 'Failed to update theme' });
   }
 };

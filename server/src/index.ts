@@ -8,6 +8,7 @@ import { initSocketHandlers } from './socket';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { PrismaClient } from '@prisma/client';
+import { initScheduler } from './services/schedulerService';
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 initSocketHandlers(io);
+initScheduler();
 
 const PORT = process.env.PORT || 3001;
 

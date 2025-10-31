@@ -7,6 +7,8 @@ export interface User {
   bio: string | null;
   status: UserStatus;
   lastSeen: string;
+  emailVerified?: boolean;
+  theme?: string;
   createdAt: string;
 }
 
@@ -60,12 +62,18 @@ export interface Message {
   fileUrl: string | null;
   fileName: string | null;
   fileSize: number | null;
+  thumbnailUrl?: string | null;
+  duration?: number | null;
+  waveform?: string | null;
   isEdited: boolean;
   isDeleted: boolean;
+  scheduledFor?: string | null;
+  isSent?: boolean;
   createdAt: string;
   updatedAt: string;
   sender: User;
   replyTo?: Message;
+  reactions?: Reaction[];
 }
 
 export enum MessageType {
@@ -76,6 +84,21 @@ export enum MessageType {
   FILE = 'FILE',
   VOICE = 'VOICE',
   SYSTEM = 'SYSTEM',
+  GIF = 'GIF',
+}
+
+export interface Reaction {
+  id: string;
+  messageId: string;
+  userId: string;
+  emoji: string;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatar: string | null;
+  };
 }
 
 export interface Call {

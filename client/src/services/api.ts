@@ -34,6 +34,8 @@ export const authApi = {
   login: (data: { login: string; password: string }) =>
     api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
+  verifyEmail: (token: string) => api.post('/auth/verify-email', { token }),
+  resendVerification: () => api.post('/auth/resend-verification'),
 };
 
 export const userApi = {
@@ -48,6 +50,9 @@ export const userApi = {
   addContact: (data: { contactId: string; nickname?: string }) =>
     api.post('/users/contacts', data),
   removeContact: (contactId: string) => api.delete(`/users/contacts/${contactId}`),
+  subscribeToPush: (subscription: PushSubscription) =>
+    api.post('/users/push-subscription', { subscription }),
+  updateTheme: (theme: 'light' | 'dark') => api.patch('/users/theme', { theme }),
 };
 
 export const chatApi = {
@@ -74,6 +79,15 @@ export const messageApi = {
   edit: (messageId: string, content: string) =>
     api.patch(`/messages/${messageId}`, { content }),
   delete: (messageId: string) => api.delete(`/messages/${messageId}`),
+};
+
+export const reactionApi = {
+  add: (messageId: string, emoji: string) =>
+    api.post(`/messages/${messageId}/reactions`, { emoji }),
+  remove: (messageId: string, emoji: string) =>
+    api.delete(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`),
+  getReactions: (messageId: string) =>
+    api.get(`/messages/${messageId}/reactions`),
 };
 
 export default api;

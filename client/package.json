@@ -18,7 +18,11 @@
     "react-hot-toast": "^2.4.1",
     "lucide-react": "^0.303.0",
     "clsx": "^2.1.0",
-    "date-fns": "^3.0.6"
+    "date-fns": "^3.0.6",
+    "wavesurfer.js": "^7.7.0",
+    "browser-image-compression": "^2.0.2",
+    "emoji-picker-react": "^4.9.2",
+    "react-player": "^2.14.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.47",
