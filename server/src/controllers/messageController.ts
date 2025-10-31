@@ -10,7 +10,30 @@ const sendMessageSchema = z.object({
   type: z.enum(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'VOICE', 'GIF']).default('TEXT'),
   replyToId: z.string().optional(),
   scheduledFor: z.string().optional(),
+  isSilent: z.boolean().optional(),
 });
+
+// Extract mentions (@username) from text
+function extractMentions(text: string): string[] {
+  const mentionRegex = /@(\w+)/g;
+  const mentions = [];
+  let match;
+  while ((match = mentionRegex.exec(text)) !== null) {
+    mentions.push(match[1]);
+  }
+  return [...new Set(mentions)]; // Remove duplicates
+}
+
+// Extract hashtags (#tag) from text
+function extractHashtags(text: string): string[] {
+  const hashtagRegex = /#(\w+)/g;
+  const hashtags = [];
+  let match;
+  while ((match = hashtagRegex.exec(text)) !== null) {
+    hashtags.push(match[1]);
+  }
+  return [...new Set(hashtags)]; // Remove duplicates
+}
 
 export const getMessages = async (req: AuthRequest, res: Response) => {
   try {
@@ -112,6 +135,10 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const scheduledFor = data.scheduledFor ? new Date(data.scheduledFor) : undefined;
     const isSent = !scheduledFor; // If not scheduled, mark as sent immediately
 
+    // Extract mentions and hashtags from content
+    const mentions = data.content ? extractMentions(data.content) : [];
+    const hashtags = data.content ? extractHashtags(data.content) : [];
+
     const message = await prisma.message.create({
       data: {
         content: data.content,
@@ -127,6 +154,9 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         waveform,
         scheduledFor,
         isSent,
+        isSilent: data.isSilent || false,
+        mentions,
+        hashtags,
       },
       include: {
         sender: {
@@ -156,8 +186,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       data: { updatedAt: new Date() },
     });
 
-    // Send push notifications to other members (only if sent immediately)
-    if (isSent) {
+    // Send push notifications to other members (only if sent immediately and not silent)
+    if (isSent && !data.isSilent) {
       const chat = await prisma.chat.findUnique({
         where: { id: chatId },
         include: { members: true },
