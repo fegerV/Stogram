@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { Chat, Message } from '../types';
 import { chatApi, messageApi } from '../services/api';
-import { socketService } from '../services/socket';
 
 interface ChatState {
   chats: Chat[];

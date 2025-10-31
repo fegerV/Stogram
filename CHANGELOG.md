@@ -98,21 +98,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Group calls limited to 2 participants
 - File upload size limited to 10MB
 - No message search functionality yet
-- No dark mode yet
 
 ---
 
 ## [Unreleased]
 
+### In Development for v1.1
+
+#### Added
+- **Dark Mode** 🎨
+  - Three theme modes: Light, Dark, and System (auto-detect)
+  - Theme toggle component with visual switcher
+  - Persistent theme selection (localStorage)
+  - Automatic system theme detection and updates
+  - Full dark theme support for auth pages (Login, Register)
+  - Dark theme support for chat interface (ChatList, ChatPage)
+  - Updated Tailwind configuration with dark mode classes
+  - Improved scrollbar styling for both themes
+
 ### Planned for v1.1
 - Voice message recording
 - Message reactions (emoji)
-- Dark mode support
 - Two-factor authentication
 - Email verification
 - Password reset functionality
 - Message forwarding
 - Advanced search
+- Push notifications
 
 ---
 

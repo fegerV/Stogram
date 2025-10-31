@@ -153,7 +153,7 @@
 - 🔲 Notification scheduling
 
 #### User Experience
-- 🔲 Dark mode / Light mode toggle
+- ✅ Dark mode / Light mode toggle (with System auto-detect)
 - 🔲 Custom themes
 - 🔲 Chat backgrounds
 - 🔲 Font size adjustment
