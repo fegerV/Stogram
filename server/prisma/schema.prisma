@@ -112,6 +112,7 @@ model Message {
   thumbnailUrl String?
   duration     Int?
   waveform     String?
+  stickerId    String?
   isEdited     Boolean     @default(false)
   isDeleted    Boolean     @default(false)
   isSilent     Boolean     @default(false)
@@ -135,6 +136,7 @@ model Message {
   @@index([scheduledFor])
   @@index([mentions])
   @@index([hashtags])
+  @@index([stickerId])
 }
 
 enum MessageType {
@@ -146,16 +148,19 @@ enum MessageType {
   VOICE
   SYSTEM
   GIF
+  STICKER
 }
 
 model Call {
-  id          String     @id @default(uuid())
-  chatId      String
-  initiatorId String
-  type        CallType
-  status      CallStatus @default(CALLING)
-  startedAt   DateTime   @default(now())
-  endedAt     DateTime?
+  id             String     @id @default(uuid())
+  chatId         String
+  initiatorId    String
+  type           CallType
+  status         CallStatus @default(CALLING)
+  isRecording    Boolean    @default(false)
+  recordingUrl   String?
+  startedAt      DateTime   @default(now())
+  endedAt        DateTime?
 
   chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
   initiator    User              @relation("CallInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
@@ -242,6 +247,7 @@ model ChatSettings {
   chatId            String
   isMuted           Boolean  @default(false)
   isFavorite        Boolean  @default(false)
+  isArchived        Boolean  @default(false)
   folderId          String?
   unreadCount       Int      @default(0)
   lastReadMessageId String?
@@ -257,6 +263,7 @@ model ChatSettings {
   @@index([chatId])
   @@index([folderId])
   @@index([isFavorite])
+  @@index([isArchived])
 }
 
 model Folder {
@@ -291,4 +298,106 @@ model PinnedMessage {
   @@index([userId])
   @@index([messageId])
   @@index([chatId])
+}
+
+model StickerPack {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  thumbnail   String?
+  isPublic    Boolean   @default(true)
+  creatorId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  stickers Sticker[]
+
+  @@index([slug])
+  @@index([creatorId])
+  @@index([isPublic])
+}
+
+model Sticker {
+  id        String   @id @default(uuid())
+  packId    String
+  emoji     String?
+  imageUrl  String
+  width     Int
+  height    Int
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  pack StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
+}
+
+model Bot {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  displayName String
+  description String?
+  avatar      String?
+  token       String    @unique
+  isActive    Boolean   @default(true)
+  isInline    Boolean   @default(false)
+  ownerId     String
+  webhookUrl  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  commands BotCommand[]
+  webhooks Webhook[]
+
+  @@index([token])
+  @@index([username])
+  @@index([ownerId])
+  @@index([isActive])
+}
+
+model BotCommand {
+  id          String   @id @default(uuid())
+  botId       String
+  command     String
+  description String
+  createdAt   DateTime @default(now())
+
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, command])
+  @@index([botId])
+}
+
+model Webhook {
+  id          String       @id @default(uuid())
+  botId       String
+  url         String
+  events      String[]
+  isActive    Boolean      @default(true)
+  secret      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  bot          Bot           @relation(fields: [botId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@index([botId])
+  @@index([isActive])
+}
+
+model WebhookDelivery {
+  id          String   @id @default(uuid())
+  webhookId   String
+  event       String
+  payload     String
+  status      Int
+  response    String?
+  attempts    Int      @default(0)
+  deliveredAt DateTime @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([deliveredAt])
 }
