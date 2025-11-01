@@ -49,3 +49,4 @@ export const authenticate = async (
 };
 
 export const auth = authenticate;
+export const authenticateToken = authenticate;

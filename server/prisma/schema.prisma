@@ -24,6 +24,18 @@ model User {
   showOnlineStatus  Boolean    @default(true)
   showProfilePhoto  Boolean    @default(true)
   showLastSeen      Boolean    @default(true)
+  
+  // Telegram Integration
+  telegramId               String?  @unique
+  telegramUsername         String?
+  telegramFirstName        String?
+  telegramLastName         String?
+  telegramPhotoUrl         String?
+  telegramAuthDate         DateTime?
+  telegramNotifications    Boolean  @default(false)
+  telegramSyncMessages     Boolean  @default(false)
+  telegramSyncProfile      Boolean  @default(false)
+  
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -39,10 +51,12 @@ model User {
   chatSettings     ChatSettings[]
   folders          Folder[]
   pinnedMessages   PinnedMessage[]
+  telegramBridges  TelegramChatBridge[]
 
   @@index([email])
   @@index([username])
   @@index([verificationToken])
+  @@index([telegramId])
 }
 
 enum UserStatus {
@@ -400,4 +414,69 @@ model WebhookDelivery {
 
   @@index([webhookId])
   @@index([deliveredAt])
+}
+
+model TelegramChatBridge {
+  id                String   @id @default(uuid())
+  userId            String
+  stogramChatId     String
+  telegramChatId    String
+  telegramChatType  String
+  isActive          Boolean  @default(true)
+  syncDirection     SyncDirection @default(BIDIRECTIONAL)
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncedMessages TelegramMessageSync[]
+
+  @@unique([stogramChatId, telegramChatId])
+  @@index([userId])
+  @@index([stogramChatId])
+  @@index([telegramChatId])
+  @@index([isActive])
+}
+
+enum SyncDirection {
+  TELEGRAM_TO_STOGRAM
+  STOGRAM_TO_TELEGRAM
+  BIDIRECTIONAL
+}
+
+model TelegramMessageSync {
+  id                String   @id @default(uuid())
+  bridgeId          String
+  stogramMessageId  String?
+  telegramMessageId String
+  direction         String
+  syncedAt          DateTime @default(now())
+
+  bridge TelegramChatBridge @relation(fields: [bridgeId], references: [id], onDelete: Cascade)
+
+  @@unique([bridgeId, telegramMessageId])
+  @@index([bridgeId])
+  @@index([stogramMessageId])
+  @@index([telegramMessageId])
+}
+
+model TelegramMiniAppSession {
+  id                String   @id @default(uuid())
+  userId            String
+  telegramUserId    String
+  initData          String
+  initDataUnsafe    String
+  queryId           String?
+  platform          String?
+  version           String?
+  isActive          Boolean  @default(true)
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([telegramUserId])
+  @@index([queryId])
+  @@index([isActive])
+  @@index([expiresAt])
 }
