@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../index';
+import telegramService from '../services/telegramService';
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -100,6 +101,43 @@ export const initSocketHandlers = (io: Server) => {
         });
 
         io.to(`chat:${chatId}`).emit('message:new', message);
+
+        // Отправить уведомления в Telegram для офлайн пользователей
+        const chatMembers = await prisma.chatMember.findMany({
+          where: { chatId },
+          include: { user: true }
+        });
+
+        for (const member of chatMembers) {
+          if (
+            member.userId !== userId && 
+            member.user.telegramId && 
+            member.user.telegramNotifications &&
+            !userSockets.has(member.userId)
+          ) {
+            const senderName = message.sender.displayName || message.sender.username;
+            await telegramService.sendNotification(
+              member.user.telegramId,
+              `💬 Новое сообщение от *${senderName}*\n\n${content}`
+            );
+          }
+        }
+
+        // Синхронизировать сообщение с Telegram через мосты
+        const bridges = await prisma.telegramChatBridge.findMany({
+          where: {
+            stogramChatId: chatId,
+            isActive: true
+          }
+        });
+
+        for (const bridge of bridges) {
+          try {
+            await telegramService.syncMessageToTelegram(bridge.id, message);
+          } catch (error) {
+            console.error('Failed to sync message to Telegram:', error);
+          }
+        }
       } catch (error) {
         console.error('Message send error:', error);
         socket.emit('error', { message: 'Failed to send message' });
