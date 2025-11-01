@@ -36,6 +36,18 @@ model User {
   telegramSyncMessages     Boolean  @default(false)
   telegramSyncProfile      Boolean  @default(false)
   
+  // Security enhancements
+  twoFactorEnabled  Boolean    @default(false)
+  twoFactorSecret   String?
+  backupCodes       String[]   @default([])
+  failedLoginAttempts Int      @default(0)
+  lockedUntil       DateTime?
+  trustedIPs        String[]   @default([])
+  
+  // E2E Encryption
+  publicKey         String?
+  encryptedPrivateKey String?
+  
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -52,6 +64,9 @@ model User {
   folders          Folder[]
   pinnedMessages   PinnedMessage[]
   telegramBridges  TelegramChatBridge[]
+  securityLogs     SecurityLog[]
+  ipBlacklist      IPBlacklist[]
+  themes           UserTheme[]
 
   @@index([email])
   @@index([username])
@@ -73,6 +88,11 @@ model Chat {
   avatar      String?
   description String?
   isSecret    Boolean  @default(false)
+  
+  // E2E Encryption keys
+  encryptionKeyId String?
+  encryptionType  String? @default("none") // none, e2e
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -81,6 +101,7 @@ model Chat {
   calls          Call[]
   chatSettings   ChatSettings[]
   pinnedMessages PinnedMessage[]
+  encryptionKeys ChatEncryptionKey[]
 
   @@index([type])
   @@index([isSecret])
@@ -134,6 +155,17 @@ model Message {
   isSent       Boolean     @default(false)
   mentions     String[]    @default([])
   hashtags     String[]    @default([])
+  
+  // E2E Encryption
+  isEncrypted  Boolean     @default(false)
+  encryptedContent String?
+  encryptionKeyId  String?
+  
+  // Media processing
+  isCompressed Boolean     @default(false)
+  originalFileUrl String?
+  videoFormats String?     // JSON array of available formats
+  
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -358,11 +390,19 @@ model Bot {
   isInline    Boolean   @default(false)
   ownerId     String
   webhookUrl  String?
+  
+  // Analytics
+  messagesSent Int       @default(0)
+  messagesReceived Int   @default(0)
+  uniqueUsers  Int       @default(0)
+  
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   commands BotCommand[]
   webhooks Webhook[]
+  inlineKeyboards BotInlineKeyboard[]
+  analytics BotAnalytics[]
 
   @@index([token])
   @@index([username])
@@ -479,4 +519,186 @@ model TelegramMiniAppSession {
   @@index([queryId])
   @@index([isActive])
   @@index([expiresAt])
+}
+
+// E2E Encryption models
+model ChatEncryptionKey {
+  id          String   @id @default(uuid())
+  chatId      String
+  keyVersion  Int      @default(1)
+  publicKey   String
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([keyVersion])
+}
+
+// Security models
+model SecurityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String
+  ipAddress   String
+  userAgent   String?
+  location    String?
+  success     Boolean  @default(true)
+  details     String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([ipAddress])
+  @@index([createdAt])
+}
+
+model IPBlacklist {
+  id          String   @id @default(uuid())
+  userId      String?
+  ipAddress   String
+  reason      String
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ipAddress])
+  @@index([expiresAt])
+}
+
+model SpamReport {
+  id          String   @id @default(uuid())
+  reporterId  String
+  targetId    String
+  targetType  String   // user, message, chat
+  reason      String
+  status      String   @default("pending") // pending, reviewed, actioned
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([targetId])
+  @@index([targetType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Bot enhancements
+model BotInlineKeyboard {
+  id          String   @id @default(uuid())
+  botId       String
+  name        String
+  buttons     String   // JSON array of buttons
+  createdAt   DateTime @default(now())
+
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+}
+
+model BotCallbackQuery {
+  id          String   @id @default(uuid())
+  botId       String
+  userId      String
+  messageId   String
+  callbackData String
+  answered    Boolean  @default(false)
+  answerText  String?
+  createdAt   DateTime @default(now())
+
+  @@index([botId])
+  @@index([userId])
+  @@index([messageId])
+  @@index([answered])
+}
+
+model BotInlineQuery {
+  id          String   @id @default(uuid())
+  botId       String
+  userId      String
+  query       String
+  offset      String?
+  answered    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([botId])
+  @@index([userId])
+  @@index([answered])
+}
+
+// Analytics models
+model BotAnalytics {
+  id          String   @id @default(uuid())
+  botId       String
+  date        DateTime
+  messagesSent Int     @default(0)
+  messagesReceived Int @default(0)
+  uniqueUsers Int      @default(0)
+  commands    String?  // JSON object with command counts
+  
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, date])
+  @@index([botId])
+  @@index([date])
+}
+
+model UserAnalytics {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime
+  messagesSent    Int      @default(0)
+  messagesReceived Int     @default(0)
+  callsMade       Int      @default(0)
+  callsReceived   Int      @default(0)
+  activeMinutes   Int      @default(0)
+  
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model SystemAnalytics {
+  id              String   @id @default(uuid())
+  date            DateTime @unique
+  totalUsers      Int      @default(0)
+  activeUsers     Int      @default(0)
+  totalMessages   Int      @default(0)
+  totalCalls      Int      @default(0)
+  totalStorage    BigInt   @default(0)
+  avgResponseTime Int      @default(0)
+  errorCount      Int      @default(0)
+  
+  @@index([date])
+}
+
+// UI/UX models
+model UserTheme {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  colors      String   // JSON object with color scheme
+  isDark      Boolean  @default(false)
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Performance optimization
+model MessageCache {
+  id          String   @id @default(uuid())
+  chatId      String
+  messageIds  String   // JSON array of recent message IDs
+  lastUpdate  DateTime @default(now())
+  
+  @@unique([chatId])
+  @@index([chatId])
+  @@index([lastUpdate])
 }
