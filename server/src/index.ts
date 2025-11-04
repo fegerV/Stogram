@@ -9,6 +9,7 @@ import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { PrismaClient } from '@prisma/client';
 import { initScheduler } from './services/schedulerService';
+import { lenientIPRateLimit } from './middleware/ipRateLimit';
 
 dotenv.config();
 
@@ -23,13 +24,40 @@ const io = new Server(httpServer, {
 
 export const prisma = new PrismaClient();
 
-app.use(helmet());
+// Security headers with Helmet - Enhanced with CSP and HSTS
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+      connectSrc: ["'self'", process.env.CLIENT_URL || 'http://localhost:5173'],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", 'blob:'],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year in seconds
+    includeSubDomains: true,
+    preload: true,
+  },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: true,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Global IP-based rate limiting for all API routes (1000 requests per 15 minutes)
+app.use('/api', lenientIPRateLimit);
 
 app.use('/uploads', express.static('uploads'));
 
