@@ -324,7 +324,7 @@ export const getArchivedChats = async (req: Request, res: Response) => {
       }
     });
 
-    const chats = archivedSettings.map(s => s.chat);
+    const chats = archivedSettings.map((s: { chat: any }) => s.chat);
     res.json({ chats });
   } catch (error) {
     console.error('Get archived chats error:', error);

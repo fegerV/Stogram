@@ -59,7 +59,7 @@ export class BotEnhancedController {
       });
 
       res.json({
-        keyboards: keyboards.map(k => ({
+        keyboards: keyboards.map((k: { buttons: string; [key: string]: any }) => ({
           ...k,
           buttons: JSON.parse(k.buttons),
         })),

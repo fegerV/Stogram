@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Plus, Trash2, Edit2, RefreshCw, Copy, Terminal } from 'lucide-react';
+import { Bot, Plus, Trash2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 interface BotType {

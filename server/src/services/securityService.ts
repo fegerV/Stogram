@@ -177,12 +177,12 @@ export class SecurityService {
 
     // Check for multiple failed logins
     const failedLogins = recentLogs.filter(
-      log => log.action === 'login' && !log.success
+      (log: { action: string; success: boolean }) => log.action === 'login' && !log.success
     );
     if (failedLogins.length > 3) return true;
 
     // Check for multiple IPs
-    const uniqueIPs = new Set(recentLogs.map(log => log.ipAddress));
+    const uniqueIPs = new Set(recentLogs.map((log: { ipAddress: string }) => log.ipAddress));
     if (uniqueIPs.size > 5) return true;
 
     // Check for rapid actions

@@ -18,7 +18,7 @@ export const searchMessages = async (req: Request, res: Response) => {
       select: { chatId: true }
     });
 
-    const chatIds = userChatIds.map(cm => cm.chatId);
+    const chatIds = userChatIds.map((cm: { chatId: string }) => cm.chatId);
 
     const whereClause: any = {
       chatId: chatId ? String(chatId) : { in: chatIds },
@@ -90,7 +90,7 @@ export const searchByHashtag = async (req: Request, res: Response) => {
       select: { chatId: true }
     });
 
-    const chatIds = userChatIds.map(cm => cm.chatId);
+    const chatIds = userChatIds.map((cm: { chatId: string }) => cm.chatId);
 
     const messages = await prisma.message.findMany({
       where: {
@@ -137,7 +137,7 @@ export const searchByMention = async (req: Request, res: Response) => {
       select: { chatId: true }
     });
 
-    const chatIds = userChatIds.map(cm => cm.chatId);
+    const chatIds = userChatIds.map((cm: { chatId: string }) => cm.chatId);
 
     const messages = await prisma.message.findMany({
       where: {

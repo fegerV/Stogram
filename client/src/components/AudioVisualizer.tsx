@@ -47,7 +47,7 @@ export const AudioVisualizer = ({ audioUrl, waveform, duration }: AudioVisualize
     wavesurfer.current.on('play', () => setIsPlaying(true));
     wavesurfer.current.on('pause', () => setIsPlaying(false));
     wavesurfer.current.on('audioprocess', (time) => setCurrentTime(time));
-    wavesurfer.current.on('seek', () => {
+    wavesurfer.current.on('interaction', () => {
       setCurrentTime(wavesurfer.current?.getCurrentTime() || 0);
     });
 

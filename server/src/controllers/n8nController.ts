@@ -58,12 +58,12 @@ export const getChatsForN8n = async (req: Request, res: Response) => {
       }
     });
 
-    const chats = chatMembers.map(cm => ({
+    const chats = chatMembers.map((cm: { chat: any }) => ({
       id: cm.chat.id,
       name: cm.chat.name,
       type: cm.chat.type,
       avatar: cm.chat.avatar,
-      members: cm.chat.members.map(m => m.user)
+      members: cm.chat.members.map((m: { user: any }) => m.user)
     }));
 
     res.json({ chats });
