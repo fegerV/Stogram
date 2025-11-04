@@ -4,6 +4,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { prisma } from '../index';
 import { z } from 'zod';
 import { generateVerificationToken, sendVerificationEmail } from '../services/emailService';
+import { AuditLogService, AuditAction } from '../services/auditLogService';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -72,6 +73,15 @@ export const register = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    // Audit log successful registration
+    await AuditLogService.logAuth(
+      AuditAction.USER_REGISTER,
+      user.id,
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+      true
+    );
+
     res.status(201).json({ user, token });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -93,12 +103,30 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
+      // Audit log failed login attempt
+      await AuditLogService.logAuth(
+        AuditAction.USER_LOGIN,
+        'unknown',
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        false,
+        'User not found'
+      );
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
+      // Audit log failed login attempt
+      await AuditLogService.logAuth(
+        AuditAction.USER_LOGIN,
+        user.id,
+        req.ip || req.socket.remoteAddress || 'unknown',
+        req.headers['user-agent'] || 'unknown',
+        false,
+        'Invalid password'
+      );
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -123,6 +151,15 @@ export const login = async (req: Request, res: Response) => {
       status: user.status,
       createdAt: user.createdAt,
     };
+
+    // Audit log successful login
+    await AuditLogService.logAuth(
+      AuditAction.USER_LOGIN,
+      user.id,
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+      true
+    );
 
     res.json({ user: userResponse, token });
   } catch (error) {
@@ -187,6 +224,15 @@ export const verifyEmail = async (req: Request, res: Response) => {
         verificationToken: null,
       },
     });
+
+    // Audit log email verification
+    await AuditLogService.logAuth(
+      AuditAction.EMAIL_VERIFIED,
+      user.id,
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+      true
+    );
 
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
