@@ -25,7 +25,6 @@ export const BotManager: React.FC = () => {
   const [bots, setBots] = useState<BotType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedBot, setSelectedBot] = useState<BotType | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     displayName: '',
@@ -94,11 +93,6 @@ export const BotManager: React.FC = () => {
     } catch (error) {
       console.error('Failed to regenerate token:', error);
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Скопировано в буфер обмена');
   };
 
   return (

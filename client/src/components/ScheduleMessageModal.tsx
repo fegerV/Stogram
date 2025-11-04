@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
-import { format, addMinutes, addHours, addDays } from 'date-fns';
+import { format, addMinutes, addHours } from 'date-fns';
 
 interface ScheduleMessageModalProps {
   isOpen: boolean;

@@ -8,7 +8,6 @@ interface TwoFactorAuthProps {
 const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
   const [step, setStep] = useState<'setup' | 'verify' | 'complete'>('setup');
   const [secret, setSecret] = useState('');
-  const [qrCodeData, setQrCodeData] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [verificationCode, setVerificationCode] = useState('');
   const [copied, setCopied] = useState(false);
@@ -28,7 +27,6 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
       if (response.ok) {
         const data = await response.json();
         setSecret(data.data.secret);
-        setQrCodeData(data.data.qrCodeData);
         setBackupCodes(data.data.backupCodes);
         setStep('verify');
       } else {

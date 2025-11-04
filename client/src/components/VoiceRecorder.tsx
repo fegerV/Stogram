@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Trash2, Send } from 'lucide-react';
+import { Square, Trash2, Send } from 'lucide-react';
 
 interface VoiceRecorderProps {
   onSend: (audioBlob: Blob) => void;
