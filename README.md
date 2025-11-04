@@ -458,24 +458,39 @@ docker-compose up -d --build
 
 ## 📚 Документация
 
-### Основная документация
-- **[ДОКУМЕНТАЦИЯ.md](./ДОКУМЕНТАЦИЯ.md)**: Полная документация на русском языке
-- **[СТАТУС_РЕАЛИЗАЦИИ.md](./СТАТУС_РЕАЛИЗАЦИИ.md)**: Статус реализации всех функций
-- **[IMPROVEMENTS_V2.md](./IMPROVEMENTS_V2.md)**: ⭐ Новые улучшения версии 2.0.0
-- **[Руководство пользователя](./USER_GUIDE.md)**: Полное руководство для конечных пользователей
-- **[Руководство по развёртыванию](./DEPLOYMENT.md)**: Инструкции по развёртыванию в продакшн
-- **[Руководство по участию](./CONTRIBUTING.md)**: Участие в разработке
-- **[Безопасность](./SECURITY.md)**: Рекомендации по безопасности
-- **[История изменений](./CHANGELOG.md)**: Список изменений и версий
+**📖 [Complete Documentation →](./docs/README.md)**
 
-### Telegram интеграция
-- **[TELEGRAM_INTEGRATION.md](./TELEGRAM_INTEGRATION.md)**: Полная документация по Telegram интеграции
-- **[TELEGRAM_SETUP_GUIDE.md](./TELEGRAM_SETUP_GUIDE.md)**: Пошаговое руководство по настройке
-- **[TELEGRAM_API_EXAMPLES.md](./TELEGRAM_API_EXAMPLES.md)**: Примеры использования API
+### 👥 User Documentation
+- **[User Guide](./docs/user-guide/USER_GUIDE.md)**: Complete guide for end users
+- **[Features Overview](./docs/user-guide/FEATURES.md)**: All available features and capabilities
 
-### Мобильное приложение
-- **[Mobile README](./mobile/README.md)**: Документация по React Native приложению
-- **[Mobile Implementation Status](./mobile/IMPLEMENTATION_STATUS.md)**: Статус реализации функций
+### 🔧 Developer Documentation
+- **[Architecture](./docs/development/ARCHITECTURE.md)**: System architecture and design
+- **[Contributing Guide](./CONTRIBUTING.md)**: How to contribute to the project
+- **[API Documentation](./docs/api/)**: REST and WebSocket API reference
+
+### 🚀 Deployment & Setup
+- **[Deployment Guide](./docs/deployment/DEPLOYMENT.md)**: Production deployment instructions
+- **[Quick Start](./docs/deployment/QUICKSTART.md)**: Automated setup guide
+- **[Migration Guide](./docs/deployment/MIGRATION.md)**: Database migration instructions
+
+### 🔌 Integrations
+- **[Telegram Integration](./docs/api/TELEGRAM.md)**: Complete Telegram integration guide
+- **[Telegram Setup](./docs/api/TELEGRAM_SETUP.md)**: Step-by-step setup instructions
+- **[Telegram API Examples](./docs/api/TELEGRAM_EXAMPLES.md)**: API usage examples
+
+### 📱 Mobile Application
+- **[Mobile Documentation](./docs/mobile/README.md)**: React Native mobile app documentation
+- **[Mobile Status](./docs/mobile/STATUS.md)**: Implementation status and roadmap
+- **[Features Checklist](./docs/mobile/CHECKLIST.md)**: Mobile features checklist
+
+### 🇷🇺 Русская документация
+- **[Полная документация](./docs/ru/README.md)**: Complete documentation in Russian
+- **[Статус реализации](./docs/ru/STATUS.md)**: Implementation status in Russian
+
+### 📝 Reference
+- **[Security Policy](./SECURITY.md)**: Security guidelines and reporting
+- **[Changelog](./CHANGELOG.md)**: Version history and changes
 
 ---
 
