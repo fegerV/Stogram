@@ -449,7 +449,7 @@ class TelegramService {
     });
   }
 
-  async validateMiniAppData(initData: string): boolean {
+  async validateMiniAppData(initData: string): Promise<boolean> {
     if (!this.botToken) return false;
 
     try {

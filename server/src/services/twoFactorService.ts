@@ -111,7 +111,7 @@ export class TwoFactorService {
     
     if (backupCodeIndex !== -1) {
       // Remove used backup code
-      const newBackupCodes = user.backupCodes.filter((_, i) => i !== backupCodeIndex);
+      const newBackupCodes = user.backupCodes.filter((_: string, i: number) => i !== backupCodeIndex);
       await prisma.user.update({
         where: { id: userId },
         data: { backupCodes: newBackupCodes },

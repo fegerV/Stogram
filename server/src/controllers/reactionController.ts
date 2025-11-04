@@ -33,7 +33,7 @@ export const addReaction = async (req: any, res: Response) => {
     }
 
     // Check if user is a member of the chat
-    const isMember = message.chat.members.some((m) => m.userId === userId);
+    const isMember = message.chat.members.some((m: { userId: string }) => m.userId === userId);
     if (!isMember) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -66,8 +66,8 @@ export const addReaction = async (req: any, res: Response) => {
     });
 
     // Emit to all chat members
-    const memberIds = message.chat.members.map((m) => m.userId);
-    memberIds.forEach((memberId) => {
+    const memberIds = message.chat.members.map((m: { userId: string }) => m.userId);
+    memberIds.forEach((memberId: string) => {
       io.to(`user:${memberId}`).emit('reaction:add', {
         messageId,
         reaction,
@@ -126,8 +126,8 @@ export const removeReaction = async (req: any, res: Response) => {
     });
 
     // Emit to all chat members
-    const memberIds = reaction.message.chat.members.map((m) => m.userId);
-    memberIds.forEach((memberId) => {
+    const memberIds = reaction.message.chat.members.map((m: { userId: string }) => m.userId);
+    memberIds.forEach((memberId: string) => {
       io.to(`user:${memberId}`).emit('reaction:remove', {
         messageId,
         userId,
@@ -167,7 +167,7 @@ export const getReactions = async (req: any, res: Response) => {
     });
 
     // Group by emoji
-    const grouped = reactions.reduce((acc, reaction) => {
+    const grouped = reactions.reduce((acc: any, reaction: any) => {
       if (!acc[reaction.emoji]) {
         acc[reaction.emoji] = [];
       }

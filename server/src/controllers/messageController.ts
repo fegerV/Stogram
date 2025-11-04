@@ -153,7 +153,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       });
 
       if (chat) {
-        const otherMembers = chat.members.filter((m) => m.userId !== userId);
+        const otherMembers = chat.members.filter((m: { userId: string }) => m.userId !== userId);
         const sender = await prisma.user.findUnique({
           where: { id: userId },
           select: { displayName: true, username: true },
@@ -161,7 +161,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
         if (sender) {
           const senderName = sender.displayName || sender.username;
-          otherMembers.forEach((member) => {
+          otherMembers.forEach((member: { userId: string }) => {
             sendNewMessageNotification(
               member.userId,
               senderName,

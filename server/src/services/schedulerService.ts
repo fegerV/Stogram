@@ -73,8 +73,8 @@ export const checkScheduledMessages = async (): Promise<void> => {
         });
 
         // Emit to all chat members
-        const memberIds = message.chat.members.map((m) => m.userId);
-        memberIds.forEach((userId) => {
+        const memberIds = message.chat.members.map((m: { userId: string }) => m.userId);
+        memberIds.forEach((userId: string) => {
           io.to(`user:${userId}`).emit('message:new', sentMessage);
         });
 

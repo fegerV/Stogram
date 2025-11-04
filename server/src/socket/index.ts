@@ -48,7 +48,7 @@ export const initSocketHandlers = (io: Server) => {
       select: { chatId: true },
     });
 
-    userChats.forEach(({ chatId }) => {
+    userChats.forEach(({ chatId }: { chatId: string }) => {
       socket.join(`chat:${chatId}`);
     });
 

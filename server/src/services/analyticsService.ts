@@ -205,7 +205,7 @@ export class AnalyticsService {
       },
     });
 
-    const totalStorage = messages.reduce((sum, msg) => sum + (msg.fileSize || 0), 0);
+    const totalStorage = messages.reduce((sum: number, msg: { fileSize: number | null }) => sum + (msg.fileSize || 0), 0);
 
     await prisma.systemAnalytics.upsert({
       where: { date: today },
