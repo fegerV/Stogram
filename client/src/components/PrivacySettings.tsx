@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Eye, EyeOff, Clock, Image } from 'lucide-react';
+import { Shield, Eye, Clock, Image } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 

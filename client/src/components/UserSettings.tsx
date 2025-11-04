@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Shield, Palette, Bot, Archive, Webhook } from 'lucide-react';
+import { User, Bell, Shield, Palette, Bot, Webhook } from 'lucide-react';
 import axios from 'axios';
 
 interface UserSettingsProps {

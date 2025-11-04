@@ -120,7 +120,7 @@ export const LazyImage: React.FC<{
   alt: string;
   className?: string;
   placeholder?: string;
-}> = ({ src, alt, className = '', placeholder = '' }) => {
+}> = ({ src, alt, className = '' }) => {
   const [loaded, setLoaded] = useState(false);
   const [inView, setInView] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
