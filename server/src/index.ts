@@ -73,9 +73,10 @@ initSocketHandlers(io);
 initScheduler();
 
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Stogram server running on port ${PORT}`);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`🚀 Stogram server running on ${HOST}:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
