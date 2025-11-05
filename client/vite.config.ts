@@ -72,6 +72,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
     port: 5173,
     proxy: {
       '/api': {
@@ -83,5 +84,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    host: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
+    port: 5173,
   },
 });
