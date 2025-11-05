@@ -133,7 +133,6 @@ export class BotEnhancedController {
       // Verify bot ownership
       const query = await prisma.botCallbackQuery.findUnique({
         where: { id: queryId },
-        include: { bot: { select: { token: true } } },
       });
 
       if (!query) {
@@ -141,9 +140,20 @@ export class BotEnhancedController {
         return;
       }
 
+      // Get bot to verify token
+      const bot = await prisma.bot.findUnique({
+        where: { id: query.botId },
+        select: { token: true },
+      });
+
+      if (!bot) {
+        res.status(404).json({ error: 'Bot not found' });
+        return;
+      }
+
       // Verify bot token from header
       const botToken = req.headers['token'] as string;
-      if (botToken !== query.bot.token) {
+      if (botToken !== bot.token) {
         res.status(403).json({ error: 'Invalid bot token' });
         return;
       }
@@ -198,7 +208,6 @@ export class BotEnhancedController {
       // Verify bot token
       const query = await prisma.botInlineQuery.findUnique({
         where: { id: queryId },
-        include: { bot: { select: { token: true } } },
       });
 
       if (!query) {
@@ -206,8 +215,19 @@ export class BotEnhancedController {
         return;
       }
 
+      // Get bot to verify token
+      const bot = await prisma.bot.findUnique({
+        where: { id: query.botId },
+        select: { token: true },
+      });
+
+      if (!bot) {
+        res.status(404).json({ error: 'Bot not found' });
+        return;
+      }
+
       const botToken = req.headers['token'] as string;
-      if (botToken !== query.bot.token) {
+      if (botToken !== bot.token) {
         res.status(403).json({ error: 'Invalid bot token' });
         return;
       }

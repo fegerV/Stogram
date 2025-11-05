@@ -61,6 +61,34 @@ app.use('/api', lenientIPRateLimit);
 
 app.use('/uploads', express.static('uploads'));
 
+// Serve static client files in production
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  const clientDistPath = path.join(__dirname, '../../client/dist');
+  
+  console.log(`📂 Serving static files from: ${clientDistPath}`);
+  
+  app.use(express.static(clientDistPath, {
+    maxAge: '1y',
+    etag: true,
+    lastModified: true
+  }));
+  
+  // For any non-API routes, serve the React app
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io') && !req.path.startsWith('/uploads')) {
+      const indexPath = path.join(clientDistPath, 'index.html');
+      console.log(`📄 Serving React app for path: ${req.path} -> ${indexPath}`);
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error(`❌ Error serving file: ${err.message}`);
+          res.status(500).send('Internal Server Error');
+        }
+      });
+    }
+  });
+}
+
 app.use('/api', routes);
 
 app.get('/health', (req, res) => {
@@ -72,7 +100,7 @@ app.use(errorHandler);
 initSocketHandlers(io);
 initScheduler();
 
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
 httpServer.listen(PORT, HOST, () => {
