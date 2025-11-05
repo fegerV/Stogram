@@ -555,6 +555,8 @@ npx tsc --noEmit
 - **[Deployment Guide](./docs/deployment/DEPLOYMENT.md)**: Production deployment instructions
 - **[Quick Start](./docs/deployment/QUICKSTART.md)**: Automated setup guide
 - **[Migration Guide](./docs/deployment/MIGRATION.md)**: Database migration instructions
+- **[Railway Deployment](./RAILWAY_DEPLOYMENT.md)**: Complete Railway.app deployment guide
+- **[Railway Quick Start](./RAILWAY_QUICKSTART.md)**: Quick Railway deployment instructions
 
 ### 🔌 Integrations
 - **[Telegram Integration](./docs/api/TELEGRAM.md)**: Complete Telegram integration guide
