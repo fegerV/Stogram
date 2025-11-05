@@ -287,13 +287,13 @@ docker-compose up -d --build
 - **[CODE_REVIEW.md](./CODE_REVIEW.md)** - Полный code review (689 строк)
 - **[DEPLOYMENT_STATUS.md](./DEPLOYMENT_STATUS.md)** - Статус деплоя (687 строк)
 - **[TYPESCRIPT_FIXES.md](./TYPESCRIPT_FIXES.md)** - TypeScript исправления (419 строк)
-- **[VERCEL_DEPLOYMENT_ANALYSIS.md](./VERCEL_DEPLOYMENT_ANALYSIS.md)** - Анализ платформ (381 строка)
+- **[VERCEL_DEPLOYMENT_ANALYSIS.md](../deployment/VERCEL_DEPLOYMENT_ANALYSIS.md)** - Анализ платформ (381 строка)
 
 ### Руководства:
-- **[docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md)** - Деплой (957 строк)
-- **[SECURITY.md](./SECURITY.md)** - Безопасность (173 строки)
-- **[README.md](./README.md)** - Документация (605 строк)
-- **[CHANGELOG.md](./CHANGELOG.md)** - История (551+ строк)
+- **[DEPLOYMENT.md](../deployment/DEPLOYMENT.md)** - Деплой (957 строк)
+- **[SECURITY.md](../../SECURITY.md)** - Безопасность (173 строки)
+- **[README.md](../../README.md)** - Документация (605 строк)
+- **[CHANGELOG.md](../../CHANGELOG.md)** - История (551+ строк)
 
 ---
 

@@ -756,10 +756,10 @@ Stogram Mobile - официальное мобильное приложение 
 - **[mobile/ROADMAP.md](./mobile/ROADMAP.md)** 🗺️  
   Быстрый обзор статуса всех функций и дорожная карта
 
-- **[mobile/FEATURES_CHECKLIST.md](./mobile/FEATURES_CHECKLIST.md)** 📋  
+- **[mobile/CHECKLIST.md](./mobile/CHECKLIST.md)** 📋  
   Подробный чек-лист всех функций с описанием и планом реализации
 
-- **[mobile/IMPLEMENTATION_STATUS.md](./mobile/IMPLEMENTATION_STATUS.md)** 📊  
+- **[mobile/STATUS.md](./mobile/STATUS.md)** 📊  
   Технический статус реализации всех компонентов
 
 - **[mobile/README.md](./mobile/README.md)** 📖  

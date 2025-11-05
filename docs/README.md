@@ -14,12 +14,25 @@ Welcome to the Stogram documentation! This guide will help you navigate through 
 
 ### 🔧 Developer Documentation
 - **[Architecture](development/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Code Review](development/CODE_REVIEW.md)** - Code review and quality assessment
+- **[Deployment Status](development/DEPLOYMENT_STATUS.md)** - Deployment readiness status
+- **[TypeScript Fixes](development/TYPESCRIPT_FIXES.md)** - TypeScript fixes and improvements
+- **[Security Improvements](development/SECURITY_IMPROVEMENTS.md)** - Security enhancements and fixes
+- **[Documentation Audit](development/DOCUMENTATION_AUDIT.md)** - Documentation quality audit
+- **[Implementation Summary](development/IMPLEMENTATION_SUMMARY.md)** - Implementation overview
+- **[Work Summary](development/WORK_SUMMARY.md)** - Development work summary
+- **[Audit Summary (RU)](development/AUDIT_SUMMARY_RU.md)** - Russian audit summary
+- **[Code Review Summary (RU)](development/CODE_REVIEW_SUMMARY_RU.md)** - Russian code review summary
 - **[Contributing](../CONTRIBUTING.md)** - How to contribute to the project
 
 ### 🚀 Deployment
 - **[Deployment Guide](deployment/DEPLOYMENT.md)** - Production deployment instructions
 - **[Migration Guide](deployment/MIGRATION_GUIDE.md)** - Database migration instructions
 - **[Quick Start](deployment/QUICKSTART.md)** - Automated deployment setup
+- **[Railway Deployment](deployment/RAILWAY_DEPLOYMENT.md)** - Railway.app specific guide
+- **[Railway Quickstart](deployment/RAILWAY_QUICKSTART.md)** - Quick setup for Railway
+- **[Railway Summary](deployment/RAILWAY_SUMMARY.md)** - Railway deployment overview
+- **[Vercel Analysis](deployment/VERCEL_DEPLOYMENT_ANALYSIS.md)** - Vercel platform compatibility analysis
 
 ### 📱 Mobile Application
 - **[Mobile Overview](mobile/README.md)** - React Native mobile app documentation
@@ -36,7 +49,8 @@ Welcome to the Stogram documentation! This guide will help you navigate through 
 ### 🔒 Security
 - **[Security Policy](../SECURITY.md)** - Security guidelines and vulnerability reporting
 
-### 📝 Reference
+### 🗺️ Project Planning
+- **[Roadmap](../ROADMAP.md)** - Project development roadmap and milestones
 - **[Changelog](../CHANGELOG.md)** - Version history and changes
 - **[License](../LICENSE)** - MIT License
 
