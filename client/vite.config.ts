@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const isRailway = !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PRIVATE_DOMAIN;
+const shouldListenOnAllInterfaces = isProduction || isRailway;
+
 export default defineConfig({
   plugins: [
     react(),
@@ -72,7 +76,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
+    host: shouldListenOnAllInterfaces ? '0.0.0.0' : 'localhost',
     port: 5173,
     proxy: {
       '/api': {
@@ -86,7 +90,7 @@ export default defineConfig({
     },
   },
   preview: {
-    host: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
+    host: shouldListenOnAllInterfaces ? '0.0.0.0' : 'localhost',
     port: 5173,
   },
 });
