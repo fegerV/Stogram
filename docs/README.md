@@ -58,7 +58,10 @@ Welcome to the Stogram documentation! This guide will help you navigate through 
 
 Documentation is available in multiple languages:
 - **English**: Primary documentation language
-- **Russian (Русский)**: [Документация на русском](./ru/README.md)
+- **Russian (Русский)**: 
+  - [Документация на русском](./ru/README.md) - Full documentation
+  - [Статус реализации](./ru/STATUS.md) - Implementation status
+  - [Локальное тестирование](./ru/LOCAL_TESTING.md) - Local testing guide
 
 ## 📞 Support
 
