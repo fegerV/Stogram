@@ -591,6 +591,7 @@ npx tsc --noEmit
 ### 🇷🇺 Русская документация
 - **[Полная документация](./docs/ru/README.md)**: Complete documentation in Russian
 - **[Статус реализации](./docs/ru/STATUS.md)**: Implementation status in Russian
+- **[Локальное тестирование](./docs/ru/LOCAL_TESTING.md)**: Local testing guide in Russian
 
 ### 📝 Reference
 - **[Security Policy](./SECURITY.md)**: Security guidelines and reporting
