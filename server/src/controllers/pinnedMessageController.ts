@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const pinMessage = async (req: Request, res: Response) => {
+export const pinMessage = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { messageId, chatId } = req.body;
 
     if (!messageId || !chatId) {
@@ -63,9 +64,9 @@ export const pinMessage = async (req: Request, res: Response) => {
   }
 };
 
-export const unpinMessage = async (req: Request, res: Response) => {
+export const unpinMessage = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { messageId, chatId } = req.params;
 
     const pinnedMessage = await prisma.pinnedMessage.findUnique({
@@ -99,9 +100,9 @@ export const unpinMessage = async (req: Request, res: Response) => {
   }
 };
 
-export const getPinnedMessages = async (req: Request, res: Response) => {
+export const getPinnedMessages = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const pinnedMessages = await prisma.pinnedMessage.findMany({
@@ -145,9 +146,9 @@ export const getPinnedMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllPinnedMessages = async (req: Request, res: Response) => {
+export const getAllPinnedMessages = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
 
     const pinnedMessages = await prisma.pinnedMessage.findMany({
       where: { userId },

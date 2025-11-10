@@ -1,15 +1,16 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 export class BotEnhancedController {
   // Create inline keyboard
-  static async createInlineKeyboard(req: Request, res: Response): Promise<void> {
+  static async createInlineKeyboard(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
       const { name, buttons } = req.body;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Verify bot ownership
       const bot = await prisma.bot.findUnique({
@@ -38,10 +39,10 @@ export class BotEnhancedController {
   }
 
   // Get inline keyboards for bot
-  static async getInlineKeyboards(req: Request, res: Response): Promise<void> {
+  static async getInlineKeyboards(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Verify bot ownership
       const bot = await prisma.bot.findUnique({
@@ -71,10 +72,10 @@ export class BotEnhancedController {
   }
 
   // Delete inline keyboard
-  static async deleteInlineKeyboard(req: Request, res: Response): Promise<void> {
+  static async deleteInlineKeyboard(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { keyboardId } = req.params;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Verify ownership through bot
       const keyboard = await prisma.botInlineKeyboard.findUnique({
@@ -99,10 +100,10 @@ export class BotEnhancedController {
   }
 
   // Handle callback query
-  static async handleCallbackQuery(req: Request, res: Response): Promise<void> {
+  static async handleCallbackQuery(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId, messageId, callbackData } = req.body;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Create callback query record
       const query = await prisma.botCallbackQuery.create({
@@ -125,7 +126,7 @@ export class BotEnhancedController {
   }
 
   // Answer callback query
-  static async answerCallbackQuery(req: Request, res: Response): Promise<void> {
+  static async answerCallbackQuery(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { queryId } = req.params;
       const { text } = req.body;
@@ -174,10 +175,10 @@ export class BotEnhancedController {
   }
 
   // Handle inline query
-  static async handleInlineQuery(req: Request, res: Response): Promise<void> {
+  static async handleInlineQuery(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId, query, offset } = req.body;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Create inline query record
       const inlineQuery = await prisma.botInlineQuery.create({
@@ -200,7 +201,7 @@ export class BotEnhancedController {
   }
 
   // Answer inline query
-  static async answerInlineQuery(req: Request, res: Response): Promise<void> {
+  static async answerInlineQuery(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { queryId } = req.params;
       const { results } = req.body;
@@ -248,7 +249,7 @@ export class BotEnhancedController {
   }
 
   // Send message with inline keyboard
-  static async sendMessageWithKeyboard(req: Request, res: Response): Promise<void> {
+  static async sendMessageWithKeyboard(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId, content, keyboardId } = req.body;
       const botToken = req.headers['token'] as string;
@@ -287,10 +288,10 @@ export class BotEnhancedController {
   }
 
   // Get callback queries for bot
-  static async getCallbackQueries(req: Request, res: Response): Promise<void> {
+  static async getCallbackQueries(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Verify bot ownership
       const bot = await prisma.bot.findUnique({
@@ -317,10 +318,10 @@ export class BotEnhancedController {
   }
 
   // Get inline queries for bot
-  static async getInlineQueries(req: Request, res: Response): Promise<void> {
+  static async getInlineQueries(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       // Verify bot ownership
       const bot = await prisma.bot.findUnique({

@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { AnalyticsService } from '../services/analyticsService';
 
 export class AnalyticsController {
   // Get user analytics
-  static async getUserAnalytics(req: Request, res: Response): Promise<void> {
+  static async getUserAnalytics(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const days = parseInt(req.query.days as string) || 30;
 
       const analytics = await AnalyticsService.getUserAnalytics(userId, days);
@@ -18,14 +19,14 @@ export class AnalyticsController {
   }
 
   // Get bot analytics
-  static async getBotAnalytics(req: Request, res: Response): Promise<void> {
+  static async getBotAnalytics(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
       const days = parseInt(req.query.days as string) || 30;
 
       // Verify bot ownership
       const prisma = (req as any).prisma;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       const bot = await prisma.bot.findUnique({
         where: { id: botId },
@@ -47,7 +48,7 @@ export class AnalyticsController {
   }
 
   // Get system analytics (admin only)
-  static async getSystemAnalytics(req: Request, res: Response): Promise<void> {
+  static async getSystemAnalytics(req: AuthRequest, res: Response): Promise<void> {
     try {
       // TODO: Add admin check
       const days = parseInt(req.query.days as string) || 30;
@@ -62,7 +63,7 @@ export class AnalyticsController {
   }
 
   // Get dashboard statistics
-  static async getDashboardStats(req: Request, res: Response): Promise<void> {
+  static async getDashboardStats(req: AuthRequest, res: Response): Promise<void> {
     try {
       const stats = await AnalyticsService.getDashboardStats();
 
@@ -74,11 +75,11 @@ export class AnalyticsController {
   }
 
   // Get bot summary
-  static async getBotSummary(req: Request, res: Response): Promise<void> {
+  static async getBotSummary(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
       const prisma = (req as any).prisma;
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
 
       const bot = await prisma.bot.findUnique({
         where: { id: botId },

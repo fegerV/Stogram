@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getChatSettings = async (req: Request, res: Response) => {
+export const getChatSettings = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     let settings = await prisma.chatSettings.findUnique({
@@ -39,9 +40,9 @@ export const getChatSettings = async (req: Request, res: Response) => {
   }
 };
 
-export const updateChatSettings = async (req: Request, res: Response) => {
+export const updateChatSettings = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
     const { isMuted, isFavorite, folderId } = req.body;
 
@@ -76,9 +77,9 @@ export const updateChatSettings = async (req: Request, res: Response) => {
   }
 };
 
-export const muteChat = async (req: Request, res: Response) => {
+export const muteChat = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.upsert({
@@ -105,9 +106,9 @@ export const muteChat = async (req: Request, res: Response) => {
   }
 };
 
-export const unmuteChat = async (req: Request, res: Response) => {
+export const unmuteChat = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.upsert({
@@ -134,9 +135,9 @@ export const unmuteChat = async (req: Request, res: Response) => {
   }
 };
 
-export const toggleFavorite = async (req: Request, res: Response) => {
+export const toggleFavorite = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const existingSettings = await prisma.chatSettings.findUnique({
@@ -172,9 +173,9 @@ export const toggleFavorite = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUnreadCount = async (req: Request, res: Response) => {
+export const updateUnreadCount = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
     const { count, lastReadMessageId } = req.body;
 
@@ -204,9 +205,9 @@ export const updateUnreadCount = async (req: Request, res: Response) => {
   }
 };
 
-export const resetUnreadCount = async (req: Request, res: Response) => {
+export const resetUnreadCount = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.upsert({
@@ -234,9 +235,9 @@ export const resetUnreadCount = async (req: Request, res: Response) => {
 };
 
 // Архивировать чат
-export const archiveChat = async (req: Request, res: Response) => {
+export const archiveChat = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.upsert({
@@ -264,9 +265,9 @@ export const archiveChat = async (req: Request, res: Response) => {
 };
 
 // Разархивировать чат
-export const unarchiveChat = async (req: Request, res: Response) => {
+export const unarchiveChat = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.upsert({
@@ -294,9 +295,9 @@ export const unarchiveChat = async (req: Request, res: Response) => {
 };
 
 // Получить архивированные чаты
-export const getArchivedChats = async (req: Request, res: Response) => {
+export const getArchivedChats = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
 
     const archivedSettings = await prisma.chatSettings.findMany({
       where: {

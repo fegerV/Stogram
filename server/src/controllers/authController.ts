@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { prisma } from '../index';
@@ -171,10 +172,10 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getMe = async (req: any, res: Response) => {
+export const getMe = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: req.userId! },
       select: {
         id: true,
         email: true,
@@ -244,10 +245,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
   }
 };
 
-export const resendVerificationEmail = async (req: any, res: Response) => {
+export const resendVerificationEmail = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.userId },
+      where: { id: req.userId! },
     });
 
     if (!user) {

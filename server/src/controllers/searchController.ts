@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const searchMessages = async (req: Request, res: Response) => {
+export const searchMessages = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { query, chatId, type } = req.query;
 
     if (!query || typeof query !== 'string') {
@@ -76,9 +77,9 @@ export const searchMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const searchByHashtag = async (req: Request, res: Response) => {
+export const searchByHashtag = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { hashtag } = req.params;
 
     if (!hashtag) {
@@ -127,10 +128,10 @@ export const searchByHashtag = async (req: Request, res: Response) => {
   }
 };
 
-export const searchByMention = async (req: Request, res: Response) => {
+export const searchByMention = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
-    const username = req.params.username || (req as any).user.username;
+    const userId = req.userId!;
+    const username = req.params.username || req.user?.username;
 
     const userChatIds = await prisma.chatMember.findMany({
       where: { userId },

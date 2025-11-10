@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const blockUser = async (req: Request, res: Response) => {
+export const blockUser = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { blockedId } = req.params;
 
     if (userId === blockedId) {
@@ -57,9 +58,9 @@ export const blockUser = async (req: Request, res: Response) => {
   }
 };
 
-export const unblockUser = async (req: Request, res: Response) => {
+export const unblockUser = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { blockedId } = req.params;
 
     const block = await prisma.blockedUser.findUnique({
@@ -91,9 +92,9 @@ export const unblockUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getBlockedUsers = async (req: Request, res: Response) => {
+export const getBlockedUsers = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
 
     const blockedUsers = await prisma.blockedUser.findMany({
       where: { userId },
@@ -118,9 +119,9 @@ export const getBlockedUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const isUserBlocked = async (req: Request, res: Response) => {
+export const isUserBlocked = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { targetUserId } = req.params;
 
     const block = await prisma.blockedUser.findUnique({
