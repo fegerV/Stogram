@@ -1,7 +1,5 @@
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 export class EncryptionService {
   // Generate RSA key pair for user

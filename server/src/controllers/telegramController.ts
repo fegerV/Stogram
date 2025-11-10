@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import telegramService from '../services/telegramService';
-
-const prisma = new PrismaClient();
 
 export const telegramController = {
   // Webhook для получения обновлений от Telegram

@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import prisma from './prisma';
 
 export const checkChatMembership = async (chatId: string, userId: string): Promise<boolean> => {
   const member = await prisma.chatMember.findFirst({

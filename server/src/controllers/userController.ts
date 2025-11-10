@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
 import { savePushSubscription } from '../services/pushService';
 

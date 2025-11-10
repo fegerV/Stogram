@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import * as crypto from 'crypto';
 
 export interface BotMessageOptions {

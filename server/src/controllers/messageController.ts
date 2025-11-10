@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import { z } from 'zod';
 import { processMedia } from '../services/mediaService';
 import { sendNewMessageNotification } from '../services/pushService';

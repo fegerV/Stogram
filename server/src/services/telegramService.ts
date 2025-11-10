@@ -1,8 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 class TelegramService {
   private bot: TelegramBot | null = null;

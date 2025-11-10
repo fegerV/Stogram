@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import telegramService from '../services/telegramService';
 
 interface AuthSocket extends Socket {

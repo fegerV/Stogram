@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { Request } from 'express';
-
-const prisma = new PrismaClient();
 
 interface SecurityLogData {
   userId: string;

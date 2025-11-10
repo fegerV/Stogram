@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { handleControllerError, handleNotFound, handleUnauthorized, handleForbidden, handleBadRequest } from '../utils/errorHandlers';
 import { generateBotToken, sendBotMessage as sendBotMessageService, getBotByToken } from '../services/botService';
-
-const prisma = new PrismaClient();
 
 // Создать нового бота
 export const createBot = async (req: Request, res: Response) => {

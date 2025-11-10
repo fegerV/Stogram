@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import { io } from '../index';
 import { z } from 'zod';
 

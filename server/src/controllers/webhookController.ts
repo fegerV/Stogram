@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import axios from 'axios';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 // Создать вебхук
 export const createWebhook = async (req: Request, res: Response) => {

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { prisma } from '../index';
+import prisma from '../utils/prisma';
 import { z } from 'zod';
 import { generateVerificationToken, sendVerificationEmail } from '../services/emailService';
 import { AuditLogService, AuditAction } from '../services/auditLogService';
