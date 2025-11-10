@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../index';
 import { io } from '../index';
 import { z } from 'zod';
@@ -10,11 +11,11 @@ const addReactionSchema = z.object({
 /**
  * Add reaction to a message
  */
-export const addReaction = async (req: any, res: Response) => {
+export const addReaction = async (req: AuthRequest, res: Response) => {
   try {
     const { messageId } = req.params;
     const { emoji } = addReactionSchema.parse(req.body);
-    const userId = req.userId;
+    const userId = req.userId!;
 
     // Check if message exists
     const message = await prisma.message.findUnique({
@@ -87,10 +88,10 @@ export const addReaction = async (req: any, res: Response) => {
 /**
  * Remove reaction from a message
  */
-export const removeReaction = async (req: any, res: Response) => {
+export const removeReaction = async (req: AuthRequest, res: Response) => {
   try {
     const { messageId, emoji } = req.params;
-    const userId = req.userId;
+    const userId = req.userId!;
 
     // Check if reaction exists
     const reaction = await prisma.reaction.findUnique({
@@ -145,7 +146,7 @@ export const removeReaction = async (req: any, res: Response) => {
 /**
  * Get reactions for a message
  */
-export const getReactions = async (req: any, res: Response) => {
+export const getReactions = async (req: AuthRequest, res: Response) => {
   try {
     const { messageId } = req.params;
 

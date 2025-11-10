@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getFolders = async (req: Request, res: Response) => {
+export const getFolders = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
 
     const folders = await prisma.folder.findMany({
       where: { userId },
@@ -33,9 +34,9 @@ export const getFolders = async (req: Request, res: Response) => {
   }
 };
 
-export const createFolder = async (req: Request, res: Response) => {
+export const createFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { name, color, icon } = req.body;
 
     if (!name) {
@@ -65,9 +66,9 @@ export const createFolder = async (req: Request, res: Response) => {
   }
 };
 
-export const updateFolder = async (req: Request, res: Response) => {
+export const updateFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { folderId } = req.params;
     const { name, color, icon, order } = req.body;
 
@@ -99,9 +100,9 @@ export const updateFolder = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteFolder = async (req: Request, res: Response) => {
+export const deleteFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { folderId } = req.params;
 
     const folder = await prisma.folder.findFirst({
@@ -132,9 +133,9 @@ export const deleteFolder = async (req: Request, res: Response) => {
   }
 };
 
-export const addChatToFolder = async (req: Request, res: Response) => {
+export const addChatToFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { folderId, chatId } = req.params;
 
     const folder = await prisma.folder.findFirst({
@@ -172,9 +173,9 @@ export const addChatToFolder = async (req: Request, res: Response) => {
   }
 };
 
-export const removeChatFromFolder = async (req: Request, res: Response) => {
+export const removeChatFromFolder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.userId!;
     const { chatId } = req.params;
 
     const settings = await prisma.chatSettings.updateMany({

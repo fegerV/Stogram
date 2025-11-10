@@ -1,19 +1,20 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { TwoFactorService } from '../services/twoFactorService';
 import { SecurityService } from '../services/securityService';
 import { EncryptionService } from '../services/encryptionService';
 
 export class SecurityController {
   // Enable 2FA
-  static async enable2FA(req: Request, res: Response): Promise<void> {
+  static async enable2FA(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { password } = req.body;
 
       // Verify password here (implementation depends on your auth system)
       
       const { secret, backupCodes } = await TwoFactorService.enable2FA(userId);
-      const user = (req as any).user;
+      const user = req.user!;
       const qrCodeData = TwoFactorService.generateQRCodeData(user.username, secret);
 
       res.json({
@@ -31,9 +32,9 @@ export class SecurityController {
   }
 
   // Verify and confirm 2FA setup
-  static async verify2FASetup(req: Request, res: Response): Promise<void> {
+  static async verify2FASetup(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { code } = req.body;
 
       const isValid = await TwoFactorService.verify2FACode(userId, code);
@@ -51,9 +52,9 @@ export class SecurityController {
   }
 
   // Disable 2FA
-  static async disable2FA(req: Request, res: Response): Promise<void> {
+  static async disable2FA(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { code } = req.body;
 
       const isValid = await TwoFactorService.verify2FACode(userId, code);
@@ -73,9 +74,9 @@ export class SecurityController {
   }
 
   // Initialize E2E encryption for user
-  static async initializeEncryption(req: Request, res: Response): Promise<void> {
+  static async initializeEncryption(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { password } = req.body;
 
       await EncryptionService.initializeUserEncryption(userId, password);
@@ -88,7 +89,7 @@ export class SecurityController {
   }
 
   // Get user's public key
-  static async getPublicKey(req: Request, res: Response): Promise<void> {
+  static async getPublicKey(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       const prisma = (req as any).prisma;
@@ -111,9 +112,9 @@ export class SecurityController {
   }
 
   // Get security logs
-  static async getSecurityLogs(req: Request, res: Response): Promise<void> {
+  static async getSecurityLogs(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const limit = parseInt(req.query.limit as string) || 50;
 
       const logs = await SecurityService.getSecurityLogs(userId, limit);
@@ -126,9 +127,9 @@ export class SecurityController {
   }
 
   // Add trusted IP
-  static async addTrustedIP(req: Request, res: Response): Promise<void> {
+  static async addTrustedIP(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { ipAddress } = req.body;
 
       await SecurityService.addTrustedIP(userId, ipAddress);
@@ -141,9 +142,9 @@ export class SecurityController {
   }
 
   // Report spam
-  static async reportSpam(req: Request, res: Response): Promise<void> {
+  static async reportSpam(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const { targetId, targetType, reason } = req.body;
 
       await SecurityService.reportSpam(userId, targetId, targetType, reason);
@@ -156,9 +157,9 @@ export class SecurityController {
   }
 
   // Check account status
-  static async checkAccountStatus(req: Request, res: Response): Promise<void> {
+  static async checkAccountStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.userId!;
       const prisma = (req as any).prisma;
 
       const user = await prisma.user.findUnique({
