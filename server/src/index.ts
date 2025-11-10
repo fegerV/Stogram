@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { initSocketHandlers } from './socket';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
-import { PrismaClient } from '@prisma/client';
+import prisma from './utils/prisma';
 import { initScheduler } from './services/schedulerService';
 import { lenientIPRateLimit } from './middleware/ipRateLimit';
 
@@ -22,7 +22,7 @@ const io = new Server(httpServer, {
   },
 });
 
-export const prisma = new PrismaClient();
+export { prisma };
 
 // Security headers with Helmet - Enhanced with CSP and HSTS
 app.use(helmet({

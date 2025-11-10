@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { deliverWebhookEvent } from './webhookController';
-
-const prisma = new PrismaClient();
 
 // Получить события для n8n
 export const getEvents = async (req: Request, res: Response) => {
