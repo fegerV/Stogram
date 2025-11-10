@@ -4,7 +4,7 @@
 
 ### For Development (Test)
 ```bash
-git clone <repository-url>
+git clone https://github.com/fegerV/Stogram.git
 cd stogram
 ./install-ubuntu.sh --test
 ./start-dev.sh
@@ -12,7 +12,7 @@ cd stogram
 
 ### For Production
 ```bash
-git clone <repository-url>
+git clone https://github.com/fegerV/Stogram.git
 cd stogram
 ./install-ubuntu.sh --prod
 # Follow prompts for domain and database setup
