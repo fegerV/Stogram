@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { AuthRequest } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
@@ -49,9 +50,9 @@ export const getStickerPack = async (req: Request, res: Response) => {
 };
 
 // Создать новый пак стикеров
-export const createStickerPack = async (req: Request, res: Response) => {
+export const createStickerPack = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -128,10 +129,10 @@ export const deleteSticker = async (req: Request, res: Response) => {
 };
 
 // Удалить пак стикеров
-export const deleteStickerPack = async (req: Request, res: Response) => {
+export const deleteStickerPack = async (req: AuthRequest, res: Response) => {
   try {
     const { packId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId;
 
     const pack = await prisma.stickerPack.findUnique({
       where: { id: packId }
