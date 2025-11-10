@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: stogram-postgres
     environment:
-      POSTGRES_USER: stogram
-      POSTGRES_PASSWORD: stogram_password
-      POSTGRES_DB: stogram_db
+      POSTGRES_USER: stogram_user
+      POSTGRES_PASSWORD: stogram_pass123
+      POSTGRES_DB: stogram_prod_db
     ports:
       - "5432:5432"
     volumes:
@@ -32,7 +32,7 @@ services:
     container_name: stogram-server
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://stogram:stogram_password@postgres:5432/stogram_db
+      DATABASE_URL: postgresql://stogram_user:stogram_pass123@postgres:5432/stogram_prod_db
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       PORT: 3001
