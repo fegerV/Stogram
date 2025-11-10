@@ -25,7 +25,7 @@ The installation process includes:
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/fegerV/Stogram.git
 cd stogram
 
 # Run the installation script
@@ -39,7 +39,7 @@ cd stogram
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/fegerV/Stogram.git
 cd stogram
 
 # Run the installation script
