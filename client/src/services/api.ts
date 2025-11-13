@@ -41,6 +41,7 @@ export const authApi = {
 export const userApi = {
   search: (query: string) => api.get(`/users/search?query=${query}`),
   getById: (userId: string) => api.get(`/users/${userId}`),
+  getCurrentUser: () => api.get('/users/me'),
   updateProfile: (data: FormData) => api.patch('/users/profile', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
@@ -53,6 +54,9 @@ export const userApi = {
   subscribeToPush: (subscription: PushSubscription) =>
     api.post('/users/push-subscription', { subscription }),
   updateTheme: (theme: 'light' | 'dark') => api.patch('/users/theme', { theme }),
+  getPrivacySettings: () => api.get('/users/privacy'),
+  updatePrivacySettings: (data: { showOnlineStatus?: boolean; showProfilePhoto?: boolean; showLastSeen?: boolean }) =>
+    api.patch('/users/privacy', data),
 };
 
 export const chatApi = {

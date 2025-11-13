@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   searchUsers,
   getUserById,
+  getCurrentUser,
   updateProfile,
   changePassword,
   getContacts,
@@ -19,6 +20,7 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/me', getCurrentUser);
 router.get('/search', searchUsers);
 router.get('/contacts', getContacts);
 router.post('/contacts', addContact);

@@ -328,3 +328,37 @@ export const getPrivacySettings = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get privacy settings' });
   }
 };
+
+export const getCurrentUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+        bio: true,
+        status: true,
+        lastSeen: true,
+        createdAt: true,
+        theme: true,
+        showOnlineStatus: true,
+        showProfilePhoto: true,
+        showLastSeen: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({ error: 'Failed to fetch current user' });
+  }
+};

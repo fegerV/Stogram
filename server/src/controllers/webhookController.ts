@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import axios from 'axios';
 import crypto from 'crypto';
 
 // Создать вебхук
-export const createWebhook = async (req: Request, res: Response) => {
+export const createWebhook = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId!;
     const { botId, url, events, secret } = req.body;
 
     if (!botId || !url || !events || !Array.isArray(events)) {
@@ -43,10 +44,10 @@ export const createWebhook = async (req: Request, res: Response) => {
 };
 
 // Получить все вебхуки бота
-export const getBotWebhooks = async (req: Request, res: Response) => {
+export const getBotWebhooks = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
 
     const bot = await prisma.bot.findUnique({
       where: { id: botId }
@@ -79,10 +80,10 @@ export const getBotWebhooks = async (req: Request, res: Response) => {
 };
 
 // Обновить вебхук
-export const updateWebhook = async (req: Request, res: Response) => {
+export const updateWebhook = async (req: AuthRequest, res: Response) => {
   try {
     const { webhookId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
     const { url, events, isActive } = req.body;
 
     const webhook = await prisma.webhook.findUnique({
@@ -115,10 +116,10 @@ export const updateWebhook = async (req: Request, res: Response) => {
 };
 
 // Удалить вебхук
-export const deleteWebhook = async (req: Request, res: Response) => {
+export const deleteWebhook = async (req: AuthRequest, res: Response) => {
   try {
     const { webhookId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
 
     const webhook = await prisma.webhook.findUnique({
       where: { id: webhookId },
@@ -212,10 +213,10 @@ export const deliverWebhookEvent = async (
 };
 
 // Получить историю доставок вебхука
-export const getWebhookDeliveries = async (req: Request, res: Response) => {
+export const getWebhookDeliveries = async (req: AuthRequest, res: Response) => {
   try {
     const { webhookId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
     const { limit = '50', offset = '0' } = req.query;
 
     const webhook = await prisma.webhook.findUnique({
@@ -246,10 +247,10 @@ export const getWebhookDeliveries = async (req: Request, res: Response) => {
 };
 
 // Тестовый запрос на вебхук
-export const testWebhook = async (req: Request, res: Response) => {
+export const testWebhook = async (req: AuthRequest, res: Response) => {
   try {
     const { webhookId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
 
     const webhook = await prisma.webhook.findUnique({
       where: { id: webhookId },

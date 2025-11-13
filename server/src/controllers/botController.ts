@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { handleControllerError, handleNotFound, handleUnauthorized, handleForbidden, handleBadRequest } from '../utils/errorHandlers';
 import { generateBotToken, sendBotMessage as sendBotMessageService, getBotByToken } from '../services/botService';
 
 // Создать нового бота
-export const createBot = async (req: Request, res: Response) => {
+export const createBot = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId!;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -42,9 +43,9 @@ export const createBot = async (req: Request, res: Response) => {
 };
 
 // Получить все боты пользователя
-export const getUserBots = async (req: Request, res: Response) => {
+export const getUserBots = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId!;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -68,7 +69,7 @@ export const getUserBots = async (req: Request, res: Response) => {
 };
 
 // Получить информацию о боте
-export const getBot = async (req: Request, res: Response) => {
+export const getBot = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
 
@@ -94,10 +95,10 @@ export const getBot = async (req: Request, res: Response) => {
 };
 
 // Обновить бота
-export const updateBot = async (req: Request, res: Response) => {
+export const updateBot = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
     const { displayName, description, avatar, isActive, webhookUrl } = req.body;
 
     const bot = await prisma.bot.findUnique({
@@ -131,10 +132,10 @@ export const updateBot = async (req: Request, res: Response) => {
 };
 
 // Удалить бота
-export const deleteBot = async (req: Request, res: Response) => {
+export const deleteBot = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
 
     const bot = await prisma.bot.findUnique({
       where: { id: botId }
@@ -160,7 +161,7 @@ export const deleteBot = async (req: Request, res: Response) => {
 };
 
 // Добавить команду к боту
-export const addBotCommand = async (req: Request, res: Response) => {
+export const addBotCommand = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
     const { command, description } = req.body;
@@ -188,7 +189,7 @@ export const addBotCommand = async (req: Request, res: Response) => {
 };
 
 // Удалить команду бота
-export const deleteBotCommand = async (req: Request, res: Response) => {
+export const deleteBotCommand = async (req: AuthRequest, res: Response) => {
   try {
     const { commandId } = req.params;
 
@@ -204,10 +205,10 @@ export const deleteBotCommand = async (req: Request, res: Response) => {
 };
 
 // Регенерировать токен бота
-export const regenerateBotToken = async (req: Request, res: Response) => {
+export const regenerateBotToken = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.userId!;
 
     const bot = await prisma.bot.findUnique({
       where: { id: botId }
@@ -236,7 +237,7 @@ export const regenerateBotToken = async (req: Request, res: Response) => {
 };
 
 // Отправить сообщение от имени бота
-export const sendBotMessage = async (req: Request, res: Response) => {
+export const sendBotMessage = async (req: any, res: any) => {
   try {
     const { token } = req.headers;
     const { chatId, content, type, fileUrl, fileName, fileSize, thumbnailUrl } = req.body;
