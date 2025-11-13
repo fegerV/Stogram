@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { getChatName, getChatAvatar, formatMessageTime, getInitials } from '../utils/helpers';
 import NewChatModal from './NewChatModal';
 import ThemeToggle from './ThemeToggle';
+import { UserSettings } from './UserSettings';
 
 interface ChatListProps {
   onSelectChat: (chatId: string) => void;
@@ -17,6 +18,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const filteredChats = chats.filter((chat) => {
     const chatName = getChatName(chat, user?.id || '');
@@ -48,7 +50,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-600">
                   <ThemeToggle />
                 </div>
-                <button className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center gap-2">
+                <button 
+                  onClick={() => setShowSettings(true)}
+                  className="w-full px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center gap-2"
+                >
                   <Settings className="w-4 h-4" />
                   Settings
                 </button>
@@ -144,6 +149,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
       {showNewChatModal && (
         <NewChatModal onClose={() => setShowNewChatModal(false)} />
+      )}
+
+      {showSettings && (
+        <UserSettings onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

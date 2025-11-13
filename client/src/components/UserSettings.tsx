@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Palette, Bot, Webhook } from 'lucide-react';
-import axios from 'axios';
+import { userApi } from '../services/api';
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -22,10 +22,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
   const loadUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/users/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await userApi.getCurrentUser();
       setUser(response.data);
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -34,10 +31,7 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
   const loadPrivacySettings = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/users/privacy', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await userApi.getPrivacySettings();
       setPrivacy(response.data);
     } catch (error) {
       console.error('Failed to load privacy settings:', error);
@@ -46,11 +40,8 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
-      const token = localStorage.getItem('token');
       const newPrivacy = { ...privacy, [key]: value };
-      await axios.patch('/api/users/privacy', newPrivacy, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await userApi.updatePrivacySettings(newPrivacy);
       setPrivacy(newPrivacy);
     } catch (error) {
       console.error('Failed to update privacy settings:', error);

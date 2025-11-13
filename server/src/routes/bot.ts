@@ -1,3 +1,4 @@
+import { Request, Response } from 'express';
 import express from 'express';
 import { authenticate } from '../middleware/auth';
 import {
@@ -27,6 +28,6 @@ router.delete('/commands/:commandId', authenticate, deleteBotCommand);
 router.post('/:botId/regenerate-token', authenticate, regenerateBotToken);
 
 // Bot API endpoint (использует токен бота, не пользовательский JWT)
-router.post('/send-message', sendBotMessage);
+router.post('/send-message', (req, res) => sendBotMessage(req as any, res as any));
 
 export default router;
