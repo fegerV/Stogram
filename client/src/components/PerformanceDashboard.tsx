@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Zap, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react';
+import { Activity, Clock, Zap, AlertTriangle, TrendingUp, BarChart3, Gauge } from 'lucide-react';
 import { performanceMonitor } from '../utils/performance';
 
 interface PerformanceSummary {
@@ -11,6 +11,13 @@ interface PerformanceSummary {
   slowApiCallsCount: number;
   totalInteractions: number;
   apiSuccessRate: number;
+  webVitals?: {
+    [key: string]: {
+      name: string;
+      value: number;
+      rating: 'good' | 'needs-improvement' | 'poor';
+    };
+  };
 }
 
 export const PerformanceDashboard: React.FC = () => {
@@ -190,8 +197,51 @@ export const PerformanceDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Core Web Vitals */}
+      {summary.webVitals && Object.keys(summary.webVitals).length > 0 && (
+        <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-4">
+            <Gauge className="h-5 w-5 text-indigo-600" />
+            <h3 className="font-medium text-gray-900 dark:text-white">Core Web Vitals</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.values(summary.webVitals).map((vital) => (
+              <div
+                key={vital.name}
+                className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-300">{vital.name}</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      vital.rating === 'good'
+                        ? 'bg-green-100 text-green-800'
+                        : vital.rating === 'needs-improvement'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {vital.rating === 'needs-improvement' ? 'Improve' : vital.rating}
+                  </span>
+                </div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {vital.name === 'CLS' ? vital.value.toFixed(3) : `${vital.value.toFixed(0)}ms`}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {vital.name === 'LCP' && 'Target: < 2.5s'}
+                  {vital.name === 'FID' && 'Target: < 100ms'}
+                  {vital.name === 'CLS' && 'Target: < 0.1'}
+                  {vital.name === 'INP' && 'Target: < 200ms'}
+                  {vital.name === 'TTFB' && 'Target: < 800ms'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Performance Tips */}
-      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Performance Tips</h3>
         <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
           {summary.slowComponentsCount > 0 && (
@@ -203,9 +253,18 @@ export const PerformanceDashboard: React.FC = () => {
           {summary.apiSuccessRate < 95 && (
             <li>• API success rate could be improved for better reliability</li>
           )}
-          {summary.slowComponentsCount === 0 && summary.slowApiCallsCount === 0 && summary.apiSuccessRate >= 95 && (
-            <li>• Great job! All performance metrics are within acceptable ranges</li>
+          {summary.webVitals && summary.webVitals.LCP && summary.webVitals.LCP.value > 2500 && (
+            <li>• LCP is high, consider optimizing hero content and critical assets</li>
           )}
+          {summary.webVitals && summary.webVitals.CLS && summary.webVitals.CLS.value > 0.1 && (
+            <li>• CLS is above budget, reserve space for media and avoid layout shifts</li>
+          )}
+          {summary.slowComponentsCount === 0 &&
+            summary.slowApiCallsCount === 0 &&
+            summary.apiSuccessRate >= 95 &&
+            (!summary.webVitals || Object.values(summary.webVitals).every((vital) => vital.rating === 'good')) && (
+              <li>• Great job! All performance metrics are within acceptable ranges</li>
+            )}
         </ul>
       </div>
 
