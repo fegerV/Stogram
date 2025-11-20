@@ -4,11 +4,16 @@ import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DevPerformanceMonitor } from './components/DevPerformanceMonitor';
 import { performanceMonitor } from './utils/performance';
-import { preloadCriticalComponents } from './components/LazyComponents';
+import { 
+  preloadCriticalComponents, 
+  prefetchChunks, 
+  setupViewportPrefetching,
+  LazyLoginPage,
+  LazyRegisterPage,
+  LazyTelegramSettingsPage
+} from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 import ChatPage from './pages/ChatPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { socketService } from './services/socket';
@@ -21,9 +26,22 @@ function App() {
     // Initialize performance monitoring
     performanceMonitor.trackInteraction('app_init', 'App');
     
+    // Track bundle loading
+    if ('performance' in window && 'getEntriesByType' in performance) {
+      const entries = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+      entries.forEach(entry => {
+        if (entry.name.includes('.js') || entry.name.includes('.css')) {
+          const bundleName = entry.name.split('/').pop() || 'unknown';
+          performanceMonitor.trackBundleLoad(bundleName, entry.transferSize || 0, entry.duration);
+        }
+      });
+    }
+    
     // Preload critical components after initial render
     const timer = setTimeout(() => {
       preloadCriticalComponents();
+      prefetchChunks();
+      setupViewportPrefetching();
     }, 1000);
 
     loadUser();
@@ -70,7 +88,7 @@ function App() {
               path="/login"
               element={
                 <ErrorBoundary>
-                  {isAuthenticated ? <Navigate to="/" /> : <LoginPage />}
+                  {isAuthenticated ? <Navigate to="/" /> : <LazyLoginPage />}
                 </ErrorBoundary>
               }
             />
@@ -78,7 +96,7 @@ function App() {
               path="/register"
               element={
                 <ErrorBoundary>
-                  {isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
+                  {isAuthenticated ? <Navigate to="/" /> : <LazyRegisterPage />}
                 </ErrorBoundary>
               }
             />
@@ -89,6 +107,14 @@ function App() {
                   <VerifyEmailPage />
                 </ErrorBoundary>
               } 
+            />
+            <Route
+              path="/telegram-settings"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <LazyTelegramSettingsPage /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
             />
             <Route
               path="/*"

@@ -301,3 +301,5 @@ export const TelegramSettingsPage: React.FC = () => {
     </div>
   );
 };
+
+export default TelegramSettingsPage;

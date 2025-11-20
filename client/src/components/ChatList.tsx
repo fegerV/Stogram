@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { getChatName, getChatAvatar, formatMessageTime, getInitials } from '../utils/helpers';
 import NewChatModal from './NewChatModal';
 import ThemeToggle from './ThemeToggle';
-import { UserSettings } from './UserSettings';
+import UserSettings from './UserSettings';
 
 interface ChatListProps {
   onSelectChat: (chatId: string) => void;

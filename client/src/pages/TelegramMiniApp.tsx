@@ -223,3 +223,5 @@ export const TelegramMiniApp: React.FC = () => {
     </div>
   );
 };
+
+export default TelegramMiniApp;

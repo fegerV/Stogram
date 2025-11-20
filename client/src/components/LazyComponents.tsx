@@ -66,6 +66,42 @@ export const LazyVirtualizedList = createLazyComponent(
   { fallback: <div className="p-8 text-center">Loading List...</div> }
 );
 
+export const LazyPerformanceDashboard = createLazyComponent(
+  () => import('./PerformanceDashboard').then(module => ({ default: module.PerformanceDashboard })),
+  { fallback: <div className="p-8 text-center">Loading Performance Dashboard...</div> }
+);
+
+export const LazyNewChatModal = createLazyComponent(
+  () => import('./NewChatModal'),
+  { fallback: <div className="p-8 text-center">Loading New Chat...</div> }
+);
+
+export const LazyEmojiPicker = createLazyComponent(
+  () => import('emoji-picker-react'),
+  { fallback: <div className="p-8 text-center">Loading Emoji Picker...</div> }
+);
+
+// Route-based lazy components
+export const LazyLoginPage = createLazyComponent(
+  () => import('../pages/LoginPage'),
+  { fallback: <div className="min-h-screen flex items-center justify-center">Loading Login...</div> }
+);
+
+export const LazyRegisterPage = createLazyComponent(
+  () => import('../pages/RegisterPage'),
+  { fallback: <div className="min-h-screen flex items-center justify-center">Loading Register...</div> }
+);
+
+export const LazyTelegramSettingsPage = createLazyComponent(
+  () => import('../pages/TelegramSettingsPage'),
+  { fallback: <div className="min-h-screen flex items-center justify-center">Loading Telegram Settings...</div> }
+);
+
+export const LazyTelegramMiniApp = createLazyComponent(
+  () => import('../pages/TelegramMiniApp'),
+  { fallback: <div className="min-h-screen flex items-center justify-center">Loading Mini App...</div> }
+);
+
 // Preload functions for critical components
 export const preloadCriticalComponents = () => {
   // Preload components that are likely to be used soon
@@ -91,4 +127,64 @@ export const preloadOnInteraction = () => {
       import('./AnalyticsDashboard');
     }, { once: true });
   });
+
+  // Preload bot manager when hovering over bot-related elements
+  const botTriggers = document.querySelectorAll('[data-bot-trigger]');
+  botTriggers.forEach(trigger => {
+    trigger.addEventListener('mouseenter', () => {
+      import('./BotManager');
+    }, { once: true });
+  });
+};
+
+// Prefetch chunks for better performance
+export const prefetchChunks = () => {
+  // Prefetch auth-related chunks
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => {
+      import('../pages/LoginPage');
+      import('../pages/RegisterPage');
+      import('../pages/VerifyEmailPage');
+    });
+  }
+};
+
+// Intersection Observer for prefetching components when they come into viewport
+export const setupViewportPrefetching = () => {
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const element = entry.target as HTMLElement;
+          const componentName = element.dataset.prefetch;
+          
+          if (componentName) {
+            switch (componentName) {
+              case 'analytics':
+                import('./AnalyticsDashboard');
+                break;
+              case 'settings':
+                import('./UserSettings');
+                break;
+              case 'bots':
+                import('./BotManager');
+                break;
+              case 'media':
+                import('./MediaViewer');
+                break;
+              case 'voice':
+                import('./VoiceRecorder');
+                break;
+            }
+            observer.unobserve(element);
+          }
+        }
+      });
+    }, { rootMargin: '50px' });
+
+    // Observe elements with prefetch data attributes
+    document.querySelectorAll('[data-prefetch]').forEach(element => {
+      observer.observe(element);
+    });
+  }
 };
