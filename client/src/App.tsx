@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DevPerformanceMonitor } from './components/DevPerformanceMonitor';
 import { performanceMonitor } from './utils/performance';
-import { preloadCriticalComponents, preloadByRoute } from './components/LazyComponents';
+import { preloadCriticalComponents, preloadByRoute, initializePrefetchStrategies } from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
 import { socketService } from './services/socket';
@@ -14,6 +14,10 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({ default: module.VerifyEmailPage })));
+const TelegramSettingsPage = lazy(() => import('./pages/TelegramSettingsPage').then(module => ({ default: module.TelegramSettingsPage })));
+const TelegramMiniApp = lazy(() => import('./pages/TelegramMiniApp').then(module => ({ default: module.TelegramMiniApp })));
+const PerformanceWidget = lazy(() => import('./components/PerformanceWidget').then(module => ({ default: module.PerformanceWidget })));
+const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET !== 'false';
 
 function RoutePreloader() {
   const location = useLocation();
@@ -33,6 +37,9 @@ function App() {
   useEffect(() => {
     // Initialize performance monitoring
     performanceMonitor.trackInteraction('app_init', 'App');
+    
+    // Initialize prefetch strategies
+    initializePrefetchStrategies();
     
     // Preload critical components after initial render
     const timer = setTimeout(() => {
@@ -105,6 +112,22 @@ function App() {
               } 
             />
             <Route
+              path="/telegram/settings"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <TelegramSettingsPage /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/telegram/mini-app"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <TelegramMiniApp /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
+            />
+            <Route
               path="/*"
               element={
                 <ErrorBoundary>
@@ -114,6 +137,11 @@ function App() {
             />
           </Routes>
         </Suspense>
+        {ENABLE_PERFORMANCE_WIDGET && (
+          <Suspense fallback={null}>
+            <PerformanceWidget position="bottom-right" />
+          </Suspense>
+        )}
       </BrowserRouter>
     </ErrorBoundary>
   );
