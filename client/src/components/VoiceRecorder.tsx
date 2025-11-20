@@ -139,3 +139,5 @@ export const VoiceRecorder = ({ onSend, onCancel }: VoiceRecorderProps) => {
     </div>
   );
 };
+
+export default VoiceRecorder;

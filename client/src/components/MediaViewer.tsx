@@ -160,3 +160,5 @@ export const MediaViewer = ({
     </div>
   );
 };
+
+export default MediaViewer;
