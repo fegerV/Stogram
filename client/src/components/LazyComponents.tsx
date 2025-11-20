@@ -74,6 +74,23 @@ export const preloadCriticalComponents = () => {
   import('./ChatList');
 };
 
+// Preload authenticated user components
+export const preloadAuthenticatedComponents = () => {
+  // Components likely needed after login
+  import('../pages/ChatPage');
+  import('./ChatList');
+  import('./ChatWindow');
+  import('./UserSettings');
+};
+
+// Preload page components for faster navigation
+export const preloadPages = {
+  chat: () => import('../pages/ChatPage'),
+  login: () => import('../pages/LoginPage'),
+  register: () => import('../pages/RegisterPage'),
+  verify: () => import('../pages/VerifyEmailPage'),
+};
+
 // Preload on hover or user interaction
 export const preloadOnInteraction = () => {
   // Preload when user is likely to access settings
@@ -91,4 +108,26 @@ export const preloadOnInteraction = () => {
       import('./AnalyticsDashboard');
     }, { once: true });
   });
+};
+
+// Intelligent preloading based on route
+export const preloadByRoute = (currentRoute: string) => {
+  switch (currentRoute) {
+    case '/login':
+      // Preload register page and chat page
+      preloadPages.register();
+      preloadPages.chat();
+      break;
+    case '/register':
+      // Preload login and verify pages
+      preloadPages.login();
+      preloadPages.verify();
+      break;
+    case '/':
+      // Preload settings and other chat-related components
+      preloadCriticalComponents();
+      break;
+    default:
+      break;
+  }
 };

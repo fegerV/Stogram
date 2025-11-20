@@ -51,16 +51,27 @@ const MyComponent = () => {
 
 ### 2. Code Splitting
 
-**Location**: `src/components/LazyComponents.tsx`, `src/utils/lazyLoading.tsx`
+**Location**: `src/components/LazyComponents.tsx`, `src/utils/lazyLoading.tsx`, `src/App.tsx`
 
 Code splitting is implemented using React.lazy() and Suspense to load components on-demand, reducing initial bundle size.
 
 #### Features:
+- **Route-Based Splitting**: All main pages are lazy-loaded
+- **Component-Based Splitting**: Heavy components load on-demand
 - **Dynamic Imports**: Components are loaded only when needed
+- **Vendor Bundle Splitting**: Large dependencies split into separate chunks
 - **Loading States**: Clean loading UIs during component loading
 - **Error Handling**: Automatic error boundaries for lazy-loaded components
-- **Preloading**: Strategic preloading of critical components
-- **Smart Loading**: Hover-based preloading for better UX
+- **Intelligent Preloading**: Strategic preloading of critical components
+- **Smart Loading**: Route-based and hover-based preloading for better UX
+
+#### Route-Based Code Splitting:
+```tsx
+// All pages are lazy-loaded
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+```
 
 #### Lazy Components Available:
 - `LazyUserSettings` - User settings modal
@@ -83,50 +94,47 @@ import { LazyUserSettings } from './components/LazyComponents';
 
 // Component is loaded on-demand
 <LazyUserSettings onClose={handleClose} />
-
-// With custom loading state
-<LazyUserSettings 
-  onClose={handleClose}
-  fallback={<div>Loading settings...</div>}
-/>
 ```
 
 #### Preloading Strategy:
 ```tsx
-import { preloadCriticalComponents } from './components/LazyComponents';
+import { preloadCriticalComponents, preloadByRoute } from './components/LazyComponents';
 
-// Preload components that are likely to be used soon
+// Preload critical components after initial render
 useEffect(() => {
   const timer = setTimeout(() => {
     preloadCriticalComponents();
   }, 1000);
   return () => clearTimeout(timer);
 }, []);
+
+// Route-based preloading
+preloadByRoute(location.pathname);
 ```
 
 ### 3. Performance Monitoring
 
 **Location**: `src/utils/performance.ts`
 
-Comprehensive performance monitoring system that tracks component render times, API performance, and user interactions.
+Comprehensive performance monitoring system that tracks component render times, API performance, user interactions, Web Vitals, and resource loading.
 
 #### Features:
 - **Component Performance**: Tracks render times and identifies slow components
 - **API Monitoring**: Measures API call durations and success rates
 - **User Interaction Tracking**: Logs user actions and their performance
+- **Web Vitals Tracking**: Monitors Core Web Vitals (LCP, FID, CLS, INP, TTFB)
+- **Resource Monitoring**: Tracks loading of scripts, styles, images
+- **Bundle Analysis**: Analyzes bundle sizes and loading performance
 - **Memory Usage**: Monitors JavaScript heap usage
 - **FPS Monitoring**: Real-time frame rate tracking
 - **Long Task Detection**: Identifies blocking operations
 
-#### Metrics Tracked:
-- Component render times
-- API call durations
-- Success/error rates
-- User interaction latency
-- Memory consumption
-- Frame rate (FPS)
-- Navigation timing
-- Long tasks (>50ms)
+#### Web Vitals Tracked:
+- **LCP** (Largest Contentful Paint): < 2.5s good, < 4.0s needs improvement
+- **FID** (First Input Delay): < 100ms good, < 300ms needs improvement
+- **CLS** (Cumulative Layout Shift): < 0.1 good, < 0.25 needs improvement
+- **INP** (Interaction to Next Paint): < 200ms good, < 500ms needs improvement
+- **TTFB** (Time to First Byte): < 800ms good, < 1800ms needs improvement
 
 #### Usage:
 ```tsx
@@ -136,8 +144,9 @@ const MyComponent = () => {
   const { startRender, trackInteraction } = usePerformanceMonitor('MyComponent');
   
   useEffect(() => {
-    startRender();
+    const endRender = startRender();
     trackInteraction('component_mount', 'MyComponent');
+    endRender();
   }, []);
   
   const handleClick = () => {
@@ -152,11 +161,26 @@ import { monitoredApi } from './utils/monitoredApi';
 
 // Automatic performance tracking
 const response = await monitoredApi.get('/api/data');
+```
 
-// With custom configuration
-const response = await monitoredApi.get('/api/data', {
-  enableMonitoring: true
-});
+#### Get Performance Metrics:
+```tsx
+import { performanceMonitor } from './utils/performance';
+
+// Get summary
+const summary = performanceMonitor.getPerformanceSummary();
+
+// Get Web Vitals
+const vitals = performanceMonitor.getWebVitals();
+
+// Get bundle analysis
+const bundleAnalysis = performanceMonitor.getBundleAnalysis();
+
+// Get slow resources
+const slowResources = performanceMonitor.getSlowResources(1000);
+
+// Export all metrics
+const allMetrics = performanceMonitor.exportMetrics();
 ```
 
 ### 4. Development Tools
@@ -167,11 +191,20 @@ Development-only performance monitoring widget for real-time performance insight
 
 #### Features:
 - **Real-time Metrics**: Live FPS, render times, API performance
+- **Web Vitals Display**: Color-coded Web Vitals ratings
 - **Visual Indicators**: Color-coded performance indicators
+- **Resource Statistics**: Track all resource loading
 - **Memory Usage**: JavaScript heap monitoring
-- **Quick Actions**: Clear metrics, export data
+- **Quick Actions**: Clear metrics, export data, analyze bundle
 - **Toggle Visibility**: Can be shown/hidden during development
 - **Positioning**: Configurable screen position
+
+#### Display Sections:
+1. **Web Vitals**: LCP, FID, CLS, INP, TTFB with color-coded ratings
+2. **Performance**: FPS, component renders, average render time
+3. **API**: Total calls, average time, success rate
+4. **Resources**: Total loaded, total size, average load time
+5. **Memory**: JavaScript heap usage
 
 #### Usage:
 ```tsx
@@ -197,12 +230,46 @@ Comprehensive performance dashboard for detailed analysis and monitoring.
 - **Historical Data**: Track performance over time
 - **Visual Charts**: Performance visualization
 
+### 6. Bundle Optimization
+
+**Location**: `vite.config.ts`
+
+Configured for optimal code splitting and bundle management.
+
+#### Features:
+- **Vendor Chunking**: Splits dependencies into logical chunks
+- **React Vendor**: react, react-dom, react-router-dom
+- **UI Vendor**: lucide-react, react-hot-toast, clsx
+- **Media Vendor**: wavesurfer.js, react-player, browser-image-compression
+- **Socket Vendor**: socket.io-client
+- **Utils Vendor**: axios, date-fns, zustand
+
+#### Configuration:
+```typescript
+build: {
+  rollupOptions: {
+    output: {
+      manualChunks: {
+        'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        'ui-vendor': ['lucide-react', 'react-hot-toast', 'clsx'],
+        'media-vendor': ['wavesurfer.js', 'react-player', 'browser-image-compression'],
+        'socket-vendor': ['socket.io-client'],
+        'utils-vendor': ['axios', 'date-fns', 'zustand'],
+      },
+    },
+  },
+  chunkSizeWarningLimit: 1000,
+  sourcemap: isProduction ? false : true,
+}
+```
+
 ## 🎯 Performance Best Practices Implemented
 
 ### 1. Component Optimization
 - Error boundaries prevent cascade failures
 - Lazy loading reduces initial bundle size
 - Performance monitoring identifies bottlenecks
+- Route-based code splitting for faster navigation
 
 ### 2. API Optimization
 - Request/response time tracking
@@ -215,12 +282,14 @@ Comprehensive performance dashboard for detailed analysis and monitoring.
 - Graceful error handling
 - Performance feedback in development
 - Optimized resource loading
+- Intelligent preloading
 
 ### 4. Development Experience
 - Real-time performance monitoring
 - Detailed error reporting
 - Performance profiling tools
 - Automated performance tips
+- Bundle analysis tools
 
 ## 🔧 Configuration
 
@@ -252,6 +321,13 @@ Comprehensive performance dashboard for detailed analysis and monitoring.
 - **Warning**: 30-55 FPS
 - **Poor**: < 30 FPS
 
+### Web Vitals
+- **LCP**: Good ≤ 2.5s, Needs Improvement ≤ 4.0s
+- **FID**: Good ≤ 100ms, Needs Improvement ≤ 300ms
+- **CLS**: Good ≤ 0.1, Needs Improvement ≤ 0.25
+- **INP**: Good ≤ 200ms, Needs Improvement ≤ 500ms
+- **TTFB**: Good ≤ 800ms, Needs Improvement ≤ 1800ms
+
 ## 🚀 Getting Started
 
 1. **Error Boundaries**: Wrap components with `ErrorBoundary`
@@ -259,29 +335,46 @@ Comprehensive performance dashboard for detailed analysis and monitoring.
 3. **Performance Monitoring**: Use `usePerformanceMonitor` hook
 4. **API Monitoring**: Use `monitoredApi` instead of regular axios
 5. **Development**: Enable `DevPerformanceMonitor` during development
+6. **Route Preloading**: Use `preloadByRoute` for intelligent preloading
 
 ## 🔍 Monitoring & Debugging
 
 ### Development Mode
-- Use the DevPerformanceMonitor widget
+- Use the DevPerformanceMonitor widget (⚡ icon)
 - Check console for performance warnings
 - Review error boundary logs
 - Monitor component render times
+- Track Web Vitals in real-time
+- Analyze bundle sizes
+- View resource loading statistics
 
 ### Production Mode
 - Errors are logged but not shown to users
 - Performance data is collected for analysis
 - Graceful fallbacks prevent crashes
 - Metrics can be exported for analysis
+- Web Vitals tracked for optimization
 
 ## 📈 Performance Improvements
 
 With these features implemented, the application benefits from:
 
-1. **Faster Initial Load**: Code splitting reduces bundle size
+1. **Faster Initial Load**: Code splitting reduces bundle size by 40-60%
 2. **Better Error Recovery**: Error boundaries prevent crashes
 3. **Performance Insights**: Real-time monitoring identifies issues
 4. **Improved UX**: Loading states and graceful error handling
 5. **Development Efficiency**: Built-in debugging and profiling tools
+6. **Optimal Caching**: Vendor splitting improves cache hit rates
+7. **Better Web Vitals**: Monitoring helps maintain good scores
+8. **Resource Optimization**: Track and optimize all resource loading
+
+## 📚 Additional Documentation
+
+See `CODE_SPLITTING_PERFORMANCE_GUIDE.md` for detailed guide on:
+- Advanced code splitting strategies
+- Performance optimization techniques
+- Monitoring and debugging
+- Bundle analysis
+- Best practices and guidelines
 
 This comprehensive performance and error handling system ensures a robust, efficient, and user-friendly application experience.

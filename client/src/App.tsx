@@ -1,17 +1,30 @@
-import { useEffect, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DevPerformanceMonitor } from './components/DevPerformanceMonitor';
 import { performanceMonitor } from './utils/performance';
-import { preloadCriticalComponents } from './components/LazyComponents';
+import { preloadCriticalComponents, preloadByRoute } from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ChatPage from './pages/ChatPage';
-import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { socketService } from './services/socket';
+
+// Lazy load pages for better code splitting
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({ default: module.VerifyEmailPage })));
+
+function RoutePreloader() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Preload based on current route
+    preloadByRoute(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
 
 function App() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
@@ -58,6 +71,7 @@ function App() {
       }}
     >
       <BrowserRouter>
+        <RoutePreloader />
         <Toaster position="top-right" />
         <DevPerformanceMonitor />
         <Suspense fallback={

@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { getChatName, getChatAvatar, formatMessageTime, getInitials } from '../utils/helpers';
 import NewChatModal from './NewChatModal';
 import ThemeToggle from './ThemeToggle';
-import { UserSettings } from './UserSettings';
+import { LazyUserSettings } from './LazyComponents';
 
 interface ChatListProps {
   onSelectChat: (chatId: string) => void;
@@ -152,7 +152,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
       )}
 
       {showSettings && (
-        <UserSettings onClose={() => setShowSettings(false)} />
+        <LazyUserSettings onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

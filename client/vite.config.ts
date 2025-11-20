@@ -75,6 +75,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks for better caching
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['lucide-react', 'react-hot-toast', 'clsx'],
+          'media-vendor': ['wavesurfer.js', 'react-player', 'browser-image-compression'],
+          'socket-vendor': ['socket.io-client'],
+          'utils-vendor': ['axios', 'date-fns', 'zustand'],
+        },
+      },
+    },
+    // Chunk size warnings
+    chunkSizeWarningLimit: 1000,
+    // Source maps for production debugging (optional)
+    sourcemap: isProduction ? false : true,
+  },
   server: {
     host: shouldListenOnAllInterfaces ? '0.0.0.0' : 'localhost',
     port: 5173,
