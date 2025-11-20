@@ -21,15 +21,34 @@ interface UserInteractionMetrics {
   timestamp: number;
 }
 
+interface WebVitalsMetrics {
+  name: string;
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  timestamp: number;
+}
+
+interface ResourceMetrics {
+  name: string;
+  type: string;
+  duration: number;
+  size: number;
+  timestamp: number;
+}
+
 class PerformanceMonitor {
   private metrics: {
     components: PerformanceMetrics[];
     apis: ApiMetrics[];
     interactions: UserInteractionMetrics[];
+    webVitals: WebVitalsMetrics[];
+    resources: ResourceMetrics[];
   } = {
     components: [],
     apis: [],
     interactions: [],
+    webVitals: [],
+    resources: [],
   };
 
   private observers: PerformanceObserver[] = [];
@@ -37,6 +56,8 @@ class PerformanceMonitor {
   constructor() {
     this.initializeObservers();
     this.setupNavigationTiming();
+    this.setupWebVitals();
+    this.setupResourceTiming();
   }
 
   private initializeObservers() {
@@ -120,6 +141,155 @@ class PerformanceMonitor {
       duration: metrics.totalTime,
       timestamp: Date.now(),
     });
+  }
+
+  private setupWebVitals() {
+    // Largest Contentful Paint (LCP)
+    if ('PerformanceObserver' in window) {
+      try {
+        const lcpObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1] as any;
+          const lcpValue = lastEntry.renderTime || lastEntry.loadTime;
+          
+          this.metrics.webVitals.push({
+            name: 'LCP',
+            value: lcpValue,
+            rating: lcpValue <= 2500 ? 'good' : lcpValue <= 4000 ? 'needs-improvement' : 'poor',
+            timestamp: Date.now(),
+          });
+          
+          console.log(`LCP: ${lcpValue.toFixed(2)}ms`);
+        });
+        
+        lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+        this.observers.push(lcpObserver);
+      } catch (error) {
+        console.warn('LCP observer not supported:', error);
+      }
+
+      // First Input Delay (FID)
+      try {
+        const fidObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          entries.forEach((entry: any) => {
+            const fidValue = entry.processingStart - entry.startTime;
+            
+            this.metrics.webVitals.push({
+              name: 'FID',
+              value: fidValue,
+              rating: fidValue <= 100 ? 'good' : fidValue <= 300 ? 'needs-improvement' : 'poor',
+              timestamp: Date.now(),
+            });
+            
+            console.log(`FID: ${fidValue.toFixed(2)}ms`);
+          });
+        });
+        
+        fidObserver.observe({ type: 'first-input', buffered: true });
+        this.observers.push(fidObserver);
+      } catch (error) {
+        console.warn('FID observer not supported:', error);
+      }
+
+      // Cumulative Layout Shift (CLS)
+      try {
+        let clsValue = 0;
+        const clsObserver = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries() as any[]) {
+            if (!entry.hadRecentInput) {
+              clsValue += entry.value;
+            }
+          }
+          
+          this.metrics.webVitals.push({
+            name: 'CLS',
+            value: clsValue,
+            rating: clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor',
+            timestamp: Date.now(),
+          });
+        });
+        
+        clsObserver.observe({ type: 'layout-shift', buffered: true });
+        this.observers.push(clsObserver);
+      } catch (error) {
+        console.warn('CLS observer not supported:', error);
+      }
+
+      // Interaction to Next Paint (INP)
+      try {
+        const inpObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          entries.forEach((entry: any) => {
+            const inpValue = entry.duration;
+            
+            this.metrics.webVitals.push({
+              name: 'INP',
+              value: inpValue,
+              rating: inpValue <= 200 ? 'good' : inpValue <= 500 ? 'needs-improvement' : 'poor',
+              timestamp: Date.now(),
+            });
+          });
+        });
+        
+        inpObserver.observe({ type: 'event', buffered: true, durationThreshold: 40 } as any);
+        this.observers.push(inpObserver);
+      } catch (error) {
+        console.warn('INP observer not supported:', error);
+      }
+    }
+
+    // Time to First Byte (TTFB)
+    window.addEventListener('load', () => {
+      const navTiming = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      if (navTiming) {
+        const ttfb = navTiming.responseStart - navTiming.requestStart;
+        
+        this.metrics.webVitals.push({
+          name: 'TTFB',
+          value: ttfb,
+          rating: ttfb <= 800 ? 'good' : ttfb <= 1800 ? 'needs-improvement' : 'poor',
+          timestamp: Date.now(),
+        });
+        
+        console.log(`TTFB: ${ttfb.toFixed(2)}ms`);
+      }
+    });
+  }
+
+  private setupResourceTiming() {
+    if ('PerformanceObserver' in window) {
+      try {
+        const resourceObserver = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const resourceEntry = entry as PerformanceResourceTiming;
+            
+            // Skip data URLs and very small resources
+            if (resourceEntry.name.startsWith('data:') || resourceEntry.duration < 1) {
+              continue;
+            }
+            
+            this.metrics.resources.push({
+              name: resourceEntry.name,
+              type: resourceEntry.initiatorType,
+              duration: resourceEntry.duration,
+              size: resourceEntry.transferSize || 0,
+              timestamp: Date.now(),
+            });
+            
+            // Log slow resources
+            if (resourceEntry.duration > 1000) {
+              console.warn(`Slow resource: ${resourceEntry.name} took ${resourceEntry.duration.toFixed(2)}ms`);
+            }
+          }
+        });
+        
+        resourceObserver.observe({ entryTypes: ['resource'] });
+        this.observers.push(resourceObserver);
+      } catch (error) {
+        console.warn('Resource observer not supported:', error);
+      }
+    }
   }
 
   // Component performance monitoring
@@ -215,6 +385,20 @@ class PerformanceMonitor {
     const slowComponents = this.metrics.components.filter(m => m.componentRenderTime > 16);
     const slowApis = this.metrics.apis.filter(m => m.duration > 1000);
 
+    // Get latest Web Vitals
+    const latestWebVitals: { [key: string]: WebVitalsMetrics } = {};
+    this.metrics.webVitals.forEach(metric => {
+      if (!latestWebVitals[metric.name] || metric.timestamp > latestWebVitals[metric.name].timestamp) {
+        latestWebVitals[metric.name] = metric;
+      }
+    });
+
+    // Calculate total resource size and average load time
+    const totalResourceSize = this.metrics.resources.reduce((sum, r) => sum + r.size, 0);
+    const avgResourceLoadTime = this.metrics.resources.length > 0
+      ? this.metrics.resources.reduce((sum, r) => sum + r.duration, 0) / this.metrics.resources.length
+      : 0;
+
     return {
       totalComponentRenders: this.metrics.components.length,
       averageComponentRenderTime: componentAvg,
@@ -226,6 +410,10 @@ class PerformanceMonitor {
       apiSuccessRate: this.metrics.apis.length > 0
         ? (this.metrics.apis.filter(m => m.success).length / this.metrics.apis.length) * 100
         : 100,
+      webVitals: latestWebVitals,
+      totalResourcesLoaded: this.metrics.resources.length,
+      totalResourceSize: totalResourceSize,
+      averageResourceLoadTime: avgResourceLoadTime,
     };
   }
 
@@ -235,6 +423,8 @@ class PerformanceMonitor {
       components: [],
       apis: [],
       interactions: [],
+      webVitals: [],
+      resources: [],
     };
   }
 
@@ -245,6 +435,67 @@ class PerformanceMonitor {
       summary: this.getPerformanceSummary(),
       exportedAt: Date.now(),
     };
+  }
+
+  // Get Web Vitals metrics
+  getWebVitals() {
+    const vitals: { [key: string]: WebVitalsMetrics } = {};
+    this.metrics.webVitals.forEach(metric => {
+      if (!vitals[metric.name] || metric.timestamp > vitals[metric.name].timestamp) {
+        vitals[metric.name] = metric;
+      }
+    });
+    return vitals;
+  }
+
+  // Get resource metrics by type
+  getResourceMetricsByType() {
+    const byType: { [key: string]: ResourceMetrics[] } = {};
+    this.metrics.resources.forEach(resource => {
+      if (!byType[resource.type]) {
+        byType[resource.type] = [];
+      }
+      byType[resource.type].push(resource);
+    });
+    return byType;
+  }
+
+  // Get slow resources
+  getSlowResources(threshold = 1000) {
+    return this.metrics.resources.filter(r => r.duration > threshold);
+  }
+
+  // Get bundle analysis
+  getBundleAnalysis() {
+    const scripts = this.metrics.resources.filter(r => r.type === 'script');
+    const styles = this.metrics.resources.filter(r => r.type === 'css' || r.type === 'link');
+    
+    const totalScriptSize = scripts.reduce((sum, s) => sum + s.size, 0);
+    const totalStyleSize = styles.reduce((sum, s) => sum + s.size, 0);
+    
+    return {
+      scripts: {
+        count: scripts.length,
+        totalSize: totalScriptSize,
+        averageLoadTime: scripts.length > 0 
+          ? scripts.reduce((sum, s) => sum + s.duration, 0) / scripts.length 
+          : 0,
+      },
+      styles: {
+        count: styles.length,
+        totalSize: totalStyleSize,
+        averageLoadTime: styles.length > 0 
+          ? styles.reduce((sum, s) => sum + s.duration, 0) / styles.length 
+          : 0,
+      },
+      totalSize: totalScriptSize + totalStyleSize,
+    };
+  }
+
+  // Clean up observers
+  disconnect() {
+    this.observers.forEach(observer => observer.disconnect());
+    this.observers = [];
   }
 }
 
