@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
+import { usePerformanceMonitor } from '../utils/performance';
+import { monitoredApi } from '../utils/monitoredApi';
 import { User, Bell, Shield, Palette, Bot, Webhook } from 'lucide-react';
-import { userApi } from '../services/api';
 
 interface UserSettingsProps {
   onClose: () => void;
 }
 
-export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
+const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
+  const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
   const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'notifications' | 'appearance' | 'bots'>('profile');
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
@@ -16,35 +19,43 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   });
 
   useEffect(() => {
+    startRender();
+    trackInteraction('settings_open', 'UserSettings');
     loadUserData();
     loadPrivacySettings();
   }, []);
 
   const loadUserData = async () => {
     try {
-      const response = await userApi.getCurrentUser();
+      const response = await monitoredApi.get('/users/me');
       setUser(response.data);
+      trackInteraction('user_data_loaded', 'UserSettings');
     } catch (error) {
       console.error('Failed to load user data:', error);
+      trackInteraction('user_data_error', 'UserSettings');
     }
   };
 
   const loadPrivacySettings = async () => {
     try {
-      const response = await userApi.getPrivacySettings();
+      const response = await monitoredApi.get('/users/privacy');
       setPrivacy(response.data);
+      trackInteraction('privacy_loaded', 'UserSettings');
     } catch (error) {
       console.error('Failed to load privacy settings:', error);
+      trackInteraction('privacy_error', 'UserSettings');
     }
   };
 
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
       const newPrivacy = { ...privacy, [key]: value };
-      await userApi.updatePrivacySettings(newPrivacy);
+      await monitoredApi.put('/users/privacy', newPrivacy);
       setPrivacy(newPrivacy);
+      trackInteraction('privacy_updated', 'UserSettings');
     } catch (error) {
       console.error('Failed to update privacy settings:', error);
+      trackInteraction('privacy_update_error', 'UserSettings');
     }
   };
 
@@ -57,7 +68,13 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        trackInteraction('settings_error', 'UserSettings');
+        console.error('UserSettings error:', error, errorInfo);
+      }}
+    >
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Настройки</h2>
@@ -304,6 +321,9 @@ export const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
+
+export default UserSettings;

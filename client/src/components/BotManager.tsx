@@ -21,7 +21,7 @@ interface BotCommand {
   description: string;
 }
 
-export const BotManager: React.FC = () => {
+const BotManager: React.FC = () => {
   const [bots, setBots] = useState<BotType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -270,3 +270,5 @@ export const BotManager: React.FC = () => {
     </div>
   );
 };
+
+export default BotManager;

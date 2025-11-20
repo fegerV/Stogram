@@ -129,3 +129,5 @@ export const ArchivedChats: React.FC<ArchivedChatsProps> = ({ onClose, onSelectC
     </div>
   );
 };
+
+export default ArchivedChats;
