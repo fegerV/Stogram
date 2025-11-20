@@ -159,25 +159,26 @@ stogram/
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
+# Client unit/integration tests (Vitest)
+cd client && npm run test
 
-# Run client tests
-cd client && npm test
+# Client tests with coverage
+cd client && npm run test:coverage
 
-# Run server tests
-cd server && npm test
+# Server tests (if applicable)
+cd server && npm run test
 
-# Run with coverage
-npm run test:coverage
+# End-to-end tests (Playwright)
+npx playwright install --with-deps   # first time only
+npm run test:e2e
 ```
 
 ### Writing Tests
 
 - Write unit tests for utility functions
 - Write integration tests for API endpoints
-- Write E2E tests for critical user flows
-- Aim for at least 80% code coverage
+- Use Playwright E2E tests for critical user flows (auth, messaging, onboarding)
+- Aim for at least 80% code coverage across layers
 
 ## Documentation
 

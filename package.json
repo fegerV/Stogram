@@ -13,6 +13,7 @@
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
     "build": "cd client && npm run build && cd ../server && npm run build",
+    "test:e2e": "playwright test",
     "start": "cd server && npm start",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
@@ -29,6 +30,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "concurrently": "^8.2.2"
   }
 }
