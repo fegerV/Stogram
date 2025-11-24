@@ -15,7 +15,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "generate-vapid-keys": "ts-node src/scripts/generateVapidKeys.ts"
+    "generate-vapid-keys": "ts-node src/scripts/generateVapidKeys.ts",
+    "create-test-users": "ts-node src/scripts/createTestUsers.ts",
+    "create-test-chats": "ts-node src/scripts/createTestChats.ts",
+    "setup-test-data": "npm run create-test-users && npm run create-test-chats",
+    "list-test-users": "ts-node src/scripts/listTestUsers.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
