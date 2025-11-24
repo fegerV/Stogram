@@ -95,7 +95,7 @@ export const searchByHashtag = async (req: AuthRequest, res: Response) => {
       where: {
         chatId: { in: chatIds },
         isDeleted: false,
-        hashtags: { has: hashtag }
+        hashtags: { contains: hashtag }
       },
       include: {
         sender: {
@@ -142,7 +142,7 @@ export const searchByMention = async (req: AuthRequest, res: Response) => {
       where: {
         chatId: { in: chatIds },
         isDeleted: false,
-        mentions: { has: username }
+        mentions: { contains: username }
       },
       include: {
         sender: {

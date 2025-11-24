@@ -186,7 +186,7 @@ export class SecurityController {
         isLocked,
         lockedUntil: user.lockedUntil,
         failedLoginAttempts: user.failedLoginAttempts,
-        trustedIPsCount: user.trustedIPs.length,
+        trustedIPsCount: user.trustedIPs ? JSON.parse(user.trustedIPs).length : 0,
       });
     } catch (error) {
       console.error('Check account status error:', error);

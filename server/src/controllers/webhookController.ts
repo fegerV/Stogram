@@ -31,7 +31,7 @@ export const createWebhook = async (req: AuthRequest, res: Response) => {
       data: {
         botId,
         url,
-        events,
+        events: JSON.stringify(events),
         secret: secret || crypto.randomBytes(32).toString('hex')
       }
     });
@@ -156,7 +156,7 @@ export const deliverWebhookEvent = async (
       where: {
         isActive: true,
         events: {
-          has: event
+          contains: event
         }
       }
     });

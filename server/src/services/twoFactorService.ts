@@ -68,7 +68,7 @@ export class TwoFactorService {
       data: {
         twoFactorEnabled: true,
         twoFactorSecret: secret,
-        backupCodes: hashedBackupCodes,
+        backupCodes: JSON.stringify(hashedBackupCodes),
       },
     });
 
@@ -82,7 +82,7 @@ export class TwoFactorService {
       data: {
         twoFactorEnabled: false,
         twoFactorSecret: null,
-        backupCodes: [],
+        backupCodes: null,
       },
     });
   }
@@ -104,15 +104,18 @@ export class TwoFactorService {
     }
 
     // Try backup code verification
+    if (!user.backupCodes) return false;
+    
     const hashedCode = this.hashBackupCode(code);
-    const backupCodeIndex = user.backupCodes.indexOf(hashedCode);
+    const backupCodes = JSON.parse(user.backupCodes);
+    const backupCodeIndex = backupCodes.indexOf(hashedCode);
     
     if (backupCodeIndex !== -1) {
       // Remove used backup code
-      const newBackupCodes = user.backupCodes.filter((_: string, i: number) => i !== backupCodeIndex);
+      const newBackupCodes = backupCodes.filter((_: string, i: number) => i !== backupCodeIndex);
       await prisma.user.update({
         where: { id: userId },
-        data: { backupCodes: newBackupCodes },
+        data: { backupCodes: JSON.stringify(newBackupCodes) },
       });
       return true;
     }

@@ -12,11 +12,13 @@ import {
 const router = express.Router();
 
 // Все роуты n8n требуют авторизации
-router.get('/events', authenticate, getEvents);
-router.get('/chats', authenticate, getChatsForN8n);
-router.post('/messages/send', authenticate, sendMessageFromN8n);
-router.get('/chats/:chatId/messages', authenticate, getChatMessagesForN8n);
-router.post('/chats', authenticate, createChatFromN8n);
-router.get('/users/:userId', authenticate, getUserInfoForN8n);
+router.use(authenticate);
+
+router.get('/events', getEvents);
+router.get('/chats', getChatsForN8n);
+router.post('/messages/send', sendMessageFromN8n);
+router.get('/chats/:chatId/messages', getChatMessagesForN8n);
+router.post('/chats', createChatFromN8n);
+router.get('/users/:userId', getUserInfoForN8n);
 
 export default router;

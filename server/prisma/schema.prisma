@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -39,10 +39,10 @@ model User {
   // Security enhancements
   twoFactorEnabled  Boolean    @default(false)
   twoFactorSecret   String?
-  backupCodes       String[]   @default([])
+  backupCodes       String?    // JSON string array
   failedLoginAttempts Int      @default(0)
   lockedUntil       DateTime?
-  trustedIPs        String[]   @default([])
+  trustedIPs        String?    // JSON string array
   
   // E2E Encryption
   publicKey         String?
@@ -153,8 +153,8 @@ model Message {
   isSilent     Boolean     @default(false)
   scheduledFor DateTime?
   isSent       Boolean     @default(false)
-  mentions     String[]    @default([])
-  hashtags     String[]    @default([])
+  mentions     String?    // JSON string array
+  hashtags     String?    // JSON string array
   
   // E2E Encryption
   isEncrypted  Boolean     @default(false)
@@ -427,7 +427,7 @@ model Webhook {
   id          String       @id @default(uuid())
   botId       String
   url         String
-  events      String[]
+  events      String?   // JSON string array
   isActive    Boolean      @default(true)
   secret      String?
   createdAt   DateTime     @default(now())

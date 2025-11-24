@@ -12,8 +12,8 @@ import pinnedMessageRoutes from './pinnedMessage';
 import stickerRoutes from './sticker';
 import botRoutes from './bot';
 import webhookRoutes from './webhook';
-import n8nRoutes from './n8n';
-import telegramRoutes from './telegram';
+// import n8nRoutes from './n8n';
+// import telegramRoutes from './telegram';
 
 const router = Router();
 
@@ -29,8 +29,8 @@ router.use('/pinned-messages', pinnedMessageRoutes);
 router.use('/stickers', stickerRoutes);
 router.use('/bots', botRoutes);
 router.use('/webhooks', webhookRoutes);
-router.use('/n8n', n8nRoutes);
-router.use('/telegram', telegramRoutes);
+// router.use('/n8n', n8nRoutes);
+// router.use('/telegram', telegramRoutes);
 router.use('/', reactionRoutes);
 
 export default router;
