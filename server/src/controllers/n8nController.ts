@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
+import { Response } from 'express';
 import prisma from '../utils/prisma';
 import { deliverWebhookEvent } from './webhookController';
 
 // Получить события для n8n
-export const getEvents = async (req: Request, res: Response) => {
+export const getEvents = async (req: AuthRequest, res: Response) => {
   try {
     res.json({
       events: [
@@ -27,7 +28,7 @@ export const getEvents = async (req: Request, res: Response) => {
 };
 
 // Получить список чатов пользователя (для n8n)
-export const getChatsForN8n = async (req: Request, res: Response) => {
+export const getChatsForN8n = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -72,7 +73,7 @@ export const getChatsForN8n = async (req: Request, res: Response) => {
 };
 
 // Отправить сообщение (для n8n)
-export const sendMessageFromN8n = async (req: Request, res: Response) => {
+export const sendMessageFromN8n = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -121,7 +122,7 @@ export const sendMessageFromN8n = async (req: Request, res: Response) => {
 };
 
 // Получить сообщения чата (для n8n)
-export const getChatMessagesForN8n = async (req: Request, res: Response) => {
+export const getChatMessagesForN8n = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -165,7 +166,7 @@ export const getChatMessagesForN8n = async (req: Request, res: Response) => {
 };
 
 // Создать чат (для n8n)
-export const createChatFromN8n = async (req: Request, res: Response) => {
+export const createChatFromN8n = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -224,7 +225,7 @@ export const createChatFromN8n = async (req: Request, res: Response) => {
 };
 
 // Получить информацию о пользователе (для n8n)
-export const getUserInfoForN8n = async (req: Request, res: Response) => {
+export const getUserInfoForN8n = async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
 

@@ -104,8 +104,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const isSent = !scheduledFor; // If not scheduled, mark as sent immediately
 
     // Extract mentions and hashtags from content
-    const mentions = data.content ? extractMentions(data.content) : [];
-    const hashtags = data.content ? extractHashtags(data.content) : [];
+    const mentions = data.content ? JSON.stringify(extractMentions(data.content)) : null;
+    const hashtags = data.content ? JSON.stringify(extractHashtags(data.content)) : null;
 
     const message = await prisma.message.create({
       data: {

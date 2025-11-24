@@ -19,9 +19,9 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
           { id: { not: userId } },
           {
             OR: [
-              { username: { contains: query, mode: 'insensitive' } },
-              { displayName: { contains: query, mode: 'insensitive' } },
-              { email: { contains: query, mode: 'insensitive' } },
+              { username: { contains: query } },
+              { displayName: { contains: query } },
+              { email: { contains: query } },
             ],
           },
         ],

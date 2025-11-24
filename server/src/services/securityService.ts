@@ -142,11 +142,12 @@ export class SecurityService {
 
     if (!user) return;
 
-    const trustedIPs = [...user.trustedIPs, ipAddress];
+    const currentIPs = user.trustedIPs ? JSON.parse(user.trustedIPs) : [];
+    const trustedIPs = [...currentIPs, ipAddress];
     
     await prisma.user.update({
       where: { id: userId },
-      data: { trustedIPs },
+      data: { trustedIPs: JSON.stringify(trustedIPs) },
     });
   }
 
@@ -157,7 +158,10 @@ export class SecurityService {
       select: { trustedIPs: true },
     });
 
-    return user?.trustedIPs.includes(ipAddress) || false;
+    if (!user || !user.trustedIPs) return false;
+    
+    const trustedIPs = JSON.parse(user.trustedIPs);
+    return trustedIPs.includes(ipAddress);
   }
 
   // Detect suspicious activity
