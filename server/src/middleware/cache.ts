@@ -1,7 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+let redis: any = null;
+
+// Only initialize Redis if REDIS_URL is provided
+if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
+  try {
+    const Redis = require('ioredis');
+    redis = new Redis(process.env.REDIS_URL);
+  } catch (error) {
+    console.warn('Redis not available, caching disabled');
+  }
+}
 
 interface CacheOptions {
   ttl?: number; // Time to live in seconds
@@ -22,7 +31,10 @@ export class CacheMiddleware {
       const key = `${keyPrefix}:${req.originalUrl}`;
 
       try {
-        const cachedData = await redis.get(key);
+        let cachedData = null;
+        if (redis) {
+          cachedData = await redis.get(key);
+        }
 
         if (cachedData) {
           console.log(`Cache hit for: ${key}`);
@@ -34,7 +46,9 @@ export class CacheMiddleware {
 
         // Override json method to cache response
         res.json = function (data: any) {
-          redis.setex(key, ttl, JSON.stringify(data));
+          if (redis) {
+            redis.setex(key, ttl, JSON.stringify(data));
+          }
           return originalJson(data);
         };
 
@@ -49,10 +63,12 @@ export class CacheMiddleware {
   // Invalidate cache by pattern
   static async invalidate(pattern: string): Promise<void> {
     try {
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) {
-        await redis.del(...keys);
-        console.log(`Invalidated ${keys.length} cache keys matching: ${pattern}`);
+      if (redis) {
+        const keys = await redis.keys(pattern);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+          console.log(`Invalidated ${keys.length} cache keys matching: ${pattern}`);
+        }
       }
     } catch (error) {
       console.error('Cache invalidation error:', error);
@@ -62,8 +78,10 @@ export class CacheMiddleware {
   // Clear all cache
   static async clearAll(): Promise<void> {
     try {
-      await redis.flushall();
-      console.log('All cache cleared');
+      if (redis) {
+        await redis.flushall();
+        console.log('All cache cleared');
+      }
     } catch (error) {
       console.error('Clear cache error:', error);
     }
@@ -72,7 +90,9 @@ export class CacheMiddleware {
   // Set cache value manually
   static async set(key: string, value: any, ttl: number = 300): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(value));
+      if (redis) {
+        await redis.setex(key, ttl, JSON.stringify(value));
+      }
     } catch (error) {
       console.error('Set cache error:', error);
     }
@@ -81,8 +101,11 @@ export class CacheMiddleware {
   // Get cache value manually
   static async get(key: string): Promise<any | null> {
     try {
-      const data = await redis.get(key);
-      return data ? JSON.parse(data) : null;
+      if (redis) {
+        const data = await redis.get(key);
+        return data ? JSON.parse(data) : null;
+      }
+      return null;
     } catch (error) {
       console.error('Get cache error:', error);
       return null;
@@ -92,7 +115,9 @@ export class CacheMiddleware {
   // Delete cache value
   static async delete(key: string): Promise<void> {
     try {
-      await redis.del(key);
+      if (redis) {
+        await redis.del(key);
+      }
     } catch (error) {
       console.error('Delete cache error:', error);
     }

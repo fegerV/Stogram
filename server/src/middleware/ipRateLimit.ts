@@ -1,8 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
 import { AuditLogService } from '../services/auditLogService';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+let redis: any = null;
+
+// Only initialize Redis if REDIS_URL is provided
+if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
+  try {
+    const Redis = require('ioredis');
+    redis = new Redis(process.env.REDIS_URL);
+  } catch (error) {
+    console.warn('Redis not available, IP rate limiting will use memory store');
+  }
+}
+
+// In-memory store for development
+const memoryStore = new Map<string, { count: number; expires: number }>();
+
+// Cleanup expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of memoryStore.entries()) {
+    if (now > value.expires) {
+      memoryStore.delete(key);
+    }
+  }
+}, 60000); // Cleanup every minute
 
 export interface IPRateLimitOptions {
   windowMs: number;      // Time window in milliseconds
@@ -63,17 +85,41 @@ export class IPRateLimiter {
     const key = this.getKey(ip, path);
 
     try {
-      // Get current count
-      const currentCount = await redis.incr(key);
+      let currentCount: number;
+      let ttl: number;
+      let resetTime: number;
 
-      // Set expiry on first request
-      if (currentCount === 1) {
-        await redis.pexpire(key, this.options.windowMs);
+      if (redis) {
+        // Redis implementation
+        currentCount = await redis.incr(key);
+
+        // Set expiry on first request
+        if (currentCount === 1) {
+          await redis.pexpire(key, this.options.windowMs);
+        }
+
+        // Get TTL for retry-after header
+        ttl = await redis.pttl(key);
+        resetTime = Date.now() + ttl;
+      } else {
+        // Memory store implementation
+        const now = Date.now();
+        const existing = memoryStore.get(key);
+        
+        if (existing && now < existing.expires) {
+          currentCount = existing.count + 1;
+          existing.count = currentCount;
+        } else {
+          currentCount = 1;
+          memoryStore.set(key, {
+            count: 1,
+            expires: now + this.options.windowMs
+          });
+        }
+        
+        ttl = this.options.windowMs;
+        resetTime = now + ttl;
       }
-
-      // Get TTL for retry-after header
-      const ttl = await redis.pttl(key);
-      const resetTime = Date.now() + ttl;
 
       // Set rate limit headers
       res.setHeader('X-RateLimit-Limit', this.options.maxRequests.toString());
@@ -109,15 +155,30 @@ export class IPRateLimiter {
    */
   static async resetIP(ip: string, path: string = '*'): Promise<void> {
     try {
-      if (path === '*') {
-        const pattern = `ip-ratelimit:${ip}:*`;
-        const keys = await redis.keys(pattern);
-        if (keys.length > 0) {
-          await redis.del(...keys);
+      if (redis) {
+        if (path === '*') {
+          const pattern = `ip-ratelimit:${ip}:*`;
+          const keys = await redis.keys(pattern);
+          if (keys.length > 0) {
+            await redis.del(...keys);
+          }
+        } else {
+          const key = `ip-ratelimit:${ip}:${path}`;
+          await redis.del(key);
         }
       } else {
-        const key = `ip-ratelimit:${ip}:${path}`;
-        await redis.del(key);
+        // Memory store implementation
+        const now = Date.now();
+        if (path === '*') {
+          for (const [key, value] of memoryStore.entries()) {
+            if (key.startsWith(`ip-ratelimit:${ip}:`) && now < value.expires) {
+              memoryStore.delete(key);
+            }
+          }
+        } else {
+          const key = `ip-ratelimit:${ip}:${path}`;
+          memoryStore.delete(key);
+        }
       }
     } catch (error) {
       console.error('Reset IP rate limit error:', error);
@@ -130,8 +191,19 @@ export class IPRateLimiter {
   static async getCount(ip: string, path: string): Promise<number> {
     try {
       const key = `ip-ratelimit:${ip}:${path}`;
-      const count = await redis.get(key);
-      return count ? parseInt(count, 10) : 0;
+      
+      if (redis) {
+        const count = await redis.get(key);
+        return count ? parseInt(count, 10) : 0;
+      } else {
+        // Memory store implementation
+        const now = Date.now();
+        const existing = memoryStore.get(key);
+        if (existing && now < existing.expires) {
+          return existing.count;
+        }
+        return 0;
+      }
     } catch (error) {
       console.error('Get IP count error:', error);
       return 0;
