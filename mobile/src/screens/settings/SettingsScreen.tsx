@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@store/authStore';
 import { COLORS } from '@utils/config';
 
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -23,7 +25,10 @@ const SettingsScreen: React.FC = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>General</Text>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('NotificationSettings' as never)}
+        >
           <Icon name="notifications-outline" size={24} color={COLORS.text} />
           <Text style={styles.menuItemText}>Notifications</Text>
           <Icon name="chevron-forward" size={20} color={COLORS.gray} />

@@ -25,6 +25,12 @@ model User {
   showProfilePhoto  Boolean    @default(true)
   showLastSeen      Boolean    @default(true)
   
+  // Notification preferences
+  notificationsPush       Boolean  @default(true)
+  notificationsEmail      Boolean  @default(true)
+  notificationsSound      Boolean  @default(true)
+  notificationsVibration  Boolean  @default(true)
+  
   // Telegram Integration
   telegramId               String?  @unique
   telegramUsername         String?

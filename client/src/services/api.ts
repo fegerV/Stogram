@@ -57,6 +57,13 @@ export const userApi = {
   getPrivacySettings: () => api.get('/users/privacy'),
   updatePrivacySettings: (data: { showOnlineStatus?: boolean; showProfilePhoto?: boolean; showLastSeen?: boolean }) =>
     api.patch('/users/privacy', data),
+  getNotificationPreferences: () => api.get('/users/notifications'),
+  updateNotificationPreferences: (data: { 
+    notificationsPush?: boolean; 
+    notificationsEmail?: boolean; 
+    notificationsSound?: boolean; 
+    notificationsVibration?: boolean 
+  }) => api.patch('/users/notifications', data),
 };
 
 export const chatApi = {

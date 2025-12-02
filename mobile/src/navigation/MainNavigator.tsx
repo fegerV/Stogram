@@ -6,6 +6,7 @@ import HomeScreen from '@screens/home/HomeScreen';
 import ChatScreen from '@screens/chat/ChatScreen';
 import ProfileScreen from '@screens/profile/ProfileScreen';
 import SettingsScreen from '@screens/settings/SettingsScreen';
+import NotificationSettingsScreen from '@screens/settings/NotificationSettingsScreen';
 import { COLORS } from '@utils/config';
 
 const Tab = createBottomTabNavigator();
@@ -23,6 +24,23 @@ const HomeStack = () => {
         name="Chat"
         component={ChatScreen}
         options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+const SettingsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="SettingsMain"
+        component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+        options={{ title: 'Notification Settings' }}
       />
     </Stack.Navigator>
   );
@@ -62,7 +80,7 @@ const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Settings"
-        component={SettingsScreen}
+        component={SettingsStack}
         options={{ tabBarLabel: 'Settings' }}
       />
     </Tab.Navigator>
