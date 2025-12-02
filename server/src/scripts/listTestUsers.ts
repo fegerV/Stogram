@@ -4,7 +4,7 @@ interface UserInfo {
   id: string;
   username: string;
   email: string;
-  displayName: string;
+  displayName: string | null;
   status: string;
   emailVerified: boolean;
   createdAt: Date;
@@ -65,7 +65,7 @@ async function listTestUsers() {
     users.forEach((user: UserInfo) => {
       const username = user.username.padEnd(19);
       const email = user.email.padEnd(19);
-      const displayName = user.displayName.padEnd(15);
+      const displayName = (user.displayName || '').padEnd(15);
       const status = user.status.padEnd(8);
       const emailVerified = user.emailVerified ? '✓' : '✗'.padEnd(8);
       const createdAt = user.createdAt.toISOString().split('T')[0].padEnd(22);
