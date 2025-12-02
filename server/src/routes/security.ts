@@ -1,7 +1,10 @@
 import express from 'express';
 import { SecurityController } from '../controllers/securityController';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 // 2FA routes
 router.post('/2fa/enable', SecurityController.enable2FA);

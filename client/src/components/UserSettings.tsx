@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
 import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
+
+const LazyTwoFactorAuth = lazy(() => import('./TwoFactorAuth'));
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -31,7 +33,7 @@ interface StorageInfo {
 
 const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
-  const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'notifications' | 'appearance' | 'bots' | 'sessions' | 'data'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'security' | 'notifications' | 'appearance' | 'bots' | 'sessions' | 'data'>('profile');
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
     showOnlineStatus: true,
@@ -48,6 +50,13 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const [securityStatus, setSecurityStatus] = useState<any>(null);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [changePasswordData, setChangePasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
   const updateNotificationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -93,12 +102,14 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
-      const newPrivacy = { ...privacy, [key]: value };
-      await monitoredApi.put('/users/privacy', newPrivacy);
-      setPrivacy(newPrivacy);
+      const updates = { [key]: value };
+      await monitoredApi.patch('/users/privacy', updates);
+      setPrivacy({ ...privacy, [key]: value });
+      toast.success('Privacy settings updated');
       trackInteraction('privacy_updated', 'UserSettings');
     } catch (error) {
       console.error('Failed to update privacy settings:', error);
+      toast.error('Failed to update privacy settings');
       trackInteraction('privacy_update_error', 'UserSettings');
     }
   };
@@ -255,17 +266,81 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     event.target.value = '';
   };
 
+  const loadSecurityStatus = async () => {
+    try {
+      const response = await monitoredApi.get('/security/status');
+      setSecurityStatus(response.data);
+      trackInteraction('security_status_loaded', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to load security status:', error);
+      toast.error('Failed to load security status');
+      trackInteraction('security_status_error', 'UserSettings');
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (changePasswordData.newPassword !== changePasswordData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (changePasswordData.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      await monitoredApi.post('/users/change-password', {
+        currentPassword: changePasswordData.currentPassword,
+        newPassword: changePasswordData.newPassword,
+      });
+      toast.success('Password changed successfully');
+      setChangePasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      trackInteraction('password_changed', 'UserSettings');
+    } catch (error: any) {
+      console.error('Failed to change password:', error);
+      toast.error(error.response?.data?.error || 'Failed to change password');
+      trackInteraction('password_change_error', 'UserSettings');
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!confirm('Are you sure you want to disable two-factor authentication?')) return;
+
+    const code = prompt('Enter your 2FA code to confirm:');
+    if (!code) return;
+
+    try {
+      await monitoredApi.post('/security/2fa/disable', { code });
+      toast.success('2FA disabled successfully');
+      await loadSecurityStatus();
+      trackInteraction('2fa_disabled', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to disable 2FA:', error);
+      toast.error('Failed to disable 2FA');
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'sessions') {
       loadSessions();
     } else if (activeTab === 'data') {
       loadStorageInfo();
+    } else if (activeTab === 'security') {
+      loadSecurityStatus();
     }
   }, [activeTab]);
 
   const tabs = [
     { id: 'profile', label: 'Профиль', icon: User },
     { id: 'privacy', label: 'Приватность', icon: Shield },
+    { id: 'security', label: 'Безопасность', icon: Shield },
     { id: 'notifications', label: 'Уведомления', icon: Bell },
     { id: 'appearance', label: 'Внешний вид', icon: Palette },
     { id: 'sessions', label: 'Активные сеансы', icon: Monitor },
@@ -422,6 +497,138 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'security' && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Безопасность</h3>
+                
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                      Двухфакторная аутентификация (2FA)
+                    </h4>
+                    {securityStatus ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Статус: {securityStatus.twoFactorEnabled ? (
+                              <span className="text-green-600 dark:text-green-400 font-medium">Включена</span>
+                            ) : (
+                              <span className="text-red-600 dark:text-red-400 font-medium">Отключена</span>
+                            )}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {securityStatus.twoFactorEnabled
+                              ? 'Ваш аккаунт защищен двухфакторной аутентификацией'
+                              : 'Добавьте дополнительный уровень защиты к вашему аккаунту'}
+                          </p>
+                        </div>
+                        {securityStatus.twoFactorEnabled ? (
+                          <button
+                            onClick={handleDisable2FA}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                          >
+                            Отключить 2FA
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShow2FAModal(true)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                          >
+                            Включить 2FA
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Загрузка...</p>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Изменить пароль</h4>
+                    <form onSubmit={handleChangePassword} className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Текущий пароль
+                        </label>
+                        <input
+                          type="password"
+                          value={changePasswordData.currentPassword}
+                          onChange={(e) => setChangePasswordData({
+                            ...changePasswordData,
+                            currentPassword: e.target.value
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Новый пароль
+                        </label>
+                        <input
+                          type="password"
+                          value={changePasswordData.newPassword}
+                          onChange={(e) => setChangePasswordData({
+                            ...changePasswordData,
+                            newPassword: e.target.value
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          required
+                          minLength={8}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Подтвердите новый пароль
+                        </label>
+                        <input
+                          type="password"
+                          value={changePasswordData.confirmPassword}
+                          onChange={(e) => setChangePasswordData({
+                            ...changePasswordData,
+                            confirmPassword: e.target.value
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Изменить пароль
+                      </button>
+                    </form>
+                  </div>
+
+                  {securityStatus && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                        Статус аккаунта
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">E2E шифрование:</span>
+                          <span className={securityStatus.encryptionEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>
+                            {securityStatus.encryptionEnabled ? 'Включено' : 'Отключено'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Доверенные IP:</span>
+                          <span className="text-gray-900 dark:text-white">{securityStatus.trustedIPsCount}</span>
+                        </div>
+                        {securityStatus.isLocked && (
+                          <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded text-red-600 dark:text-red-400">
+                            Аккаунт заблокирован до: {new Date(securityStatus.lockedUntil).toLocaleString('ru-RU')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -746,6 +953,16 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         </div>
       </div>
+      {show2FAModal && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <LazyTwoFactorAuth 
+            onClose={() => {
+              setShow2FAModal(false);
+              loadSecurityStatus();
+            }} 
+          />
+        </Suspense>
+      )}
       </div>
     </ErrorBoundary>
   );

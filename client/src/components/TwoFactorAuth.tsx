@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Key, Copy, Check } from 'lucide-react';
+import { monitoredApi } from '../utils/monitoredApi';
+import toast from 'react-hot-toast';
 
 interface TwoFactorAuthProps {
   onClose: () => void;
@@ -8,6 +10,7 @@ interface TwoFactorAuthProps {
 const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
   const [step, setStep] = useState<'setup' | 'verify' | 'complete'>('setup');
   const [secret, setSecret] = useState('');
+  const [qrCodeData, setQrCodeData] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [verificationCode, setVerificationCode] = useState('');
   const [copied, setCopied] = useState(false);
@@ -16,25 +19,19 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
   const handleEnable2FA = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/security/2fa/enable', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSecret(data.data.secret);
-        setBackupCodes(data.data.backupCodes);
+      const response = await monitoredApi.post('/security/2fa/enable', {});
+      
+      if (response.data.success) {
+        setSecret(response.data.data.secret);
+        setQrCodeData(response.data.data.qrCodeData);
+        setBackupCodes(response.data.data.backupCodes);
         setStep('verify');
       } else {
-        alert('Failed to enable 2FA');
+        toast.error('Failed to enable 2FA');
       }
     } catch (error) {
       console.error('Enable 2FA error:', error);
-      alert('Failed to enable 2FA');
+      toast.error('Failed to enable 2FA');
     } finally {
       setLoading(false);
     }
@@ -43,23 +40,19 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
   const handleVerify = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/security/2fa/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ code: verificationCode }),
+      const response = await monitoredApi.post('/security/2fa/verify', {
+        code: verificationCode,
       });
 
-      if (response.ok) {
+      if (response.data.success) {
         setStep('complete');
+        toast.success('2FA enabled successfully');
       } else {
-        alert('Invalid verification code');
+        toast.error('Invalid verification code');
       }
     } catch (error) {
       console.error('Verify 2FA error:', error);
-      alert('Failed to verify 2FA');
+      toast.error('Failed to verify 2FA');
     } finally {
       setLoading(false);
     }
@@ -126,10 +119,17 @@ const TwoFactorAuth: React.FC<TwoFactorAuthProps> = ({ onClose }) => {
                 Scan this QR code with your authenticator app:
               </p>
               <div className="bg-white p-4 rounded-lg inline-block">
-                {/* QR Code would be rendered here */}
-                <div className="w-48 h-48 bg-gray-200 flex items-center justify-center">
-                  <p className="text-sm text-gray-500">QR Code</p>
-                </div>
+                {qrCodeData ? (
+                  <img 
+                    src={qrCodeData} 
+                    alt="2FA QR Code" 
+                    className="w-48 h-48"
+                  />
+                ) : (
+                  <div className="w-48 h-48 bg-gray-200 flex items-center justify-center">
+                    <p className="text-sm text-gray-500">Loading QR Code...</p>
+                  </div>
+                )}
               </div>
             </div>
 
