@@ -2,21 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
-import { User, Bell, Shield, Palette, Bot, Webhook } from 'lucide-react';
+import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface UserSettingsProps {
   onClose: () => void;
 }
 
+interface Session {
+  id: string;
+  device: string;
+  ipAddress: string;
+  userAgent: string;
+  lastActive: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+interface StorageInfo {
+  messages: { count: number; estimatedBytes: number };
+  media: { count: number; totalBytes: number };
+  contacts: { count: number; estimatedBytes: number };
+  chats: { count: number; estimatedBytes: number };
+  cache: { entriesCount: number; estimatedBytes: number };
+  total: { estimatedBytes: number; formatted: string };
+}
+
 const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
-  const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'notifications' | 'appearance' | 'bots'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'notifications' | 'appearance' | 'bots' | 'sessions' | 'data'>('profile');
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
     showOnlineStatus: true,
     showProfilePhoto: true,
     showLastSeen: true
   });
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [loadingStorage, setLoadingStorage] = useState(false);
 
   useEffect(() => {
     startRender();
@@ -59,11 +83,133 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     }
   };
 
+  const loadSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const response = await monitoredApi.get('/users/sessions');
+      setSessions(response.data.sessions);
+      trackInteraction('sessions_loaded', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      toast.error('Failed to load sessions');
+      trackInteraction('sessions_error', 'UserSettings');
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const loadStorageInfo = async () => {
+    setLoadingStorage(true);
+    try {
+      const response = await monitoredApi.get('/users/storage');
+      setStorageInfo(response.data);
+      trackInteraction('storage_loaded', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to load storage info:', error);
+      toast.error('Failed to load storage information');
+      trackInteraction('storage_error', 'UserSettings');
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await monitoredApi.delete(`/users/sessions/${sessionId}`);
+      setSessions(sessions.filter(s => s.id !== sessionId));
+      toast.success('Session revoked successfully');
+      trackInteraction('session_revoked', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to revoke session:', error);
+      toast.error('Failed to revoke session');
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    if (!confirm('Are you sure you want to log out from all other devices?')) return;
+    
+    try {
+      await monitoredApi.delete('/users/sessions');
+      await loadSessions();
+      toast.success('All other sessions revoked');
+      trackInteraction('all_sessions_revoked', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to revoke sessions:', error);
+      toast.error('Failed to revoke sessions');
+    }
+  };
+
+  const handleClearCache = async () => {
+    if (!confirm('This will clear cached messages and temporary files. Continue?')) return;
+    
+    try {
+      await monitoredApi.post('/users/storage/clear-cache');
+      await loadStorageInfo();
+      toast.success('Cache cleared successfully');
+      trackInteraction('cache_cleared', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      toast.error('Failed to clear cache');
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      const response = await monitoredApi.get('/users/export', {
+        responseType: 'blob',
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `stogram-export-${Date.now()}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success('Data exported successfully');
+      trackInteraction('data_exported', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      toast.error('Failed to export data');
+    }
+  };
+
+  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      await monitoredApi.post('/users/import', data);
+      toast.success('Data imported successfully');
+      trackInteraction('data_imported', 'UserSettings');
+      await loadUserData();
+    } catch (error) {
+      console.error('Failed to import data:', error);
+      toast.error('Failed to import data');
+    }
+    
+    event.target.value = '';
+  };
+
+  useEffect(() => {
+    if (activeTab === 'sessions') {
+      loadSessions();
+    } else if (activeTab === 'data') {
+      loadStorageInfo();
+    }
+  }, [activeTab]);
+
   const tabs = [
     { id: 'profile', label: 'Профиль', icon: User },
     { id: 'privacy', label: 'Приватность', icon: Shield },
     { id: 'notifications', label: 'Уведомления', icon: Bell },
     { id: 'appearance', label: 'Внешний вид', icon: Palette },
+    { id: 'sessions', label: 'Активные сеансы', icon: Monitor },
+    { id: 'data', label: 'Данные и хранилище', icon: HardDrive },
     { id: 'bots', label: 'Боты', icon: Bot }
   ];
 
@@ -277,6 +423,179 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'sessions' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Активные сеансы</h3>
+                  {sessions.length > 1 && (
+                    <button
+                      onClick={handleRevokeAllSessions}
+                      className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                    >
+                      Завершить все другие сеансы
+                    </button>
+                  )}
+                </div>
+
+                {loadingSessions ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">Загрузка...</p>
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Monitor className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400">Нет активных сеансов</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <Monitor className="w-5 h-5 text-blue-600" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {session.device || 'Unknown Device'}
+                              </p>
+                              {session.isCurrent && (
+                                <span className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                                  Текущий
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {session.ipAddress}
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                              Последняя активность: {new Date(session.lastActive).toLocaleString('ru-RU')}
+                            </p>
+                          </div>
+                        </div>
+                        {!session.isCurrent && (
+                          <button
+                            onClick={() => handleRevokeSession(session.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Завершить сеанс"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'data' && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Данные и хранилище</h3>
+
+                {loadingStorage ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">Загрузка...</p>
+                  </div>
+                ) : storageInfo ? (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          Общее использование
+                        </h4>
+                        <HardDrive className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {storageInfo.total.formatted}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Приблизительная оценка
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Сообщения</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {storageInfo.messages.count}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Медиафайлы</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {storageInfo.media.count}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Контакты</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {storageInfo.contacts.count}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Чаты</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {storageInfo.chats.count}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <button
+                        onClick={handleClearCache}
+                        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Trash2 className="w-5 h-5 text-orange-600" />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900 dark:text-white">Очистить кэш</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Удалить временные файлы и кэшированные данные
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={handleExportData}
+                        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Download className="w-5 h-5 text-blue-600" />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900 dark:text-white">Экспорт данных</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Скачать копию ваших данных в формате JSON
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <Upload className="w-5 h-5 text-green-600" />
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 dark:text-white">Импорт данных</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Восстановить данные из ранее экспортированного файла
+                            </p>
+                          </div>
+                          <input
+                            type="file"
+                            accept=".json"
+                            onChange={handleImportData}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 

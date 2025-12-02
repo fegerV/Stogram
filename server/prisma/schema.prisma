@@ -67,6 +67,7 @@ model User {
   securityLogs     SecurityLog[]
   ipBlacklist      IPBlacklist[]
   themes           UserTheme[]
+  sessions         UserSession[]
 
   @@index([email])
   @@index([username])
@@ -79,6 +80,23 @@ enum UserStatus {
   OFFLINE
   AWAY
   DO_NOT_DISTURB
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  device           String?
+  ipAddress        String
+  userAgent        String?
+  lastActive       DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@index([lastActive])
 }
 
 model Chat {
