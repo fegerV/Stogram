@@ -1,11 +1,32 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
 import { generateVerificationToken, sendVerificationEmail } from '../services/emailService';
 import { AuditLogService, AuditAction } from '../services/auditLogService';
+
+const generateRefreshToken = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+
+const hashToken = (token: string) => {
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+const extractDeviceInfo = (userAgent?: string) => {
+  if (!userAgent) return 'Unknown Device';
+  
+  if (userAgent.includes('Mobile')) return 'Mobile Device';
+  if (userAgent.includes('Tablet')) return 'Tablet';
+  if (userAgent.includes('Windows')) return 'Windows PC';
+  if (userAgent.includes('Mac')) return 'Mac';
+  if (userAgent.includes('Linux')) return 'Linux PC';
+  
+  return 'Unknown Device';
+};
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -74,6 +95,19 @@ export const register = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    const refreshToken = generateRefreshToken();
+    const refreshTokenHash = hashToken(refreshToken);
+
+    await prisma.userSession.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash,
+        device: extractDeviceInfo(req.headers['user-agent']),
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || null,
+      },
+    });
+
     // Audit log successful registration
     await AuditLogService.logAuth(
       AuditAction.USER_REGISTER,
@@ -83,7 +117,7 @@ export const register = async (req: Request, res: Response) => {
       true
     );
 
-    res.status(201).json({ user, token });
+    res.status(201).json({ user, token, refreshToken });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -142,6 +176,19 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    const refreshToken = generateRefreshToken();
+    const refreshTokenHash = hashToken(refreshToken);
+
+    await prisma.userSession.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash,
+        device: extractDeviceInfo(req.headers['user-agent']),
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || null,
+      },
+    });
+
     const userResponse = {
       id: user.id,
       email: user.email,
@@ -162,7 +209,7 @@ export const login = async (req: Request, res: Response) => {
       true
     );
 
-    res.json({ user: userResponse, token });
+    res.json({ user: userResponse, token, refreshToken });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -274,5 +321,78 @@ export const resendVerificationEmail = async (req: AuthRequest, res: Response) =
   } catch (error) {
     console.error('Resend verification email error:', error);
     res.status(500).json({ error: 'Failed to send verification email' });
+  }
+};
+
+const refreshTokenSchema = z.object({
+  refreshToken: z.string(),
+});
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const { refreshToken } = refreshTokenSchema.parse(req.body);
+    const refreshTokenHash = hashToken(refreshToken);
+
+    const session = await prisma.userSession.findFirst({
+      where: { refreshTokenHash },
+      include: { user: true },
+    });
+
+    if (!session) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    await prisma.userSession.update({
+      where: { id: session.id },
+      data: { lastActive: new Date() },
+    });
+
+    const token = jwt.sign(
+      { userId: session.userId },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+
+    res.json({ token });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Refresh token error:', error);
+    res.status(500).json({ error: 'Failed to refresh token' });
+  }
+};
+
+export const logout = async (req: AuthRequest, res: Response) => {
+  try {
+    const refreshToken = req.body.refreshToken || req.headers['x-refresh-token'];
+    
+    if (refreshToken) {
+      const refreshTokenHash = hashToken(refreshToken as string);
+      await prisma.userSession.deleteMany({
+        where: {
+          userId: req.userId!,
+          refreshTokenHash,
+        },
+      });
+    }
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+};
+
+export const logoutAll = async (req: AuthRequest, res: Response) => {
+  try {
+    await prisma.userSession.deleteMany({
+      where: { userId: req.userId! },
+    });
+
+    res.json({ message: 'Logged out from all devices' });
+  } catch (error) {
+    console.error('Logout all error:', error);
+    res.status(500).json({ error: 'Logout failed' });
   }
 };

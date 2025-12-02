@@ -4,7 +4,10 @@ import {
   login, 
   getMe, 
   verifyEmail, 
-  resendVerificationEmail 
+  resendVerificationEmail,
+  refreshAccessToken,
+  logout,
+  logoutAll
 } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 import { strictIPRateLimit, moderateIPRateLimit } from '../middleware/ipRateLimit';
@@ -17,5 +20,8 @@ router.post('/login', strictIPRateLimit, login);
 router.get('/me', authenticate, getMe);
 router.post('/verify-email', moderateIPRateLimit, verifyEmail);
 router.post('/resend-verification', authenticate, moderateIPRateLimit, resendVerificationEmail);
+router.post('/refresh', moderateIPRateLimit, refreshAccessToken);
+router.post('/logout', authenticate, logout);
+router.post('/logout-all', authenticate, logoutAll);
 
 export default router;
