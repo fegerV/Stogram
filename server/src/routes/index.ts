@@ -12,6 +12,7 @@ import pinnedMessageRoutes from './pinnedMessage';
 import stickerRoutes from './sticker';
 import botRoutes from './bot';
 import webhookRoutes from './webhook';
+import securityRoutes from './security';
 // import n8nRoutes from './n8n';
 // import telegramRoutes from './telegram';
 
@@ -29,6 +30,7 @@ router.use('/pinned-messages', pinnedMessageRoutes);
 router.use('/stickers', stickerRoutes);
 router.use('/bots', botRoutes);
 router.use('/webhooks', webhookRoutes);
+router.use('/security', securityRoutes);
 // router.use('/n8n', n8nRoutes);
 // router.use('/telegram', telegramRoutes);
 router.use('/', reactionRoutes);

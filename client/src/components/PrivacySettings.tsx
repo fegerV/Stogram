@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Eye, Clock, Image } from 'lucide-react';
-import axios from 'axios';
+import { userApi } from '../utils/monitoredApi';
 import toast from 'react-hot-toast';
 
 interface PrivacySettingsProps {
@@ -21,28 +21,22 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ onClose }) => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/privacy`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await userApi.get('/privacy');
       setSettings(response.data);
     } catch (error) {
       console.error('Failed to fetch privacy settings:', error);
+      toast.error('Не удалось загрузить настройки приватности');
     }
   };
 
   const updateSettings = async (updates: Partial<typeof settings>) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/users/privacy`,
-        updates,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSettings(response.data.settings);
+      const response = await userApi.patch('/privacy', updates);
+      setSettings(response.data.settings || response.data);
       toast.success('Настройки обновлены');
     } catch (error) {
+      console.error('Failed to update privacy settings:', error);
       toast.error('Не удалось обновить настройки');
     } finally {
       setLoading(false);

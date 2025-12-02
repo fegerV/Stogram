@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { TwoFactorService } from '../services/twoFactorService';
 import { SecurityService } from '../services/securityService';
 import { EncryptionService } from '../services/encryptionService';
+import prisma from '../utils/prisma';
 
 export class SecurityController {
   // Enable 2FA
@@ -92,7 +93,6 @@ export class SecurityController {
   static async getPublicKey(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
-      const prisma = (req as any).prisma;
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -160,7 +160,6 @@ export class SecurityController {
   static async checkAccountStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.userId!;
-      const prisma = (req as any).prisma;
 
       const user = await prisma.user.findUnique({
         where: { id: userId },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserX, Unlock } from 'lucide-react';
-import axios from 'axios';
+import { monitoredApi } from '../utils/monitoredApi';
 import toast from 'react-hot-toast';
 
 interface BlockedUser {
@@ -29,12 +29,10 @@ const BlockedUsers: React.FC<BlockedUsersProps> = ({ onClose }) => {
 
   const fetchBlockedUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/block`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBlockedUsers(response.data.blockedUsers);
+      const response = await monitoredApi.get('/block');
+      setBlockedUsers(response.data.blockedUsers || response.data);
     } catch (error) {
+      console.error('Failed to fetch blocked users:', error);
       toast.error('Не удалось загрузить заблокированных пользователей');
     } finally {
       setLoading(false);
@@ -43,13 +41,11 @@ const BlockedUsers: React.FC<BlockedUsersProps> = ({ onClose }) => {
 
   const unblockUser = async (userId: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL}/block/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await monitoredApi.delete(`/block/${userId}`);
       toast.success('Пользователь разблокирован');
       setBlockedUsers(blockedUsers.filter(b => b.blocked.id !== userId));
     } catch (error) {
+      console.error('Failed to unblock user:', error);
       toast.error('Не удалось разблокировать пользователя');
     }
   };
