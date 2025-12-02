@@ -12,6 +12,8 @@ import {
   updateTheme,
   updatePrivacySettings,
   getPrivacySettings,
+  getNotificationPreferences,
+  updateNotificationPreferences,
 } from '../controllers/userController';
 import {
   getSessions,
@@ -38,6 +40,8 @@ router.post('/contacts', addContact);
 router.delete('/contacts/:contactId', removeContact);
 router.get('/privacy', getPrivacySettings);
 router.patch('/privacy', updatePrivacySettings);
+router.get('/notifications', getNotificationPreferences);
+router.patch('/notifications', updateNotificationPreferences);
 router.patch('/profile', upload.single('avatar'), updateProfile);
 router.post('/change-password', changePassword);
 router.post('/push-subscription', subscribeToPush);

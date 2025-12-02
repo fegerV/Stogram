@@ -362,3 +362,66 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch current user' });
   }
 };
+
+export const getNotificationPreferences = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        notificationsPush: true,
+        notificationsEmail: true,
+        notificationsSound: true,
+        notificationsVibration: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get notification preferences error:', error);
+    res.status(500).json({ error: 'Failed to fetch notification preferences' });
+  }
+};
+
+export const updateNotificationPreferences = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { notificationsPush, notificationsEmail, notificationsSound, notificationsVibration } = req.body;
+
+    const updateData: any = {};
+    
+    if (notificationsPush !== undefined && typeof notificationsPush === 'boolean') {
+      updateData.notificationsPush = notificationsPush;
+    }
+    if (notificationsEmail !== undefined && typeof notificationsEmail === 'boolean') {
+      updateData.notificationsEmail = notificationsEmail;
+    }
+    if (notificationsSound !== undefined && typeof notificationsSound === 'boolean') {
+      updateData.notificationsSound = notificationsSound;
+    }
+    if (notificationsVibration !== undefined && typeof notificationsVibration === 'boolean') {
+      updateData.notificationsVibration = notificationsVibration;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        notificationsPush: true,
+        notificationsEmail: true,
+        notificationsSound: true,
+        notificationsVibration: true,
+      },
+    });
+
+    res.json({ message: 'Notification preferences updated successfully', preferences: user });
+  } catch (error) {
+    console.error('Update notification preferences error:', error);
+    res.status(500).json({ error: 'Failed to update notification preferences' });
+  }
+};

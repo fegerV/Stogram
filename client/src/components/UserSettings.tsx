@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
 import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -37,16 +38,24 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     showProfilePhoto: true,
     showLastSeen: true
   });
+  const [notifications, setNotifications] = useState({
+    notificationsPush: true,
+    notificationsEmail: true,
+    notificationsSound: true,
+    notificationsVibration: true
+  });
   const [sessions, setSessions] = useState<Session[]>([]);
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const updateNotificationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     startRender();
     trackInteraction('settings_open', 'UserSettings');
     loadUserData();
     loadPrivacySettings();
+    loadNotificationPreferences();
   }, []);
 
   const loadUserData = async () => {
@@ -71,6 +80,17 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     }
   };
 
+  const loadNotificationPreferences = async () => {
+    try {
+      const response = await monitoredApi.get('/users/notifications');
+      setNotifications(response.data);
+      trackInteraction('notifications_loaded', 'UserSettings');
+    } catch (error) {
+      console.error('Failed to load notification preferences:', error);
+      trackInteraction('notifications_error', 'UserSettings');
+    }
+  };
+
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
       const newPrivacy = { ...privacy, [key]: value };
@@ -81,6 +101,46 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       console.error('Failed to update privacy settings:', error);
       trackInteraction('privacy_update_error', 'UserSettings');
     }
+  };
+
+  const debouncedUpdateNotifications = useCallback((prefs: typeof notifications) => {
+    if (updateNotificationsTimeoutRef.current) {
+      clearTimeout(updateNotificationsTimeoutRef.current);
+    }
+
+    updateNotificationsTimeoutRef.current = setTimeout(async () => {
+      try {
+        await monitoredApi.patch('/users/notifications', prefs);
+        trackInteraction('notifications_updated', 'UserSettings');
+      } catch (error) {
+        console.error('Failed to update notification preferences:', error);
+        toast.error('Failed to update notification preferences');
+        trackInteraction('notifications_update_error', 'UserSettings');
+      }
+    }, 500);
+  }, [trackInteraction]);
+
+  const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
+    const newNotifications = { ...notifications, [key]: value };
+    setNotifications(newNotifications);
+
+    if (key === 'notificationsPush') {
+      try {
+        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (value && vapidKey) {
+          await subscribeToPushNotifications(vapidKey);
+          toast.success('Push notifications enabled');
+        } else if (!value) {
+          await unsubscribeFromPushNotifications();
+          toast.success('Push notifications disabled');
+        }
+      } catch (error) {
+        console.error('Failed to update push notification subscription:', error);
+        toast.error('Failed to update push notifications');
+      }
+    }
+
+    debouncedUpdateNotifications(newNotifications);
   };
 
   const loadSessions = async () => {
@@ -378,7 +438,30 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <input 
+                        type="checkbox" 
+                        checked={notifications.notificationsPush}
+                        onChange={(e) => handleNotificationChange('notificationsPush', e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">Email-уведомления</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Получать уведомления на электронную почту
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={notifications.notificationsEmail}
+                        onChange={(e) => handleNotificationChange('notificationsEmail', e.target.checked)}
+                        className="sr-only peer" 
+                      />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
@@ -391,7 +474,30 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <input 
+                        type="checkbox" 
+                        checked={notifications.notificationsSound}
+                        onChange={(e) => handleNotificationChange('notificationsSound', e.target.checked)}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">Вибрация</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Вибрировать при получении уведомления
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={notifications.notificationsVibration}
+                        onChange={(e) => handleNotificationChange('notificationsVibration', e.target.checked)}
+                        className="sr-only peer" 
+                      />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                     </label>
                   </div>

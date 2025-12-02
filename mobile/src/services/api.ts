@@ -201,6 +201,21 @@ class ApiService {
     return response.data;
   }
 
+  async getNotificationPreferences() {
+    const response = await this.api.get('/users/notifications');
+    return response.data;
+  }
+
+  async updateNotificationPreferences(data: {
+    notificationsPush?: boolean;
+    notificationsEmail?: boolean;
+    notificationsSound?: boolean;
+    notificationsVibration?: boolean;
+  }) {
+    const response = await this.api.patch('/users/notifications', data);
+    return response.data;
+  }
+
   getApiInstance(): AxiosInstance {
     return this.api;
   }
