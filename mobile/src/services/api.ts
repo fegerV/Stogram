@@ -145,7 +145,12 @@ class ApiService {
   }
 
   async updateProfile(data: any) {
-    const response = await this.api.patch('/users/profile', data);
+    const isFormData = data instanceof FormData;
+    const response = await this.api.patch('/users/profile', data, {
+      headers: isFormData ? {
+        'Content-Type': 'multipart/form-data',
+      } : undefined,
+    });
     return response.data;
   }
 

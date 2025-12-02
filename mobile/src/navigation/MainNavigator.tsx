@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import HomeScreen from '@screens/home/HomeScreen';
 import ChatScreen from '@screens/chat/ChatScreen';
 import ProfileScreen from '@screens/profile/ProfileScreen';
+import EditProfileScreen from '@screens/profile/EditProfileScreen';
 import SettingsScreen from '@screens/settings/SettingsScreen';
 import NotificationSettingsScreen from '@screens/settings/NotificationSettingsScreen';
 import { COLORS } from '@utils/config';
@@ -24,6 +25,23 @@ const HomeStack = () => {
         name="Chat"
         component={ChatScreen}
         options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+const ProfileStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: 'Edit Profile' }}
       />
     </Stack.Navigator>
   );
@@ -75,7 +93,7 @@ const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{ tabBarLabel: 'Profile' }}
       />
       <Tab.Screen

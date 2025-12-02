@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
+import { userApi } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
@@ -33,6 +35,7 @@ interface StorageInfo {
 
 const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
+  const { setUser: setAuthUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'security' | 'notifications' | 'appearance' | 'bots' | 'sessions' | 'data'>('profile');
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
@@ -58,6 +61,16 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     confirmPassword: '',
   });
   const updateNotificationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [profileFormData, setProfileFormData] = useState({
+    displayName: '',
+    bio: '',
+    status: '',
+  });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     startRender();
@@ -71,6 +84,11 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     try {
       const response = await monitoredApi.get('/users/me');
       setUser(response.data);
+      setProfileFormData({
+        displayName: response.data.displayName || '',
+        bio: response.data.bio || '',
+        status: response.data.status || '',
+      });
       trackInteraction('user_data_loaded', 'UserSettings');
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -327,6 +345,59 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     }
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Avatar file size must be less than 5MB');
+        return;
+      }
+      
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    setSavingProfile(true);
+    try {
+      const formData = new FormData();
+      
+      if (profileFormData.displayName !== user?.displayName) {
+        formData.append('displayName', profileFormData.displayName);
+      }
+      if (profileFormData.bio !== (user?.bio || '')) {
+        formData.append('bio', profileFormData.bio);
+      }
+      if (profileFormData.status !== (user?.status || '')) {
+        formData.append('status', profileFormData.status);
+      }
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      const response = await userApi.updateProfile(formData);
+      
+      setUser(response.data);
+      setAuthUser(response.data);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      
+      toast.success('Profile updated successfully');
+      trackInteraction('profile_updated', 'UserSettings');
+    } catch (error: any) {
+      console.error('Failed to update profile:', error);
+      toast.error(error.response?.data?.error || 'Failed to update profile');
+      trackInteraction('profile_update_error', 'UserSettings');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'sessions') {
       loadSessions();
@@ -395,11 +466,35 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Профиль</h3>
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                    {user?.displayName?.charAt(0) || 'U'}
-                  </div>
+                  {avatarPreview ? (
+                    <img 
+                      src={avatarPreview} 
+                      alt="Avatar preview" 
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                  ) : user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="Avatar" 
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                      {user?.displayName?.charAt(0) || 'U'}
+                    </div>
+                  )}
                   <div>
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    <button 
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
                       Изменить фото
                     </button>
                   </div>
@@ -422,8 +517,23 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                     </label>
                     <input
                       type="text"
-                      value={user?.displayName || ''}
+                      value={profileFormData.displayName}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, displayName: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Enter your display name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Статус
+                    </label>
+                    <input
+                      type="text"
+                      value={profileFormData.status}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="What's your status?"
+                      maxLength={100}
                     />
                   </div>
                   <div>
@@ -431,10 +541,26 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       О себе
                     </label>
                     <textarea
-                      value={user?.bio || ''}
+                      value={profileFormData.bio}
+                      onChange={(e) => setProfileFormData({ ...profileFormData, bio: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       rows={3}
+                      placeholder="Tell us about yourself"
+                      maxLength={500}
                     />
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleProfileSave}
+                      disabled={savingProfile}
+                      className={`px-6 py-2 bg-blue-600 text-white rounded-lg font-medium transition-colors ${
+                        savingProfile 
+                          ? 'opacity-50 cursor-not-allowed' 
+                          : 'hover:bg-blue-700'
+                      }`}
+                    >
+                      {savingProfile ? 'Сохранение...' : 'Сохранить профиль'}
+                    </button>
                   </div>
                 </div>
               </div>

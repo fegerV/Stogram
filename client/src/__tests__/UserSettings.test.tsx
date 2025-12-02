@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import UserSettings from '../components/UserSettings';
 import { monitoredApi } from '../utils/monitoredApi';
+import { userApi } from '../services/api';
 
 vi.mock('../utils/monitoredApi', () => ({
   monitoredApi: {
@@ -11,6 +12,18 @@ vi.mock('../utils/monitoredApi', () => ({
     patch: vi.fn(),
     delete: vi.fn(),
   },
+}));
+
+vi.mock('../services/api', () => ({
+  userApi: {
+    updateProfile: vi.fn(),
+  },
+}));
+
+vi.mock('../store/authStore', () => ({
+  useAuthStore: () => ({
+    setUser: vi.fn(),
+  }),
 }));
 
 vi.mock('../utils/performance', () => ({
@@ -196,6 +209,121 @@ describe('UserSettings - Security Tab', () => {
       expect(screen.getByText('Статус аккаунта')).toBeInTheDocument();
       expect(screen.getByText('E2E шифрование:')).toBeInTheDocument();
       expect(screen.getByText('Доверенные IP:')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('UserSettings - Profile Tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    (monitoredApi.get as any).mockImplementation((url: string) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ 
+          data: { 
+            id: '1', 
+            username: 'testuser', 
+            displayName: 'Test User',
+            bio: 'Test bio',
+            status: 'Available',
+            avatar: null
+          } 
+        });
+      }
+      if (url === '/users/privacy') {
+        return Promise.resolve({ data: { showOnlineStatus: true, showProfilePhoto: true, showLastSeen: true } });
+      }
+      if (url === '/users/notifications') {
+        return Promise.resolve({ 
+          data: { 
+            notificationsPush: true, 
+            notificationsEmail: true, 
+            notificationsSound: true, 
+            notificationsVibration: true 
+          } 
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+  });
+
+  it('should render profile tab with editable fields', async () => {
+    render(<UserSettings onClose={() => {}} />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Профиль')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your display name')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('What\'s your status?')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Tell us about yourself')).toBeInTheDocument();
+    });
+  });
+
+  it('should populate form fields with user data', async () => {
+    render(<UserSettings onClose={() => {}} />);
+    
+    await waitFor(() => {
+      const displayNameInput = screen.getByPlaceholderText('Enter your display name') as HTMLInputElement;
+      const statusInput = screen.getByPlaceholderText('What\'s your status?') as HTMLInputElement;
+      const bioInput = screen.getByPlaceholderText('Tell us about yourself') as HTMLTextAreaElement;
+
+      expect(displayNameInput.value).toBe('Test User');
+      expect(statusInput.value).toBe('Available');
+      expect(bioInput.value).toBe('Test bio');
+    });
+  });
+
+  it('should allow editing profile fields', async () => {
+    render(<UserSettings onClose={() => {}} />);
+    
+    await waitFor(() => {
+      const displayNameInput = screen.getByPlaceholderText('Enter your display name');
+      fireEvent.change(displayNameInput, { target: { value: 'Updated Name' } });
+      
+      expect((displayNameInput as HTMLInputElement).value).toBe('Updated Name');
+    });
+  });
+
+  it('should call updateProfile API on save', async () => {
+    (userApi.updateProfile as any).mockResolvedValue({ 
+      data: { 
+        id: '1', 
+        username: 'testuser', 
+        displayName: 'Updated Name',
+        bio: 'Updated bio',
+        status: 'Busy'
+      } 
+    });
+
+    render(<UserSettings onClose={() => {}} />);
+    
+    await waitFor(() => {
+      const displayNameInput = screen.getByPlaceholderText('Enter your display name');
+      fireEvent.change(displayNameInput, { target: { value: 'Updated Name' } });
+    });
+
+    const saveButton = screen.getByText('Сохранить профиль');
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(userApi.updateProfile).toHaveBeenCalled();
+    });
+  });
+
+  it('should show save button and change to loading state when saving', async () => {
+    (userApi.updateProfile as any).mockImplementation(() => 
+      new Promise(resolve => setTimeout(() => resolve({ data: {} }), 100))
+    );
+
+    render(<UserSettings onClose={() => {}} />);
+    
+    await waitFor(() => {
+      const saveButton = screen.getByText('Сохранить профиль');
+      expect(saveButton).toBeInTheDocument();
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Сохранение...')).toBeInTheDocument();
     });
   });
 });

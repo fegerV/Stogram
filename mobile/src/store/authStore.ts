@@ -19,6 +19,7 @@ interface AuthState {
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -98,4 +99,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  setUser: async (user: User) => {
+    set({ user });
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      console.error('Error saving user to storage:', error);
+    }
+  },
 }));
