@@ -4,7 +4,11 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useAuthStore } from '@store/authStore';
 import { COLORS } from '@utils/config';
 
-const ProfileScreen: React.FC = () => {
+interface ProfileScreenProps {
+  navigation?: any;
+}
+
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
 
   return (
@@ -31,7 +35,10 @@ const ProfileScreen: React.FC = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation?.navigate('EditProfile')}
+        >
           <Icon name="person-outline" size={24} color={COLORS.text} />
           <Text style={styles.menuItemText}>Edit Profile</Text>
           <Icon name="chevron-forward" size={20} color={COLORS.gray} />

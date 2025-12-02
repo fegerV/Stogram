@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { savePushSubscription } from '../services/pushService';
 
 export const searchUsers = async (req: AuthRequest, res: Response) => {
@@ -73,24 +74,40 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+const updateProfileSchema = z.object({
+  displayName: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional(),
+  status: z.string().max(100).optional(),
+});
+
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { displayName, bio, status } = req.body;
+    
+    const validation = updateProfileSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Invalid input', 
+        details: validation.error.errors 
+      });
+    }
+
+    const { displayName, bio, status } = validation.data;
 
     let avatar;
     if (req.file) {
       avatar = `/uploads/${req.file.filename}`;
     }
 
+    const updateData: any = {};
+    if (displayName !== undefined) updateData.displayName = displayName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (status !== undefined) updateData.status = status;
+    if (avatar) updateData.avatar = avatar;
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(displayName && { displayName }),
-        ...(bio !== undefined && { bio }),
-        ...(status && { status }),
-        ...(avatar && { avatar }),
-      },
+      data: updateData,
       select: {
         id: true,
         email: true,
@@ -100,6 +117,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         bio: true,
         status: true,
         lastSeen: true,
+        createdAt: true,
       },
     });
 
