@@ -208,9 +208,10 @@ export class CacheMiddleware {
   }
 
   static subscribe(channel: string, callback: (message: any) => void): void {
+    const Redis = require('ioredis');
     const subscriber = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
     
-    subscriber.subscribe(channel, (err) => {
+    subscriber.subscribe(channel, (err: any) => {
       if (err) {
         console.error('Subscribe error:', err);
         return;
@@ -218,7 +219,7 @@ export class CacheMiddleware {
       console.log(`Subscribed to channel: ${channel}`);
     });
 
-    subscriber.on('message', (chan, msg) => {
+    subscriber.on('message', (chan: any, msg: any) => {
       if (chan === channel) {
         try {
           const data = JSON.parse(msg);
