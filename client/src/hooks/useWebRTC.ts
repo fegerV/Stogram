@@ -76,7 +76,10 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
     }
   };
 
-  const handleOffer = async ({ from, offer }: any) => {
+  const handleOffer = async ({ callId: incomingCallId, from, offer }: any) => {
+    // Обрабатываем только предложения для текущего звонка
+    if (incomingCallId !== callId) return;
+    
     try {
       await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peerConnection.current?.createAnswer();
@@ -87,7 +90,10 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
     }
   };
 
-  const handleAnswer = async ({ answer }: any) => {
+  const handleAnswer = async ({ callId: incomingCallId, answer }: any) => {
+    // Обрабатываем только ответы для текущего звонка
+    if (incomingCallId !== callId) return;
+    
     try {
       await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (error) {
@@ -95,7 +101,10 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
     }
   };
 
-  const handleICECandidate = async ({ candidate }: any) => {
+  const handleICECandidate = async ({ callId: incomingCallId, candidate }: any) => {
+    // Обрабатываем только ICE кандидаты для текущего звонка
+    if (incomingCallId !== callId) return;
+    
     try {
       await peerConnection.current?.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {

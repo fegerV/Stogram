@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Bot, Plus, Trash2, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
+// Используем прокси в dev режиме или полный URL в production
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : '/api'; // Используем прокси из vite.config в dev режиме
+
 interface BotType {
   id: string;
   username: string;
@@ -39,7 +44,7 @@ const BotManager: React.FC = () => {
   const loadBots = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/bots', {
+      const response = await axios.get(`${API_BASE}/bots`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBots(response.data);
@@ -54,7 +59,7 @@ const BotManager: React.FC = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/bots', formData, {
+      const response = await axios.post(`${API_BASE}/bots`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBots([...bots, response.data]);
@@ -71,7 +76,7 @@ const BotManager: React.FC = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/bots/${botId}`, {
+      await axios.delete(`${API_BASE}/bots/${botId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBots(bots.filter(b => b.id !== botId));
@@ -85,7 +90,7 @@ const BotManager: React.FC = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/bots/${botId}/regenerate-token`, {}, {
+      const response = await axios.post(`${API_BASE}/bots/${botId}/regenerate-token`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(`Новый токен: ${response.data.token}\n\nСохраните его в безопасном месте!`);

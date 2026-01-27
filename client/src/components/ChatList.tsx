@@ -30,8 +30,8 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-primary-600 dark:bg-gray-800 text-white">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0b141a]">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33] bg-[#008069] dark:bg-[#202c33] text-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <MessageCircle className="w-8 h-8" />
@@ -40,7 +40,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 hover:bg-primary-700 dark:hover:bg-gray-700 rounded-full transition"
+              className="p-2 hover:bg-white/10 dark:hover:bg-white/10 rounded-full transition"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -70,81 +70,117 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
         </div>
         
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary-200 dark:text-gray-500 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 w-4 h-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search chats..."
-            className="w-full pl-10 pr-4 py-2 bg-primary-700 dark:bg-gray-700 text-white placeholder-primary-200 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white dark:focus:ring-primary-500"
+            placeholder="Search or start new chat"
+            className="w-full pl-9 pr-4 py-2 bg-white/10 dark:bg-[#2a3942] text-white placeholder-white/50 rounded-lg focus:outline-none focus:bg-white/20 dark:focus:bg-[#2a3942] text-sm"
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {filteredChats.map((chat) => {
-          const chatName = getChatName(chat, user?.id || '');
-          const chatAvatar = getChatAvatar(chat, user?.id || '');
-          const lastMessage = chat.messages?.[0];
-          const isSelected = chat.id === selectedChatId;
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-white dark:bg-[#0b141a]">
+        {filteredChats.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+            <p>No chats found</p>
+          </div>
+        ) : (
+          filteredChats.map((chat) => {
+            const chatName = getChatName(chat, user?.id || '');
+            const chatAvatar = getChatAvatar(chat, user?.id || '');
+            const lastMessage = chat.messages?.[0];
+            const isSelected = chat.id === selectedChatId;
+            
+            // Определяем превью последнего сообщения
+            let previewText = '';
+            if (lastMessage) {
+              if (lastMessage.type === 'IMAGE') {
+                previewText = '📷 Photo';
+              } else if (lastMessage.type === 'VIDEO') {
+                previewText = '🎥 Video';
+              } else if (lastMessage.type === 'AUDIO' || lastMessage.type === 'VOICE') {
+                previewText = '🎤 Audio';
+              } else if (lastMessage.type === 'FILE') {
+                previewText = '📎 ' + (lastMessage.fileName || 'File');
+              } else {
+                previewText = lastMessage.content || '';
+              }
+              
+              // Для групповых чатов добавляем имя отправителя
+              if (chat.type !== 'PRIVATE' && lastMessage.sender) {
+                const senderName = lastMessage.sender.displayName || lastMessage.sender.username;
+                previewText = `${senderName}: ${previewText}`;
+              }
+            }
 
-          return (
-            <div
-              key={chat.id}
-              onClick={() => onSelectChat(chat.id)}
-              className={`p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer transition ${
-                isSelected ? 'bg-primary-50 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-750'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  {chatAvatar ? (
-                    <img
-                      src={chatAvatar}
-                      alt={chatName}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-primary-600 dark:bg-primary-500 flex items-center justify-center text-white font-semibold">
-                      {chat.type === 'GROUP' ? (
-                        <Users className="w-6 h-6" />
-                      ) : (
-                        getInitials(chatName)
-                      )}
-                    </div>
-                  )}
-                  {chat.type === 'PRIVATE' && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">{chatName}</h3>
-                    {lastMessage && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatMessageTime(lastMessage.createdAt)}
-                      </span>
+            return (
+              <div
+                key={chat.id}
+                onClick={() => onSelectChat(chat.id)}
+                className={`px-3 py-2.5 cursor-pointer transition-colors border-b border-gray-100 dark:border-[#202c33] ${
+                  isSelected 
+                    ? 'bg-[#e9edef] dark:bg-[#202c33]' 
+                    : 'hover:bg-gray-50 dark:hover:bg-[#202c33] active:bg-[#e9edef] dark:active:bg-[#2a3942]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-shrink-0">
+                    {chatAvatar ? (
+                      <img
+                        src={chatAvatar}
+                        alt={chatName}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-[#3390ec] dark:bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm">
+                        {chat.type === 'GROUP' ? (
+                          <Users className="w-6 h-6" />
+                        ) : (
+                          getInitials(chatName)
+                        )}
+                      </div>
+                    )}
+                    {/* Статус онлайн для приватных чатов */}
+                    {chat.type === 'PRIVATE' && (
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-[#0b141a]"></div>
                     )}
                   </div>
-                  {lastMessage && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                      {lastMessage.sender.displayName}: {lastMessage.content}
-                    </p>
-                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <h3 className="font-medium text-[#111b21] dark:text-[#e9edef] text-[15px] truncate">
+                        {chatName}
+                      </h3>
+                      {lastMessage && (
+                        <span className="text-xs text-[#667781] dark:text-[#8696a0] ml-2 flex-shrink-0">
+                          {formatMessageTime(lastMessage.createdAt)}
+                        </span>
+                      )}
+                    </div>
+                    {lastMessage && (
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm text-[#667781] dark:text-[#8696a0] truncate flex-1">
+                          {previewText}
+                        </p>
+                        {/* Индикатор непрочитанных сообщений можно добавить здесь */}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       <button
         onClick={() => setShowNewChatModal(true)}
-        className="m-4 bg-primary-600 dark:bg-primary-500 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 dark:hover:bg-primary-600 transition flex items-center justify-center gap-2"
+        className="fixed bottom-4 right-4 w-14 h-14 bg-[#00a884] dark:bg-[#00a884] text-white rounded-full shadow-lg hover:bg-[#008069] dark:hover:bg-[#008069] transition flex items-center justify-center z-10"
+        title="New Chat"
       >
-        <Plus className="w-5 h-5" />
-        New Chat
+        <Plus className="w-6 h-6" />
       </button>
 
       {showNewChatModal && (

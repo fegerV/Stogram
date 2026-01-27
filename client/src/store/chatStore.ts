@@ -11,11 +11,12 @@ interface ChatState {
   loadChats: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   createChat: (type: string, memberIds: string[], name?: string, description?: string) => Promise<Chat>;
-  sendMessage: (chatId: string, content: string, file?: File) => Promise<void>;
+  sendMessage: (chatId: string, content: string, file?: File, messageType?: string, expiresIn?: number) => Promise<void>;
   loadMessages: (chatId: string) => Promise<void>;
   addMessage: (message: Message) => void;
-  updateMessage: (messageId: string, content: string) => void;
+  updateMessage: (messageId: string, contentOrMessage: string | Message) => void;
   deleteMessage: (messageId: string) => void;
+  markMessageAsRead: (messageId: string, userId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -71,16 +72,49 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (chatId: string, content: string, file?: File) => {
+  sendMessage: async (chatId: string, content: string, file?: File, messageType?: string) => {
     try {
       const formData = new FormData();
       formData.append('content', content);
-      formData.append('type', file ? 'FILE' : 'TEXT');
+      
+      // Определяем тип сообщения
+      let type = messageType || 'TEXT';
+      if (file && !messageType) {
+        // Автоматическое определение типа на основе MIME типа файла
+        if (file.type.startsWith('image/')) {
+          type = 'IMAGE';
+        } else if (file.type.startsWith('video/')) {
+          type = 'VIDEO';
+        } else if (file.type.startsWith('audio/')) {
+          type = 'AUDIO';
+        } else {
+          type = 'FILE';
+        }
+      }
+      
+      formData.append('type', type);
       if (file) {
         formData.append('file', file);
       }
+      if (expiresIn) {
+        formData.append('expiresIn', expiresIn.toString());
+      }
 
-      await messageApi.send(chatId, formData);
+      const response = await messageApi.send(chatId, formData);
+      
+      // Добавляем сообщение сразу в локальный state (оптимистичное обновление)
+      if (response.data) {
+        const newMessage = response.data;
+        set((state) => {
+          // Добавляем только если это сообщение для текущего чата
+          if (state.currentChat?.id === chatId) {
+            return {
+              messages: [...state.messages, newMessage],
+            };
+          }
+          return state;
+        });
+      }
     } catch (error: any) {
       set({
         error: error.response?.data?.error || 'Failed to send message',
@@ -102,24 +136,59 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   addMessage: (message: Message) => {
-    set((state) => ({
-      messages: [...state.messages, message],
-    }));
+    set((state) => {
+      // Добавляем сообщение только если оно для текущего чата
+      if (state.currentChat?.id === message.chatId) {
+        // Проверяем, нет ли уже такого сообщения (избегаем дубликатов)
+        const messageExists = state.messages.some(msg => msg.id === message.id);
+        if (messageExists) {
+          return state;
+        }
+        return {
+          messages: [...state.messages, message],
+        };
+      }
+      return state;
+    });
   },
 
-  updateMessage: (messageId: string, content: string) => {
+  updateMessage: (messageId: string, contentOrMessage: string | Message) => {
     set((state) => ({
-      messages: state.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, content, isEdited: true } : msg
-      ),
+      messages: state.messages.map((msg) => {
+        if (msg.id === messageId) {
+          // If it's a full message object, merge it
+          if (typeof contentOrMessage === 'object') {
+            return { ...msg, ...contentOrMessage };
+          }
+          // Otherwise, just update content
+          return { ...msg, content: contentOrMessage, isEdited: true };
+        }
+        return msg;
+      }),
     }));
   },
 
   deleteMessage: (messageId: string) => {
     set((state) => ({
-      messages: state.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, isDeleted: true, content: 'Message deleted' } : msg
-      ),
+      messages: state.messages.filter((msg) => msg.id !== messageId),
+    }));
+  },
+
+  markMessageAsRead: (messageId: string, userId: string) => {
+    set((state) => ({
+      messages: state.messages.map((msg) => {
+        if (msg.id === messageId) {
+          const readBy = msg.readBy || [];
+          if (!readBy.includes(userId)) {
+            return {
+              ...msg,
+              isRead: true,
+              readBy: [...readBy, userId],
+            };
+          }
+        }
+        return msg;
+      }),
     }));
   },
 }));

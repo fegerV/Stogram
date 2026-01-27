@@ -89,12 +89,63 @@ export const checkScheduledMessages = async (): Promise<void> => {
 };
 
 /**
+ * Check and delete expired self-destructing messages
+ */
+export const checkExpiredMessages = async (): Promise<void> => {
+  try {
+    const now = new Date();
+
+    // Find all messages that should be deleted
+    const expiredMessages = await prisma.message.findMany({
+      where: {
+        expiresAt: {
+          lte: now,
+        },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        chatId: true,
+      },
+    });
+
+    if (expiredMessages.length > 0) {
+      // Delete expired messages
+      await prisma.message.updateMany({
+        where: {
+          id: { in: expiredMessages.map((m) => m.id) },
+        },
+        data: {
+          isDeleted: true,
+          content: 'This message has been deleted',
+        },
+      });
+
+      // Emit deletion events to chat participants
+      const chatIds = [...new Set(expiredMessages.map((m) => m.chatId))];
+      chatIds.forEach((chatId) => {
+        const messageIds = expiredMessages
+          .filter((m) => m.chatId === chatId)
+          .map((m) => m.id);
+        
+        io.to(`chat:${chatId}`).emit('message:expired', { messageIds });
+      });
+
+      console.log(`Deleted ${expiredMessages.length} expired messages`);
+    }
+  } catch (error) {
+    console.error('Error checking expired messages:', error);
+  }
+};
+
+/**
  * Initialize scheduler
  */
 export const initScheduler = (): void => {
-  // Run every minute to check for scheduled messages
+  // Run every minute to check for scheduled messages and expired messages
   cron.schedule('* * * * *', () => {
     checkScheduledMessages();
+    checkExpiredMessages();
   });
 
   console.log('📅 Message scheduler initialized');

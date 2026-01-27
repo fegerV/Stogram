@@ -45,12 +45,14 @@ Welcome to the Stogram documentation! This guide will help you navigate through 
 - **[Telegram Integration](api/TELEGRAM.md)** - Complete Telegram bot and integration guide
 - **[Telegram Setup](api/TELEGRAM_SETUP.md)** - Step-by-step Telegram setup instructions
 - **[Telegram Examples](api/TELEGRAM_EXAMPLES.md)** - Telegram API usage examples
+- **[Bots Usage Guide](../BOTS_USAGE_GUIDE.md)** - Comprehensive guide for bot development and usage
 
 ### 🔒 Security
 - **[Security Policy](../SECURITY.md)** - Security guidelines and vulnerability reporting
 
 ### 🗺️ Project Planning
 - **[Roadmap](../ROADMAP.md)** - Project development roadmap and milestones
+- **[Comprehensive Analysis & Roadmap](../COMPREHENSIVE_ANALYSIS_AND_ROADMAP.md)** - Detailed analysis, Telegram comparison, and implementation plan
 - **[Changelog](../CHANGELOG.md)** - Version history and changes
 - **[License](../LICENSE)** - MIT License
 

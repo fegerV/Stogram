@@ -192,7 +192,11 @@ export const initSocketHandlers = (io: Server) => {
           },
         });
 
+        // Отправляем событие всем участникам чата, включая инициатора (для получения callId)
         io.to(`chat:${chatId}`).emit('call:incoming', call);
+        
+        // Также отправляем инициатору событие с callId для немедленного открытия модального окна
+        socket.emit('call:initiated', { callId: call.id, call });
       } catch (error) {
         console.error('Call initiate error:', error);
         socket.emit('error', { message: 'Failed to initiate call' });

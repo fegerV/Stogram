@@ -8,84 +8,68 @@ datasource db {
 }
 
 model User {
-  id                String     @id @default(uuid())
-  email             String     @unique
-  username          String     @unique
-  password          String
-  displayName       String?
-  avatar            String?
-  bio               String?
-  status            UserStatus @default(OFFLINE)
-  lastSeen          DateTime   @default(now())
-  emailVerified     Boolean    @default(false)
-  verificationToken String?
-  pushSubscription  String?
-  theme             String?    @default("light")
-  showOnlineStatus  Boolean    @default(true)
-  showProfilePhoto  Boolean    @default(true)
-  showLastSeen      Boolean    @default(true)
-  
-  // Notification preferences
-  notificationsPush       Boolean  @default(true)
-  notificationsEmail      Boolean  @default(true)
-  notificationsSound      Boolean  @default(true)
-  notificationsVibration  Boolean  @default(true)
-  
-  // Telegram Integration
-  telegramId               String?  @unique
-  telegramUsername         String?
-  telegramFirstName        String?
-  telegramLastName         String?
-  telegramPhotoUrl         String?
-  telegramAuthDate         DateTime?
-  telegramNotifications    Boolean  @default(false)
-  telegramSyncMessages     Boolean  @default(false)
-  telegramSyncProfile      Boolean  @default(false)
-  
-  // Security enhancements
-  twoFactorEnabled  Boolean    @default(false)
-  twoFactorSecret   String?
-  backupCodes       String?    // JSON string array
-  failedLoginAttempts Int      @default(0)
-  lockedUntil       DateTime?
-  trustedIPs        String?    // JSON string array
-  
-  // E2E Encryption
-  publicKey         String?
-  encryptedPrivateKey String?
-  
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-
-  sentMessages     Message[]         @relation("MessageSender")
-  chatMembers      ChatMember[]
-  calls            Call[]            @relation("CallInitiator")
-  callParticipants CallParticipant[]
-  contacts         Contact[]         @relation("UserContacts")
-  contactOf        Contact[]         @relation("ContactUser")
-  reactions        Reaction[]
-  blockedUsers     BlockedUser[]     @relation("BlockingUser")
-  blockedBy        BlockedUser[]     @relation("BlockedUser")
-  chatSettings     ChatSettings[]
-  folders          Folder[]
-  pinnedMessages   PinnedMessage[]
-  telegramBridges  TelegramChatBridge[]
-  securityLogs     SecurityLog[]
-  ipBlacklist      IPBlacklist[]
-  themes           UserTheme[]
-  sessions         UserSession[]
+  id                     String               @id @default(uuid())
+  email                  String               @unique
+  username               String               @unique
+  password               String
+  displayName            String?
+  avatar                 String?
+  bio                    String?
+  status                 UserStatus           @default(OFFLINE)
+  lastSeen               DateTime             @default(now())
+  emailVerified          Boolean              @default(false)
+  verificationToken      String?
+  pushSubscription       String?
+  theme                  String?              @default("light")
+  showOnlineStatus       Boolean              @default(true)
+  showProfilePhoto       Boolean              @default(true)
+  showLastSeen           Boolean              @default(true)
+  notificationsPush      Boolean              @default(true)
+  notificationsEmail     Boolean              @default(true)
+  notificationsSound     Boolean              @default(true)
+  notificationsVibration Boolean              @default(true)
+  telegramId             String?              @unique
+  telegramUsername       String?
+  telegramFirstName      String?
+  telegramLastName       String?
+  telegramPhotoUrl       String?
+  telegramAuthDate       DateTime?
+  telegramNotifications  Boolean              @default(false)
+  telegramSyncMessages   Boolean              @default(false)
+  telegramSyncProfile    Boolean              @default(false)
+  twoFactorEnabled       Boolean              @default(false)
+  twoFactorSecret        String?
+  backupCodes            String?
+  failedLoginAttempts    Int                  @default(0)
+  lockedUntil            DateTime?
+  trustedIPs             String?
+  publicKey              String?
+  encryptedPrivateKey    String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  blockedBy              BlockedUser[]        @relation("BlockedUser")
+  blockedUsers           BlockedUser[]        @relation("BlockingUser")
+  calls                  Call[]               @relation("CallInitiator")
+  callParticipants       CallParticipant[]
+  chatMembers            ChatMember[]
+  chatSettings           ChatSettings[]
+  contactOf              Contact[]            @relation("ContactUser")
+  contacts               Contact[]            @relation("UserContacts")
+  folders                Folder[]
+  ipBlacklist            IPBlacklist[]
+  sentMessages           Message[]            @relation("MessageSender")
+  pinnedMessages         PinnedMessage[]
+  reactions              Reaction[]
+  securityLogs           SecurityLog[]
+  telegramBridges        TelegramChatBridge[]
+  sessions               UserSession[]
+  themes                 UserTheme[]
+  readMessages           MessageRead[]
 
   @@index([email])
   @@index([username])
   @@index([verificationToken])
   @@index([telegramId])
-}
-
-enum UserStatus {
-  ONLINE
-  OFFLINE
-  AWAY
-  DO_NOT_DISTURB
 }
 
 model UserSession {
@@ -97,8 +81,7 @@ model UserSession {
   userAgent        String?
   lastActive       DateTime @default(now())
   createdAt        DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([refreshTokenHash])
@@ -106,35 +89,25 @@ model UserSession {
 }
 
 model Chat {
-  id          String   @id @default(uuid())
-  name        String?
-  type        ChatType
-  avatar      String?
-  description String?
-  isSecret    Boolean  @default(false)
-  
-  // E2E Encryption keys
+  id              String              @id @default(uuid())
+  name            String?
+  type            ChatType
+  avatar          String?
+  description     String?
+  isSecret        Boolean             @default(false)
   encryptionKeyId String?
-  encryptionType  String? @default("none") // none, e2e
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  members        ChatMember[]
-  messages       Message[]
-  calls          Call[]
-  chatSettings   ChatSettings[]
-  pinnedMessages PinnedMessage[]
-  encryptionKeys ChatEncryptionKey[]
+  encryptionType  String?             @default("none")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  calls           Call[]
+  encryptionKeys  ChatEncryptionKey[]
+  members         ChatMember[]
+  chatSettings    ChatSettings[]
+  messages        Message[]
+  pinnedMessages  PinnedMessage[]
 
   @@index([type])
   @@index([isSecret])
-}
-
-enum ChatType {
-  PRIVATE
-  GROUP
-  CHANNEL
 }
 
 model ChatMember {
@@ -143,114 +116,83 @@ model ChatMember {
   chatId   String
   role     MemberRole @default(MEMBER)
   joinedAt DateTime   @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat     Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, chatId])
   @@index([userId])
   @@index([chatId])
 }
 
-enum MemberRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
-
 model Message {
-  id           String      @id @default(uuid())
-  content      String?
-  type         MessageType @default(TEXT)
-  senderId     String
-  chatId       String
-  replyToId    String?
-  fileUrl      String?
-  fileName     String?
-  fileSize     Int?
-  thumbnailUrl String?
-  duration     Int?
-  waveform     String?
-  stickerId    String?
-  isEdited     Boolean     @default(false)
-  isDeleted    Boolean     @default(false)
-  isSilent     Boolean     @default(false)
-  scheduledFor DateTime?
-  isSent       Boolean     @default(false)
-  mentions     String?    // JSON string array
-  hashtags     String?    // JSON string array
-  
-  // E2E Encryption
-  isEncrypted  Boolean     @default(false)
-  encryptedContent String?
-  encryptionKeyId  String?
-  
-  // Media processing
-  isCompressed Boolean     @default(false)
-  originalFileUrl String?
-  videoFormats String?     // JSON array of available formats
-  
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  sender    User            @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  chat      Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  replyTo   Message?        @relation("MessageReply", fields: [replyToId], references: [id])
-  replies   Message[]       @relation("MessageReply")
-  reactions Reaction[]
-  pinnedBy  PinnedMessage[]
+  id                  String          @id @default(uuid())
+  content             String?
+  type                MessageType     @default(TEXT)
+  senderId            String
+  chatId              String
+  replyToId           String?
+  forwardedFromId     String?
+  forwardedFromChatId String?
+  forwardedFromUserId String?
+  isForwarded         Boolean         @default(false)
+  fileUrl             String?
+  fileName            String?
+  fileSize            Int?
+  thumbnailUrl        String?
+  duration            Int?
+  waveform            String?
+  stickerId           String?
+  isEdited            Boolean         @default(false)
+  isDeleted           Boolean         @default(false)
+  isSilent            Boolean         @default(false)
+  scheduledFor        DateTime?
+  expiresAt           DateTime?
+  isSent              Boolean         @default(false)
+  mentions            String?
+  hashtags            String?
+  linkPreview         Json?
+  isEncrypted         Boolean         @default(false)
+  encryptedContent    String?
+  encryptionKeyId     String?
+  isCompressed        Boolean         @default(false)
+  originalFileUrl     String?
+  videoFormats        String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  replyTo             Message?        @relation("MessageReply", fields: [replyToId], references: [id])
+  replies             Message[]       @relation("MessageReply")
+  chat                Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender              User            @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  pinnedBy            PinnedMessage[]
+  reactions           Reaction[]
+  reads               MessageRead[]
 
   @@index([chatId])
   @@index([senderId])
   @@index([createdAt])
   @@index([scheduledFor])
+  @@index([expiresAt])
   @@index([mentions])
   @@index([hashtags])
   @@index([stickerId])
 }
 
-enum MessageType {
-  TEXT
-  IMAGE
-  VIDEO
-  AUDIO
-  FILE
-  VOICE
-  SYSTEM
-  GIF
-  STICKER
-}
-
 model Call {
-  id             String     @id @default(uuid())
-  chatId         String
-  initiatorId    String
-  type           CallType
-  status         CallStatus @default(CALLING)
-  isRecording    Boolean    @default(false)
-  recordingUrl   String?
-  startedAt      DateTime   @default(now())
-  endedAt        DateTime?
-
-  chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  id           String            @id @default(uuid())
+  chatId       String
+  initiatorId  String
+  type         CallType
+  status       CallStatus        @default(CALLING)
+  isRecording  Boolean           @default(false)
+  recordingUrl String?
+  startedAt    DateTime          @default(now())
+  endedAt      DateTime?
   initiator    User              @relation("CallInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  chat         Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
   participants CallParticipant[]
 
   @@index([chatId])
   @@index([status])
-}
-
-enum CallType {
-  AUDIO
-  VIDEO
-}
-
-enum CallStatus {
-  CALLING
-  ACTIVE
-  ENDED
-  MISSED
-  DECLINED
 }
 
 model CallParticipant {
@@ -259,9 +201,8 @@ model CallParticipant {
   userId   String
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
-
-  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  call     Call      @relation(fields: [callId], references: [id], onDelete: Cascade)
 
   @@unique([callId, userId])
   @@index([callId])
@@ -274,9 +215,8 @@ model Contact {
   contactId String
   nickname  String?
   createdAt DateTime @default(now())
-
-  user    User @relation("UserContacts", fields: [userId], references: [id], onDelete: Cascade)
-  contact User @relation("ContactUser", fields: [contactId], references: [id], onDelete: Cascade)
+  contact   User     @relation("ContactUser", fields: [contactId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserContacts", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, contactId])
   @@index([userId])
@@ -288,13 +228,27 @@ model Reaction {
   userId    String
   emoji     String
   createdAt DateTime @default(now())
-
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
   @@index([userId])
+}
+
+model MessageRead {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+  @@index([readAt])
 }
 
 model BlockedUser {
@@ -302,9 +256,8 @@ model BlockedUser {
   userId    String
   blockedId String
   createdAt DateTime @default(now())
-
-  user    User @relation("BlockingUser", fields: [userId], references: [id], onDelete: Cascade)
-  blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+  user      User     @relation("BlockingUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blockedId])
   @@index([userId])
@@ -323,10 +276,9 @@ model ChatSettings {
   lastReadMessageId String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chat   Chat    @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folder            Folder?  @relation(fields: [folderId], references: [id])
+  chat              Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, chatId])
   @@index([userId])
@@ -337,17 +289,16 @@ model ChatSettings {
 }
 
 model Folder {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  color     String?
-  icon      String?
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String         @id @default(uuid())
+  userId       String
+  name         String
+  color        String?
+  icon         String?
+  order        Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   chatSettings ChatSettings[]
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([order])
@@ -359,10 +310,9 @@ model PinnedMessage {
   messageId String
   chatId    String
   pinnedAt  DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  chat    Chat    @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, messageId, chatId])
   @@index([userId])
@@ -380,8 +330,7 @@ model StickerPack {
   creatorId   String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  stickers Sticker[]
+  stickers    Sticker[]
 
   @@index([slug])
   @@index([creatorId])
@@ -389,44 +338,39 @@ model StickerPack {
 }
 
 model Sticker {
-  id        String   @id @default(uuid())
+  id        String      @id @default(uuid())
   packId    String
   emoji     String?
   imageUrl  String
   width     Int
   height    Int
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-
-  pack StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  pack      StickerPack @relation(fields: [packId], references: [id], onDelete: Cascade)
 
   @@index([packId])
 }
 
 model Bot {
-  id          String    @id @default(uuid())
-  username    String    @unique
-  displayName String
-  description String?
-  avatar      String?
-  token       String    @unique
-  isActive    Boolean   @default(true)
-  isInline    Boolean   @default(false)
-  ownerId     String
-  webhookUrl  String?
-  
-  // Analytics
-  messagesSent Int       @default(0)
-  messagesReceived Int   @default(0)
-  uniqueUsers  Int       @default(0)
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  commands BotCommand[]
-  webhooks Webhook[]
-  inlineKeyboards BotInlineKeyboard[]
-  analytics BotAnalytics[]
+  id               String              @id @default(uuid())
+  username         String              @unique
+  displayName      String
+  description      String?
+  avatar           String?
+  token            String              @unique
+  isActive         Boolean             @default(true)
+  isInline         Boolean             @default(false)
+  ownerId          String
+  webhookUrl       String?
+  messagesSent     Int                 @default(0)
+  messagesReceived Int                 @default(0)
+  uniqueUsers      Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  analytics        BotAnalytics[]
+  commands         BotCommand[]
+  inlineKeyboards  BotInlineKeyboard[]
+  webhooks         Webhook[]
 
   @@index([token])
   @@index([username])
@@ -440,25 +384,23 @@ model BotCommand {
   command     String
   description String
   createdAt   DateTime @default(now())
-
-  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
 
   @@unique([botId, command])
   @@index([botId])
 }
 
 model Webhook {
-  id          String       @id @default(uuid())
-  botId       String
-  url         String
-  events      String?   // JSON string array
-  isActive    Boolean      @default(true)
-  secret      String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  bot          Bot           @relation(fields: [botId], references: [id], onDelete: Cascade)
-  deliveries   WebhookDelivery[]
+  id         String            @id @default(uuid())
+  botId      String
+  url        String
+  events     String?
+  isActive   Boolean           @default(true)
+  secret     String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  bot        Bot               @relation(fields: [botId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
 
   @@index([botId])
   @@index([isActive])
@@ -473,27 +415,25 @@ model WebhookDelivery {
   response    String?
   attempts    Int      @default(0)
   deliveredAt DateTime @default(now())
-
-  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  webhook     Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
   @@index([deliveredAt])
 }
 
 model TelegramChatBridge {
-  id                String   @id @default(uuid())
-  userId            String
-  stogramChatId     String
-  telegramChatId    String
-  telegramChatType  String
-  isActive          Boolean  @default(true)
-  syncDirection     SyncDirection @default(BIDIRECTIONAL)
-  lastSyncAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  syncedMessages TelegramMessageSync[]
+  id               String                @id @default(uuid())
+  userId           String
+  stogramChatId    String
+  telegramChatId   String
+  telegramChatType String
+  isActive         Boolean               @default(true)
+  syncDirection    SyncDirection         @default(BIDIRECTIONAL)
+  lastSyncAt       DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncedMessages   TelegramMessageSync[]
 
   @@unique([stogramChatId, telegramChatId])
   @@index([userId])
@@ -502,21 +442,14 @@ model TelegramChatBridge {
   @@index([isActive])
 }
 
-enum SyncDirection {
-  TELEGRAM_TO_STOGRAM
-  STOGRAM_TO_TELEGRAM
-  BIDIRECTIONAL
-}
-
 model TelegramMessageSync {
-  id                String   @id @default(uuid())
+  id                String             @id @default(uuid())
   bridgeId          String
   stogramMessageId  String?
   telegramMessageId String
   direction         String
-  syncedAt          DateTime @default(now())
-
-  bridge TelegramChatBridge @relation(fields: [bridgeId], references: [id], onDelete: Cascade)
+  syncedAt          DateTime           @default(now())
+  bridge            TelegramChatBridge @relation(fields: [bridgeId], references: [id], onDelete: Cascade)
 
   @@unique([bridgeId, telegramMessageId])
   @@index([bridgeId])
@@ -525,18 +458,18 @@ model TelegramMessageSync {
 }
 
 model TelegramMiniAppSession {
-  id                String   @id @default(uuid())
-  userId            String
-  telegramUserId    String
-  initData          String
-  initDataUnsafe    String
-  queryId           String?
-  platform          String?
-  version           String?
-  isActive          Boolean  @default(true)
-  expiresAt         DateTime
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id             String   @id @default(uuid())
+  userId         String
+  telegramUserId String
+  initData       String
+  initDataUnsafe String
+  queryId        String?
+  platform       String?
+  version        String?
+  isActive       Boolean  @default(true)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId])
   @@index([telegramUserId])
@@ -545,34 +478,30 @@ model TelegramMiniAppSession {
   @@index([expiresAt])
 }
 
-// E2E Encryption models
 model ChatEncryptionKey {
-  id          String   @id @default(uuid())
-  chatId      String
-  keyVersion  Int      @default(1)
-  publicKey   String
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime?
-
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  chatId     String
+  keyVersion Int       @default(1)
+  publicKey  String
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  chat       Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
   @@index([chatId])
   @@index([keyVersion])
 }
 
-// Security models
 model SecurityLog {
-  id          String   @id @default(uuid())
-  userId      String
-  action      String
-  ipAddress   String
-  userAgent   String?
-  location    String?
-  success     Boolean  @default(true)
-  details     String?
-  createdAt   DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  ipAddress String
+  userAgent String?
+  location  String?
+  success   Boolean  @default(true)
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([action])
@@ -581,29 +510,28 @@ model SecurityLog {
 }
 
 model IPBlacklist {
-  id          String   @id @default(uuid())
-  userId      String?
-  ipAddress   String
-  reason      String
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  userId    String?
+  ipAddress String
+  reason    String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([ipAddress])
   @@index([expiresAt])
 }
 
 model SpamReport {
-  id          String   @id @default(uuid())
-  reporterId  String
-  targetId    String
-  targetType  String   // user, message, chat
-  reason      String
-  status      String   @default("pending") // pending, reviewed, actioned
-  reviewedBy  String?
-  reviewedAt  DateTime?
-  createdAt   DateTime @default(now())
+  id         String    @id @default(uuid())
+  reporterId String
+  targetId   String
+  targetType String
+  reason     String
+  status     String    @default("pending")
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([targetId])
   @@index([targetType])
@@ -611,28 +539,26 @@ model SpamReport {
   @@index([createdAt])
 }
 
-// Bot enhancements
 model BotInlineKeyboard {
-  id          String   @id @default(uuid())
-  botId       String
-  name        String
-  buttons     String   // JSON array of buttons
-  createdAt   DateTime @default(now())
-
-  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  botId     String
+  name      String
+  buttons   String
+  createdAt DateTime @default(now())
+  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
 
   @@index([botId])
 }
 
 model BotCallbackQuery {
-  id          String   @id @default(uuid())
-  botId       String
-  userId      String
-  messageId   String
+  id           String   @id @default(uuid())
+  botId        String
+  userId       String
+  messageId    String
   callbackData String
-  answered    Boolean  @default(false)
-  answerText  String?
-  createdAt   DateTime @default(now())
+  answered     Boolean  @default(false)
+  answerText   String?
+  createdAt    DateTime @default(now())
 
   @@index([botId])
   @@index([userId])
@@ -641,30 +567,28 @@ model BotCallbackQuery {
 }
 
 model BotInlineQuery {
-  id          String   @id @default(uuid())
-  botId       String
-  userId      String
-  query       String
-  offset      String?
-  answered    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  botId     String
+  userId    String
+  query     String
+  offset    String?
+  answered  Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([botId])
   @@index([userId])
   @@index([answered])
 }
 
-// Analytics models
 model BotAnalytics {
-  id          String   @id @default(uuid())
-  botId       String
-  date        DateTime
-  messagesSent Int     @default(0)
-  messagesReceived Int @default(0)
-  uniqueUsers Int      @default(0)
-  commands    String?  // JSON object with command counts
-  
-  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid())
+  botId            String
+  date             DateTime
+  messagesSent     Int      @default(0)
+  messagesReceived Int      @default(0)
+  uniqueUsers      Int      @default(0)
+  commands         String?
+  bot              Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
 
   @@unique([botId, date])
   @@index([botId])
@@ -672,15 +596,15 @@ model BotAnalytics {
 }
 
 model UserAnalytics {
-  id              String   @id @default(uuid())
-  userId          String
-  date            DateTime
-  messagesSent    Int      @default(0)
-  messagesReceived Int     @default(0)
-  callsMade       Int      @default(0)
-  callsReceived   Int      @default(0)
-  activeMinutes   Int      @default(0)
-  
+  id               String   @id @default(uuid())
+  userId           String
+  date             DateTime
+  messagesSent     Int      @default(0)
+  messagesReceived Int      @default(0)
+  callsMade        Int      @default(0)
+  callsReceived    Int      @default(0)
+  activeMinutes    Int      @default(0)
+
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
@@ -696,33 +620,79 @@ model SystemAnalytics {
   totalStorage    BigInt   @default(0)
   avgResponseTime Int      @default(0)
   errorCount      Int      @default(0)
-  
+
   @@index([date])
 }
 
-// UI/UX models
 model UserTheme {
-  id          String   @id @default(uuid())
-  userId      String
-  name        String
-  colors      String   // JSON object with color scheme
-  isDark      Boolean  @default(false)
-  isActive    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  colors    String
+  isDark    Boolean  @default(false)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// Performance optimization
 model MessageCache {
-  id          String   @id @default(uuid())
-  chatId      String
-  messageIds  String   // JSON array of recent message IDs
-  lastUpdate  DateTime @default(now())
-  
-  @@unique([chatId])
+  id         String   @id @default(uuid())
+  chatId     String   @unique
+  messageIds String
+  lastUpdate DateTime @default(now())
+
   @@index([chatId])
   @@index([lastUpdate])
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  DO_NOT_DISTURB
+}
+
+enum ChatType {
+  PRIVATE
+  GROUP
+  CHANNEL
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  VOICE
+  SYSTEM
+  GIF
+  STICKER
+}
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  CALLING
+  ACTIVE
+  ENDED
+  MISSED
+  DECLINED
+}
+
+enum SyncDirection {
+  TELEGRAM_TO_STOGRAM
+  STOGRAM_TO_TELEGRAM
+  BIDIRECTIONAL
 }

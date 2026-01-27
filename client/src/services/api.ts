@@ -87,9 +87,22 @@ export const messageApi = {
     api.post(`/messages/${chatId}`, data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  forward: (messageId: string, chatIds: string[]) =>
+    api.post(`/messages/${messageId}/forward`, { chatIds }),
+  markAsRead: (messageId: string) =>
+    api.post(`/messages/${messageId}/read`),
   edit: (messageId: string, content: string) =>
     api.patch(`/messages/${messageId}`, { content }),
   delete: (messageId: string) => api.delete(`/messages/${messageId}`),
+};
+
+export const searchApi = {
+  searchMessages: (query: string, chatId?: string) =>
+    api.get('/search/messages', { params: { query, chatId } }),
+  searchByHashtag: (hashtag: string) =>
+    api.get(`/search/hashtag/${hashtag}`),
+  searchByMention: (username: string) =>
+    api.get(`/search/mention/${username}`),
 };
 
 export const reactionApi = {

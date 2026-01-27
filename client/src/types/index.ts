@@ -59,6 +59,10 @@ export interface Message {
   senderId: string;
   chatId: string;
   replyToId: string | null;
+  forwardedFromId?: string | null;
+  forwardedFromChatId?: string | null;
+  forwardedFromUserId?: string | null;
+  isForwarded?: boolean;
   fileUrl: string | null;
   fileName: string | null;
   fileSize: number | null;
@@ -68,7 +72,11 @@ export interface Message {
   isEdited: boolean;
   isDeleted: boolean;
   scheduledFor?: string | null;
+  expiresAt?: string | null;
   isSent?: boolean;
+  isRead?: boolean;
+  readBy?: string[]; // Array of user IDs who read the message
+  linkPreview?: LinkPreview | null;
   createdAt: string;
   updatedAt: string;
   sender: User;
@@ -123,6 +131,14 @@ export enum CallStatus {
   ENDED = 'ENDED',
   MISSED = 'MISSED',
   DECLINED = 'DECLINED',
+}
+
+export interface LinkPreview {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  siteName?: string;
 }
 
 export interface Contact {

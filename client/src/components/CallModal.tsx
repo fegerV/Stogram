@@ -2,16 +2,26 @@ import { useEffect, useRef } from 'react';
 import { X, Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { socketService } from '../services/socket';
+import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
 
 interface CallModalProps {
+  callId: string;
   chatId: string;
   callType: 'AUDIO' | 'VIDEO';
+  isInitiator: boolean;
   onClose: () => void;
 }
 
-export default function CallModal({ chatId, callType, onClose }: CallModalProps) {
+export default function CallModal({ callId, chatId, callType, isInitiator, onClose }: CallModalProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const { currentChat } = useChatStore();
+  const { user: currentUser } = useAuthStore();
+  
+  // Определяем remoteUserId - это другой участник чата
+  // Для приватного чата - другой участник, для группового - первый другой участник
+  const remoteUserId = currentChat?.members?.find((m: any) => m.userId !== currentUser?.id)?.userId || '';
   
   const {
     localStream,
@@ -22,7 +32,7 @@ export default function CallModal({ chatId, callType, onClose }: CallModalProps)
     toggleAudio,
     toggleVideo,
     cleanup,
-  } = useWebRTC(chatId, true, 'remote-user-id');
+  } = useWebRTC(callId, isInitiator, remoteUserId);
 
   useEffect(() => {
     startCall(callType === 'VIDEO');
@@ -42,7 +52,9 @@ export default function CallModal({ chatId, callType, onClose }: CallModalProps)
 
   const handleEndCall = () => {
     cleanup();
-    socketService.endCall(chatId);
+    if (callId) {
+      socketService.endCall(callId);
+    }
     onClose();
   };
 
@@ -77,7 +89,7 @@ export default function CallModal({ chatId, callType, onClose }: CallModalProps)
 
         {callType === 'AUDIO' && (
           <div className="flex flex-col items-center justify-center h-full text-white">
-            <div className="w-32 h-32 rounded-full bg-primary-600 flex items-center justify-center mb-4">
+            <div className="w-32 h-32 rounded-full bg-[#3390ec] dark:bg-[#3390ec] flex items-center justify-center mb-4">
               <span className="text-4xl">👤</span>
             </div>
             <h2 className="text-2xl font-bold mb-2">Audio Call</h2>

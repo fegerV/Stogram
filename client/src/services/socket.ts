@@ -77,6 +77,10 @@ class SocketService {
     this.emit('call:end', { callId });
   }
 
+  rejectCall(callId: string) {
+    this.emit('call:reject', { callId });
+  }
+
   sendWebRTCOffer(callId: string, to: string, offer: RTCSessionDescriptionInit) {
     this.emit('webrtc:offer', { callId, to, offer });
   }

@@ -4,9 +4,11 @@ import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
 import { userApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore';
 import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
+import { LazyBotManager } from './LazyComponents';
 
 const LazyTwoFactorAuth = lazy(() => import('./TwoFactorAuth'));
 
@@ -36,6 +38,7 @@ interface StorageInfo {
 const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
   const { setUser: setAuthUser } = useAuthStore();
+  const { setTheme } = useThemeStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'privacy' | 'security' | 'notifications' | 'appearance' | 'bots' | 'sessions' | 'data'>('profile');
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
@@ -847,15 +850,68 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       Тема
                     </label>
                     <div className="grid grid-cols-3 gap-4">
-                      <button className="p-4 border-2 border-blue-600 rounded-lg bg-white">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await monitoredApi.patch('/users/theme', { theme: 'light' });
+                            setTheme('light');
+                            toast.success('Тема изменена на светлую');
+                            trackInteraction('theme_changed', 'UserSettings');
+                            await loadUserData();
+                          } catch (error) {
+                            console.error('Failed to update theme:', error);
+                            toast.error('Не удалось изменить тему');
+                          }
+                        }}
+                        className={`p-4 border-2 rounded-lg transition-colors ${
+                          user?.theme === 'light' 
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'border-gray-300 hover:border-blue-600 bg-white dark:bg-gray-700'
+                        }`}
+                      >
                         <div className="w-full h-20 bg-white border border-gray-200 rounded mb-2"></div>
                         <p className="text-sm font-medium">Светлая</p>
                       </button>
-                      <button className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await monitoredApi.patch('/users/theme', { theme: 'dark' });
+                            setTheme('dark');
+                            toast.success('Тема изменена на темную');
+                            trackInteraction('theme_changed', 'UserSettings');
+                            await loadUserData();
+                          } catch (error) {
+                            console.error('Failed to update theme:', error);
+                            toast.error('Не удалось изменить тему');
+                          }
+                        }}
+                        className={`p-4 border-2 rounded-lg transition-colors ${
+                          user?.theme === 'dark' 
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'border-gray-300 hover:border-blue-600 bg-white dark:bg-gray-700'
+                        }`}
+                      >
                         <div className="w-full h-20 bg-gray-800 rounded mb-2"></div>
                         <p className="text-sm font-medium">Темная</p>
                       </button>
-                      <button className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            // Для 'auto' используем системную тему
+                            setTheme('system');
+                            toast.success('Тема изменена на автоматическую');
+                            trackInteraction('theme_changed', 'UserSettings');
+                          } catch (error) {
+                            console.error('Failed to update theme:', error);
+                            toast.error('Не удалось изменить тему');
+                          }
+                        }}
+                        className={`p-4 border-2 rounded-lg transition-colors ${
+                          !user?.theme || user?.theme === 'system' || (user?.theme !== 'light' && user?.theme !== 'dark')
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'border-gray-300 hover:border-blue-600 bg-white dark:bg-gray-700'
+                        }`}
+                      >
                         <div className="w-full h-20 bg-gradient-to-br from-white to-gray-800 rounded mb-2"></div>
                         <p className="text-sm font-medium">Авто</p>
                       </button>
@@ -1042,37 +1098,9 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Боты и интеграции</h3>
                 <div className="space-y-4">
-                  <a
-                    href="/bots"
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Bot className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Управление ботами</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Создавайте и управляйте своими ботами
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-gray-400">→</span>
-                  </a>
-
-                  <a
-                    href="/webhooks"
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Webhook className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Вебхуки</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Настройте вебхуки для интеграции с внешними сервисами
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-gray-400">→</span>
-                  </a>
+                  <Suspense fallback={<div className="p-4">Загрузка...</div>}>
+                    <LazyBotManager />
+                  </Suspense>
                 </div>
               </div>
             )}

@@ -8,7 +8,7 @@ import { socketService } from '../services/socket';
 import { Message } from '../types';
 
 export default function ChatPage() {
-  const { loadChats, addMessage } = useChatStore();
+  const { loadChats, addMessage, updateMessage: updateMessageInStore } = useChatStore();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const { startRender, trackInteraction } = usePerformanceMonitor('ChatPage');
 
@@ -27,6 +27,12 @@ export default function ChatPage() {
       addMessage(message);
     });
 
+    socketService.on('message:update', (message: Message) => {
+      trackInteraction('message_updated', 'SocketService');
+      // Update message in store (for link previews, etc.)
+      updateMessageInStore(message.id, message as any);
+    });
+
     socketService.on('user:status', ({ userId, status }) => {
       trackInteraction('status_update', 'SocketService');
       console.log('User status update:', userId, status);
@@ -34,6 +40,7 @@ export default function ChatPage() {
 
     return () => {
       socketService.off('message:new');
+      socketService.off('message:update');
       socketService.off('user:status');
     };
   }, []);
@@ -45,8 +52,8 @@ export default function ChatPage() {
         console.error('ChatPage error:', error, errorInfo);
       }}
     >
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-        <div className="w-full md:w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex h-screen bg-white dark:bg-[#0b141a]">
+        <div className="w-full md:w-96 border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a]">
           <ErrorBoundary>
             <ChatList 
               onSelectChat={(chatId) => {
@@ -64,7 +71,7 @@ export default function ChatPage() {
               <ChatWindow chatId={selectedChatId} />
             </ErrorBoundary>
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
+            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-[#efeae2] dark:bg-[#0b141a]">
               <div className="text-center">
                 <div className="text-6xl mb-4">💬</div>
                 <p className="text-xl">Select a chat to start messaging</p>
