@@ -13,6 +13,7 @@ import stickerRoutes from './sticker';
 import botRoutes from './bot';
 import webhookRoutes from './webhook';
 import securityRoutes from './security';
+import analyticsRoutes from './analytics';
 // import n8nRoutes from './n8n';
 // import telegramRoutes from './telegram';
 
@@ -31,6 +32,7 @@ router.use('/stickers', stickerRoutes);
 router.use('/bots', botRoutes);
 router.use('/webhooks', webhookRoutes);
 router.use('/security', securityRoutes);
+router.use('/analytics', analyticsRoutes);
 // router.use('/n8n', n8nRoutes);
 // router.use('/telegram', telegramRoutes);
 router.use('/', reactionRoutes);

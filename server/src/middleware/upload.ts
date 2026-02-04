@@ -20,13 +20,23 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = /jpeg|jpg|png|gif|mp4|mov|avi|mp3|wav|pdf|doc|docx|txt/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  // Разрешенные расширения файлов
+  const allowedExtensions = /\.(jpeg|jpg|png|gif|mp4|mov|avi|mp3|wav|pdf|doc|docx|txt)$/i;
+  // Разрешенные MIME-типы
+  const allowedMimeTypes = /^(image|video|audio|application|text)\//;
+  
+  const extname = allowedExtensions.test(path.extname(file.originalname));
+  const mimetype = allowedMimeTypes.test(file.mimetype) || 
+                   /^(image\/(jpeg|jpg|png|gif)|video\/(mp4|mov|avi)|audio\/(mp3|wav)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)|text\/plain)$/i.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   } else {
+    console.error('Invalid file type:', {
+      filename: file.originalname,
+      mimetype: file.mimetype,
+      extname: path.extname(file.originalname)
+    });
     cb(new Error('Invalid file type'));
   }
 };

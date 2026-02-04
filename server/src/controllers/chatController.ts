@@ -83,49 +83,120 @@ export const createChat = async (req: AuthRequest, res: Response) => {
 export const getChats = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
+    console.log('Getting chats for user:', userId);
 
-    const chats = await prisma.chat.findMany({
-      where: {
-        members: {
-          some: { userId },
-        },
-      },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatar: true,
-                status: true,
-                lastSeen: true,
-              },
-            },
-          },
-        },
-        messages: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
+    // Сначала проверяем, что пользователь существует
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
     });
 
+    if (!user) {
+      console.error('User not found:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Получаем чаты - сначала упрощенный запрос для диагностики
+    let chats;
+    try {
+      chats = await prisma.chat.findMany({
+        where: {
+          members: {
+            some: { userId },
+          },
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatar: true,
+                  status: true,
+                  lastSeen: true,
+                },
+              },
+            },
+          },
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+    } catch (dbError) {
+      console.error('Database query error:', dbError);
+      // Попробуем упрощенный запрос без messages
+      chats = await prisma.chat.findMany({
+        where: {
+          members: {
+            some: { userId },
+          },
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatar: true,
+                  status: true,
+                  lastSeen: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+      // Добавляем пустой массив messages для каждого чата
+      chats = chats.map((chat: any) => ({
+        ...chat,
+        messages: [],
+      }));
+    }
+
+    console.log(`Found ${chats.length} chats for user ${userId}`);
     res.json(chats);
   } catch (error) {
     console.error('Get chats error:', error);
-    res.status(500).json({ error: 'Failed to fetch chats' });
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      // Логируем в файл
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const logDir = path.join(__dirname, '../../logs');
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+        }
+        const logMessage = `[${new Date().toISOString()}] Get chats error: ${error.message}\n${error.stack}\n\n`;
+        fs.appendFileSync(path.join(logDir, 'error.log'), logMessage);
+      } catch (logError) {
+        console.error('Failed to write to log file:', logError);
+      }
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to fetch chats',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
