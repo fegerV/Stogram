@@ -41,18 +41,6 @@ export const useThemeStore = create<ThemeStore>()(
         const effectiveTheme = theme === 'system' ? getSystemTheme() : theme;
         applyTheme(effectiveTheme);
         set({ effectiveTheme });
-
-        // Listen for system theme changes
-        if (theme === 'system') {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          const handler = (e: MediaQueryListEvent) => {
-            const newTheme = e.matches ? 'dark' : 'light';
-            applyTheme(newTheme);
-            set({ effectiveTheme: newTheme });
-          };
-          mediaQuery.addEventListener('change', handler);
-          return () => mediaQuery.removeEventListener('change', handler);
-        }
       },
     }),
     {

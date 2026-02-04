@@ -65,6 +65,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   loadUser: async () => {
+    // Prevent multiple simultaneous calls
+    const state = useAuthStore.getState();
+    if (state.isLoading) {
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       set({ isAuthenticated: false, isLoading: false });
@@ -74,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       const response = await authApi.getMe();
-      set({ user: response.data, isAuthenticated: true, isLoading: false });
+      set({ user: response.data, token, isAuthenticated: true, isLoading: false });
       socketService.connect(token);
     } catch (error) {
       localStorage.removeItem('token');

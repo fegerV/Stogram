@@ -40,10 +40,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   selectChat: async (chatId: string) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, messages: [] }); // Очищаем сообщения при смене чата
     try {
       const response = await chatApi.getById(chatId);
-      set({ currentChat: response.data });
+      const chat = response.data;
+      set({ currentChat: chat, isLoading: false });
       await get().loadMessages(chatId);
     } catch (error: any) {
       set({
@@ -106,8 +107,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (response.data) {
         const newMessage = response.data;
         set((state) => {
-          // Добавляем только если это сообщение для текущего чата
-          if (state.currentChat?.id === chatId) {
+          // Добавляем сообщение если это для текущего чата или если currentChat не установлен, но chatId совпадает
+          const isCurrentChat = state.currentChat?.id === chatId || (!state.currentChat && chatId);
+          
+          if (isCurrentChat) {
+            // Проверяем, нет ли уже такого сообщения (избегаем дубликатов)
+            const messageExists = state.messages.some(msg => msg.id === newMessage.id);
+            if (messageExists) {
+              // Обновляем существующее сообщение
+              return {
+                messages: state.messages.map(msg => 
+                  msg.id === newMessage.id ? newMessage : msg
+                ),
+              };
+            }
             return {
               messages: [...state.messages, newMessage],
             };
@@ -137,12 +150,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   addMessage: (message: Message) => {
     set((state) => {
-      // Добавляем сообщение только если оно для текущего чата
-      if (state.currentChat?.id === message.chatId) {
+      // Добавляем сообщение если оно для текущего чата или если currentChat не установлен
+      const isCurrentChat = state.currentChat?.id === message.chatId || (!state.currentChat);
+      
+      if (isCurrentChat) {
         // Проверяем, нет ли уже такого сообщения (избегаем дубликатов)
         const messageExists = state.messages.some(msg => msg.id === message.id);
         if (messageExists) {
-          return state;
+          // Обновляем существующее сообщение вместо игнорирования
+          return {
+            messages: state.messages.map(msg => 
+              msg.id === message.id ? message : msg
+            ),
+          };
         }
         return {
           messages: [...state.messages, message],

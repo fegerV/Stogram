@@ -1,4 +1,4 @@
-import { useEffect, Suspense, lazy } from 'react';
+import { useEffect, Suspense, lazy, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -17,6 +17,7 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module
 const TelegramSettingsPage = lazy(() => import('./pages/TelegramSettingsPage').then(module => ({ default: module.TelegramSettingsPage })));
 const TelegramMiniApp = lazy(() => import('./pages/TelegramMiniApp').then(module => ({ default: module.TelegramMiniApp })));
 const PerformanceWidget = lazy(() => import('./components/PerformanceWidget').then(module => ({ default: module.PerformanceWidget })));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET !== 'false';
 
 function RoutePreloader() {
@@ -32,7 +33,7 @@ function RoutePreloader() {
 
 function App() {
   const { isAuthenticated, isLoading, loadUser } = useAuthStore();
-  const { initializeTheme } = useThemeStore();
+  const { initializeTheme, theme, setTheme } = useThemeStore();
 
   useEffect(() => {
     // Initialize performance monitoring
@@ -50,7 +51,25 @@ function App() {
     initializeTheme();
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle system theme changes
+  const initializeThemeRef = useRef(initializeTheme);
+  initializeThemeRef.current = initializeTheme;
+
+  useEffect(() => {
+    if (theme !== 'system' || typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      // Re-initialize theme when system theme changes
+      initializeThemeRef.current();
+    };
+
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, [theme]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -77,7 +96,12 @@ function App() {
         console.error('Application error:', error, errorInfo);
       }}
     >
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <RoutePreloader />
         <Toaster position="top-right" />
         <DevPerformanceMonitor />
@@ -124,6 +148,14 @@ function App() {
               element={
                 <ErrorBoundary>
                   {isAuthenticated ? <TelegramMiniApp /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <AnalyticsDashboard /> : <Navigate to="/login" />}
                 </ErrorBoundary>
               }
             />

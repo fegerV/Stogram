@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { performanceMonitor } from '../utils/performance';
 
 export interface PerformanceMetrics {
@@ -81,7 +81,9 @@ export const useAdvancedPerformance = (
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const performanceBudget = { ...DEFAULT_BUDGET, ...budget };
+  const budgetRef = useRef(budget);
+  budgetRef.current = budget;
+  const performanceBudget = useMemo(() => ({ ...DEFAULT_BUDGET, ...budgetRef.current }), []);
   const fpsRef = useRef(60);
   const frameCountRef = useRef(0);
   const lastTimeRef = useRef(performance.now());
@@ -371,14 +373,17 @@ export const useAdvancedPerformance = (
   }, [isMonitoring]);
 
   // Periodic metrics update
+  const updateMetricsRef = useRef(updateMetrics);
+  updateMetricsRef.current = updateMetrics;
+
   useEffect(() => {
     if (!isMonitoring) return;
 
-    updateMetrics();
-    const interval = setInterval(updateMetrics, 1000);
+    updateMetricsRef.current();
+    const interval = setInterval(() => updateMetricsRef.current(), 1000);
 
     return () => clearInterval(interval);
-  }, [isMonitoring, updateMetrics]);
+  }, [isMonitoring]);
 
   // Clear old alerts periodically
   useEffect(() => {

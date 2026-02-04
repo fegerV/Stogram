@@ -84,10 +84,20 @@ const resolvePrefetchKey = (element: Element | null): string | null => {
 };
 
 const handlePrefetchEvent = (event: Event, attribute: string) => {
-  const target = (event.target as HTMLElement | null)?.closest(attribute);
+  // Проверяем, что event.target является HTMLElement
+  const eventTarget = event.target;
+  if (!eventTarget || !(eventTarget instanceof HTMLElement)) {
+    return;
+  }
+  
+  // Используем closest только если это HTMLElement
+  const target = eventTarget.closest(attribute);
   if (!target) return;
+  
   prefetchByKey(resolvePrefetchKey(target));
-  target.setAttribute('data-prefetched', 'true');
+  if (target instanceof HTMLElement) {
+    target.setAttribute('data-prefetched', 'true');
+  }
 };
 
 const setupPrefetchHandlers = () => {

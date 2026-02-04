@@ -48,6 +48,15 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
   }, [chatId]);
 
   useEffect(() => {
+    // Обработка новых сообщений
+    const handleNewMessage = (message: Message) => {
+      // Добавляем сообщение только если оно для текущего чата
+      if (message.chatId === chatId) {
+        const { addMessage: addMessageToStore } = useChatStore.getState();
+        addMessageToStore(message);
+      }
+    };
+
     // Обработка событий прочтения сообщений
     const handleMessageRead = ({ messageId, userId }: { messageId: string; userId: string }) => {
       markMessageAsRead(messageId, userId);
@@ -60,10 +69,12 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
       });
     };
 
+    socketService.on('message:new', handleNewMessage);
     socketService.on('message:read', handleMessageRead);
     socketService.on('message:expired', handleMessageExpired);
 
     return () => {
+      socketService.off('message:new', handleNewMessage);
       socketService.off('message:read', handleMessageRead);
       socketService.off('message:expired', handleMessageExpired);
     };
