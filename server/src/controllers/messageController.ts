@@ -224,7 +224,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
             // Update message with preview
             prisma.message.update({
               where: { id: message.id },
-              data: { linkPreview: preview as unknown as Record<string, unknown> },
+              data: { linkPreview: JSON.parse(JSON.stringify(preview)) },
             }).then((updatedMessage) => {
               // Emit update to chat
               io.to(`chat:${chatId}`).emit('message:update', updatedMessage);
