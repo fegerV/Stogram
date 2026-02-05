@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getMediaUrl } from '../utils/helpers';
 
 interface VirtualizedListProps<T> {
   items: T[];
@@ -185,7 +186,7 @@ export const VirtualizedMessageList: React.FC<{
         >
           <div className="flex items-start gap-3">
             <LazyImage
-              src={message.sender?.avatar || '/default-avatar.png'}
+              src={getMediaUrl(message.sender?.avatar) || '/default-avatar.png'}
               alt={message.sender?.displayName || 'User'}
               className="w-10 h-10 rounded-full"
             />

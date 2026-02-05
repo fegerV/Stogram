@@ -1,5 +1,21 @@
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+/**
+ * Resolves a relative media path (e.g. /uploads/xxx.jpg) to a full URL
+ * pointing to the API server. Returns null if path is null/undefined.
+ * Passes through absolute URLs (http/https/data:/blob:) unchanged.
+ */
+export const getMediaUrl = (path: string | null | undefined): string | null => {
+  if (!path) return null;
+  // Already an absolute URL or data/blob URI
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+  return `${API_URL}${path}`;
+};
+
 export const formatMessageTime = (date: string | Date): string => {
   const messageDate = new Date(date);
   
@@ -48,7 +64,7 @@ export const getChatName = (chat: any, currentUserId: string): string => {
 export const getChatAvatar = (chat: any, currentUserId: string): string | null => {
   if (chat.type === 'PRIVATE') {
     const otherMember = chat.members.find((m: any) => m.userId !== currentUserId);
-    return otherMember?.user?.avatar || null;
+    return getMediaUrl(otherMember?.user?.avatar) || null;
   }
-  return chat.avatar;
+  return getMediaUrl(chat.avatar);
 };

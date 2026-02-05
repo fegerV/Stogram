@@ -3,6 +3,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
 import { userApi } from '../services/api';
+import { getMediaUrl } from '../utils/helpers';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { User, Bell, Shield, Palette, Bot, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
@@ -499,7 +500,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                     />
                   ) : user?.avatar ? (
                     <img 
-                      src={user.avatar} 
+                      src={getMediaUrl(user.avatar) || ''} 
                       alt="Avatar" 
                       className="w-20 h-20 rounded-full object-cover"
                     />

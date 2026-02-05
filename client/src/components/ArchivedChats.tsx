@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Archive, X, MessageSquare } from 'lucide-react';
 import axios from 'axios';
+import { getMediaUrl } from '../utils/helpers';
 
 interface Chat {
   id: string;
@@ -100,7 +101,7 @@ export const ArchivedChats: React.FC<ArchivedChatsProps> = ({ onClose, onSelectC
                 >
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
                     {chat.avatar ? (
-                      <img src={chat.avatar} alt={getChatName(chat)} className="w-full h-full rounded-full" />
+                      <img src={getMediaUrl(chat.avatar) || ''} alt={getChatName(chat)} className="w-full h-full rounded-full" />
                     ) : (
                       <MessageSquare className="w-6 h-6" />
                     )}

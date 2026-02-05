@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { socketService } from '../services/socket';
 import { Call } from '../types';
+import { getMediaUrl } from '../utils/helpers';
 
 interface IncomingCallModalProps {
   call: Call;
@@ -42,7 +43,7 @@ export default function IncomingCallModal({ call, onAnswer, onReject }: Incoming
         <div className="mb-8">
           {call.initiator.avatar ? (
             <img
-              src={call.initiator.avatar}
+              src={getMediaUrl(call.initiator.avatar) || ''}
               alt={call.initiator.displayName || call.initiator.username}
               className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
             />

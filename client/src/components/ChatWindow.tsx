@@ -3,7 +3,7 @@ import { Send, Paperclip, Phone, Video, MoreVertical, Search, Mic, Forward, Copy
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { socketService } from '../services/socket';
-import { getChatName, formatMessageTime, getInitials } from '../utils/helpers';
+import { getChatName, formatMessageTime, getInitials, getMediaUrl } from '../utils/helpers';
 import CallModal from './CallModal';
 import IncomingCallModal from './IncomingCallModal';
 import { EmojiInput } from './EmojiInput';
@@ -376,8 +376,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1 bg-[#efeae2] dark:bg-[#0b141a] scrollbar-thin" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'grid\' width=\'100\' height=\'100\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M 100 0 L 0 0 0 100\' fill=\'none\' stroke=\'%23e5ddd5\' stroke-width=\'1\' opacity=\'0.3\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'100\' height=\'100\' fill=\'url(%23grid)\'/%3E%3C/svg%3E")' }}>
         {messages.map((message) => {
           const isOwn = message.senderId === user?.id;
-          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-          const fileUrl = message.fileUrl ? `${API_URL}${message.fileUrl}` : null;
+          const fileUrl = getMediaUrl(message.fileUrl);
           
           // Автоматически определяем тип медиа для старых сообщений
           let messageType: MessageType = message.type;

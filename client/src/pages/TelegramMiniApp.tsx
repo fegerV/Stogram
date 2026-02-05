@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { telegramService } from '../services/telegramService';
+import { getMediaUrl } from '../utils/helpers';
 
 declare global {
   interface Window {
@@ -122,7 +123,7 @@ export const TelegramMiniApp: React.FC = () => {
         <div className="flex items-center space-x-4">
           {user?.avatar && (
             <img 
-              src={user.avatar} 
+              src={getMediaUrl(user.avatar) || ''} 
               alt="Avatar" 
               className="w-16 h-16 rounded-full border-2 border-white"
             />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserX, Unlock } from 'lucide-react';
 import { monitoredApi } from '../utils/monitoredApi';
+import { getMediaUrl } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 interface BlockedUser {
@@ -86,7 +87,7 @@ const BlockedUsers: React.FC<BlockedUsersProps> = ({ onClose }) => {
                   className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                 >
                   <img
-                    src={blockedUser.blocked.avatar || `https://ui-avatars.com/api/?name=${blockedUser.blocked.username}&background=random`}
+                    src={getMediaUrl(blockedUser.blocked.avatar) || `https://ui-avatars.com/api/?name=${blockedUser.blocked.username}&background=random`}
                     alt={blockedUser.blocked.displayName || blockedUser.blocked.username}
                     className="w-12 h-12 rounded-full object-cover"
                   />
