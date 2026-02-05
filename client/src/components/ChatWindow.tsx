@@ -40,7 +40,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
   const [showSelfDestructOptions, setShowSelfDestructOptions] = useState(false);
   const selfDestructButtonRef = useRef<HTMLButtonElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
