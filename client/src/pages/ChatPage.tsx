@@ -1,16 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
 import { useChatStore } from '../store/chatStore';
+import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { socketService } from '../services/socket';
+import { notificationSound } from '../utils/notificationSound';
 import { Message } from '../types';
 
 export default function ChatPage() {
   const { loadChats, addMessage, updateMessage: updateMessageInStore } = useChatStore();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const { startRender, trackInteraction } = usePerformanceMonitor('ChatPage');
+
+  // Unlock audio context on first user interaction (required by browsers)
+  const handleUserInteraction = useCallback(() => {
+    notificationSound.unlock();
+    document.removeEventListener('click', handleUserInteraction);
+    document.removeEventListener('keydown', handleUserInteraction);
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('keydown', handleUserInteraction);
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, [handleUserInteraction]);
 
   useEffect(() => {
     startRender();
@@ -25,6 +44,24 @@ export default function ChatPage() {
     socketService.on('message:new', (message: Message) => {
       trackInteraction('message_received', 'SocketService');
       addMessage(message);
+
+      // Play notification sound for messages from other users
+      const currentUser = useAuthStore.getState().user;
+      const { soundEnabled } = useNotificationStore.getState();
+      if (soundEnabled && currentUser && message.senderId !== currentUser.id) {
+        notificationSound.playMessageSound();
+      }
+
+      // Show browser notification if tab is not focused
+      if (document.hidden && currentUser && message.senderId !== currentUser.id) {
+        const senderName = message.sender?.displayName || message.sender?.username || 'New message';
+        const body = message.content || (message.fileUrl ? '📎 File' : 'New message');
+        try {
+          if (Notification.permission === 'granted') {
+            new Notification(senderName, { body, icon: '/favicon.ico', tag: message.id });
+          }
+        } catch { /* ignore notification errors */ }
+      }
     });
 
     socketService.on('message:update', (message: Message) => {

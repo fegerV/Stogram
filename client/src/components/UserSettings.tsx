@@ -8,6 +8,8 @@ import { useThemeStore } from '../store/themeStore';
 import { User, Bell, Shield, Palette, Bot, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
+import { useNotificationStore } from '../store/notificationStore';
+import { notificationSound } from '../utils/notificationSound';
 import { LazyBotManager } from './LazyComponents';
 
 const LazyTwoFactorAuth = lazy(() => import('./TwoFactorAuth'));
@@ -114,6 +116,13 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     try {
       const response = await monitoredApi.get('/users/notifications');
       setNotifications(response.data);
+      // Sync server preferences with local notification store
+      if (response.data.notificationsSound !== undefined) {
+        useNotificationStore.getState().setSoundEnabled(response.data.notificationsSound);
+      }
+      if (response.data.notificationsVibration !== undefined) {
+        useNotificationStore.getState().setVibrationEnabled(response.data.notificationsVibration);
+      }
       trackInteraction('notifications_loaded', 'UserSettings');
     } catch (error) {
       console.error('Failed to load notification preferences:', error);
@@ -170,6 +179,19 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         console.error('Failed to update push notification subscription:', error);
         toast.error('Failed to update push notifications');
       }
+    }
+
+    // Sync sound setting with local notification store
+    if (key === 'notificationsSound') {
+      useNotificationStore.getState().setSoundEnabled(value);
+      if (value) {
+        // Play a preview sound so user hears what it sounds like
+        notificationSound.playMessageSound();
+      }
+    }
+
+    if (key === 'notificationsVibration') {
+      useNotificationStore.getState().setVibrationEnabled(value);
     }
 
     debouncedUpdateNotifications(newNotifications);
