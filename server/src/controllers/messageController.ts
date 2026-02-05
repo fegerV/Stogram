@@ -192,7 +192,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         isSilent: data.isSilent || false,
         mentions,
         hashtags,
-        linkPreview: null, // Will be updated asynchronously
+        linkPreview: undefined, // Will be updated asynchronously
       },
       include: {
         sender: {
@@ -224,7 +224,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
             // Update message with preview
             prisma.message.update({
               where: { id: message.id },
-              data: { linkPreview: preview },
+              data: { linkPreview: preview as unknown as Record<string, unknown> },
             }).then((updatedMessage) => {
               // Emit update to chat
               io.to(`chat:${chatId}`).emit('message:update', updatedMessage);
