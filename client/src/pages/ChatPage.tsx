@@ -90,7 +90,8 @@ export default function ChatPage() {
       }}
     >
       <div className="flex h-screen bg-white dark:bg-[#0b141a]">
-        <div className="w-full md:w-96 border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a]">
+        {/* ChatList: visible on mobile when no chat selected, always visible on desktop */}
+        <div className={`w-full md:w-96 border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] ${selectedChatId ? 'hidden md:block' : 'block'}`}>
           <ErrorBoundary>
             <ChatList 
               onSelectChat={(chatId) => {
@@ -102,16 +103,20 @@ export default function ChatPage() {
           </ErrorBoundary>
         </div>
         
-        <div className="flex-1 hidden md:block">
+        {/* ChatWindow: visible on mobile when chat selected, always visible on desktop */}
+        <div className={`flex-1 ${selectedChatId ? 'block' : 'hidden md:block'}`}>
           {selectedChatId ? (
             <ErrorBoundary>
-              <ChatWindow chatId={selectedChatId} />
+              <ChatWindow 
+                chatId={selectedChatId} 
+                onBack={() => setSelectedChatId(null)} 
+              />
             </ErrorBoundary>
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-[#efeae2] dark:bg-[#0b141a]">
               <div className="text-center">
                 <div className="text-6xl mb-4">💬</div>
-                <p className="text-xl">Select a chat to start messaging</p>
+                <p className="text-xl">Выберите чат</p>
               </div>
             </div>
           )}

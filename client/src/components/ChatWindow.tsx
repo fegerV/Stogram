@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Paperclip, Phone, Video, MoreVertical, Search, Mic, Forward, Copy, Edit, Trash2, Clock, Link as LinkIcon } from 'lucide-react';
+import { Send, Paperclip, Phone, Video, MoreVertical, Search, Mic, Forward, Copy, Edit, Trash2, Clock, Link as LinkIcon, ArrowLeft } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { socketService } from '../services/socket';
@@ -19,9 +19,10 @@ import { messageApi } from '../services/api';
 
 interface ChatWindowProps {
   chatId: string;
+  onBack?: () => void;
 }
 
-export default function ChatWindow({ chatId }: ChatWindowProps) {
+export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const { currentChat, messages, selectChat, sendMessage, markMessageAsRead, deleteMessage: deleteMessageFromStore } = useChatStore();
   const { user } = useAuthStore();
   const [messageInput, setMessageInput] = useState('');
@@ -332,10 +333,19 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
 
   return (
     <div className="flex flex-col h-full bg-[#efeae2] dark:bg-[#0b141a]">
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33] bg-[#008069] dark:bg-[#202c33] text-white shadow-sm">
+      <div className="px-2 md:px-4 py-3 border-b border-gray-200 dark:border-[#202c33] bg-[#008069] dark:bg-[#202c33] text-white shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-1.5 hover:bg-white/10 rounded-full transition md:hidden flex-shrink-0"
+                title="Назад"
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+            )}
+            <div className="w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
               {getInitials(chatName)}
             </div>
             <div>
@@ -557,7 +567,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSendMessage} className="px-4 py-3 border-t border-gray-200 dark:border-[#202c33] bg-[#f0f2f5] dark:bg-[#202c33]">
+      <form onSubmit={handleSendMessage} className="px-2 md:px-4 py-2 md:py-3 border-t border-gray-200 dark:border-[#202c33] bg-[#f0f2f5] dark:bg-[#202c33]">
         <input
           ref={fileInputRef}
           type="file"
@@ -565,11 +575,11 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
           onChange={handleFileSelect}
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <button
             type="button"
             onClick={() => setShowVoiceRecorder(true)}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-[#2a3942] rounded-full transition"
+            className="p-1.5 md:p-2 hover:bg-gray-200 dark:hover:bg-[#2a3942] rounded-full transition flex-shrink-0"
             title="Голосовое сообщение"
           >
             <Mic className="w-5 h-5 text-[#54656f] dark:text-[#8696a0]" />
@@ -577,12 +587,12 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
           <button
             type="button"
             onClick={handleFileButtonClick}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-[#2a3942] rounded-full transition"
+            className="p-1.5 md:p-2 hover:bg-gray-200 dark:hover:bg-[#2a3942] rounded-full transition flex-shrink-0"
             title="Прикрепить файл"
           >
             <Paperclip className="w-5 h-5 text-[#54656f] dark:text-[#8696a0]" />
           </button>
-          <div className="relative">
+          <div className="relative hidden md:block">
             <button
               ref={selfDestructButtonRef}
               type="button"
@@ -609,8 +619,8 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
             type="text"
             value={messageInput}
             onChange={handleTyping}
-            placeholder="Type a message"
-            className="flex-1 px-4 py-2.5 bg-white dark:bg-[#2a3942] border-none rounded-full focus:outline-none text-[#111b21] dark:text-[#e9edef] placeholder-[#667781] dark:placeholder-[#8696a0] text-[15px]"
+            placeholder="Сообщение"
+            className="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-2.5 bg-white dark:bg-[#2a3942] border-none rounded-full focus:outline-none text-[#111b21] dark:text-[#e9edef] placeholder-[#667781] dark:placeholder-[#8696a0] text-[15px]"
             onKeyDown={(e) => {
               // Отправка сообщения по Enter (без Shift)
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -624,7 +634,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
           
           <button
             type="submit"
-            className="p-2 bg-[#00a884] dark:bg-[#00a884] text-white rounded-full hover:bg-[#008069] dark:hover:bg-[#008069] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 md:p-2 bg-[#00a884] dark:bg-[#00a884] text-white rounded-full hover:bg-[#008069] dark:hover:bg-[#008069] transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
             disabled={!messageInput.trim()}
           >
             <Send className="w-5 h-5" />
@@ -690,8 +700,11 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
             onClick={() => setContextMenu(null)}
           />
           <div
-            className="fixed z-50 bg-white dark:bg-[#202c33] rounded-lg shadow-xl py-1 min-w-[180px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            className="fixed z-50 bg-white dark:bg-[#202c33] rounded-lg shadow-xl py-1 min-w-[160px] max-w-[calc(100vw-16px)]"
+            style={{ 
+              left: Math.min(contextMenu.x, window.innerWidth - 180), 
+              top: Math.min(contextMenu.y, window.innerHeight - 200) 
+            }}
           >
             {(() => {
               const message = messages.find((m) => m.id === contextMenu.messageId);
