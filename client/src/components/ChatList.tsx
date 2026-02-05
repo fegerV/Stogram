@@ -30,7 +30,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#0b141a]">
+    <div className="relative flex flex-col h-full bg-white dark:bg-[#0b141a]">
       <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33] bg-[#008069] dark:bg-[#202c33] text-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -177,7 +177,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
       <button
         onClick={() => setShowNewChatModal(true)}
-        className="fixed bottom-4 right-4 w-14 h-14 bg-[#00a884] dark:bg-[#00a884] text-white rounded-full shadow-lg hover:bg-[#008069] dark:hover:bg-[#008069] transition flex items-center justify-center z-10"
+        className="absolute bottom-4 right-4 w-14 h-14 bg-[#00a884] dark:bg-[#00a884] text-white rounded-full shadow-lg hover:bg-[#008069] dark:hover:bg-[#008069] transition flex items-center justify-center z-10"
         title="New Chat"
       >
         <Plus className="w-6 h-6" />
