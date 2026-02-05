@@ -255,7 +255,7 @@ export const bundleAnalyzer = new BundleAnalyzer();
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
     setTimeout(() => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         bundleAnalyzer.logAnalysis();
       }
     }, 3000);

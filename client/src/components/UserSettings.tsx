@@ -5,7 +5,7 @@ import { monitoredApi } from '../utils/monitoredApi';
 import { userApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
-import { User, Bell, Shield, Palette, Bot, Webhook, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
+import { User, Bell, Shield, Palette, Bot, Monitor, HardDrive, Download, Upload, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
 import { LazyBotManager } from './LazyComponents';
@@ -63,7 +63,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     newPassword: '',
     confirmPassword: '',
   });
-  const updateNotificationsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const updateNotificationsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const [profileFormData, setProfileFormData] = useState({
     displayName: '',

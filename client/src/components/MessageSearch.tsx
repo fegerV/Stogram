@@ -16,7 +16,7 @@ export default function MessageSearch({ chatId, onSelectMessage, onClose }: Mess
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Message[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceTimer) {

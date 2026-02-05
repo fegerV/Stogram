@@ -73,7 +73,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sendMessage: async (chatId: string, content: string, file?: File, messageType?: string) => {
+  sendMessage: async (chatId: string, content: string, file?: File, messageType?: string, expiresIn?: number) => {
     try {
       const formData = new FormData();
       formData.append('content', content);
