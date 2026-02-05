@@ -104,7 +104,9 @@ function App() {
       >
         <RoutePreloader />
         <Toaster position="top-right" />
-        <DevPerformanceMonitor />
+        <div className="hidden md:block">
+          <DevPerformanceMonitor />
+        </div>
         <Suspense fallback={
           <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884] dark:border-[#00a884]"></div>
@@ -171,7 +173,9 @@ function App() {
         </Suspense>
         {ENABLE_PERFORMANCE_WIDGET && (
           <Suspense fallback={null}>
-            <PerformanceWidget position="bottom-right" />
+            <div className="hidden md:block">
+              <PerformanceWidget position="bottom-right" />
+            </div>
           </Suspense>
         )}
       </BrowserRouter>
