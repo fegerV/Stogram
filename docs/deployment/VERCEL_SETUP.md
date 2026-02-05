@@ -15,12 +15,16 @@
 1. Войдите в [Vercel Dashboard](https://vercel.com/dashboard)
 2. Нажмите "Add New Project"
 3. Импортируйте ваш GitHub репозиторий
-4. Настройте проект:
-   - **Framework Preset**: Vite
-   - **Root Directory**: `./` (корень репозитория)
-   - **Build Command**: `cd client && npm ci && npm run build`
-   - **Output Directory**: `client/dist`
-   - **Install Command**: `cd client && npm ci`
+4. **ВАЖНО**: Настройте Root Directory:
+   - Нажмите "Edit" рядом с "Root Directory"
+   - Выберите `client` (папка с frontend кодом)
+   - Это автоматически изменит пути для команд
+5. Настройте проект:
+   - **Framework Preset**: Vite (или оставьте "Other" если Vite не определяется)
+   - **Root Directory**: `client` ⚠️ **КРИТИЧЕСКИ ВАЖНО**
+   - **Build Command**: `npm run build` (автоматически выполняется в папке client)
+   - **Output Directory**: `dist` (относительно client/)
+   - **Install Command**: `npm install` (автоматически выполняется в папке client)
 
 ### 1.2 Получение Vercel токенов
 
@@ -146,8 +150,10 @@ const corsOptions = {
 
 - `.github/workflows/build.yml` - Workflow для сборки приложения
 - `.github/workflows/vercel-deploy.yml` - Workflow для автоматического деплоя на Vercel
-- `vercel.json` - Конфигурация Vercel
+- `client/vercel.json` - Конфигурация Vercel (находится в папке client, так как Root Directory = client)
 - `.vercelignore` - Исключения для Vercel (не деплоить server, mobile и т.д.)
+
+**Важно**: `vercel.json` находится в папке `client/`, потому что Root Directory установлен на `client` в настройках проекта Vercel.
 
 ## 🔍 Проверка деплоя
 

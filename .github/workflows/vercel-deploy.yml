@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'client/**'
-      - 'vercel.json'
+      - 'client/vercel.json'
       - '.vercelignore'
       - '.github/workflows/vercel-deploy.yml'
   workflow_dispatch:
