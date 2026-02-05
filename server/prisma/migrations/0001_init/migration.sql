@@ -1002,22 +1002,4 @@ ALTER TABLE "BotAnalytics" ADD CONSTRAINT "BotAnalytics_botId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "UserTheme" ADD CONSTRAINT "UserTheme_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-node.exe : тФМтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
-тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФР
-строка:1 знак:1
-+ & "C:\Program Files\nodejs/node.exe" "C:\Users\Professional\AppData\R ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (тФМтФАтФАтФАтФА...тФАтФАтФАтФАтФР:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-тФВ  Update available 6.18.0 -> 7.3.0                       тФВ
-тФВ                                                         тФВ
-тФВ  This is a major update - please follow the guide at    тФВ
-тФВ  https://pris.ly/d/major-version-upgrade                тФВ
-тФВ                                                         тФВ
-тФВ  Run the following to update                            тФВ
-тФВ    npm i --save-dev prisma@latest                       тФВ
-тФВ    npm i @prisma/client@latest                          тФВ
-тФФтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФ
-АтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФШ
 
