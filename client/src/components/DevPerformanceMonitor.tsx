@@ -7,7 +7,7 @@ interface DevPerformanceMonitorProps {
 }
 
 export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
-  enabled = process.env.NODE_ENV === 'development',
+  enabled = import.meta.env.DEV,
   position = 'top-right'
 }) => {
   const [isVisible, setIsVisible] = useState(false);

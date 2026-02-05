@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     // Log to external monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       this.logErrorToService(error, errorInfo);
     }
   }
@@ -110,7 +110,7 @@ export class ErrorBoundary extends Component<Props, State> {
               We're sorry, but something unexpected happened. The error has been logged and our team will look into it.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Error Details
@@ -159,7 +159,7 @@ export const useErrorHandler = () => {
     console.error('Error caught by error handler:', error, errorInfo);
     
     // You can integrate with external monitoring services here
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       const errorData = {
         message: error.message,
         stack: error.stack,

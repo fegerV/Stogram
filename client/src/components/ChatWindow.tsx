@@ -14,7 +14,7 @@ import VoiceRecorder from './VoiceRecorder';
 import SelfDestructTimer from './SelfDestructTimer';
 import SelfDestructOptions from './SelfDestructOptions';
 import LinkPreview from './LinkPreview';
-import { Call, Message } from '../types';
+import { Call, Message, MessageType } from '../types';
 import { messageApi } from '../services/api';
 
 interface ChatWindowProps {
@@ -211,13 +211,13 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
     if (!file) return;
 
     // Определяем тип сообщения на основе типа файла
-    let messageType = 'FILE';
+    let messageType: MessageType = MessageType.FILE;
     if (file.type.startsWith('image/')) {
-      messageType = 'IMAGE';
+      messageType = MessageType.IMAGE;
     } else if (file.type.startsWith('video/')) {
-      messageType = 'VIDEO';
+      messageType = MessageType.VIDEO;
     } else if (file.type.startsWith('audio/')) {
-      messageType = 'AUDIO';
+      messageType = MessageType.AUDIO;
     }
 
     sendMessage(chatId, messageInput || file.name, file, messageType);
@@ -291,12 +291,14 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
 
   const handleVoiceSend = async (audioBlob: Blob) => {
     try {
+      // Convert Blob to File for sendMessage
+      const audioFile = new File([audioBlob], 'voice.webm', { type: audioBlob.type || 'audio/webm' });
       const formData = new FormData();
-      formData.append('file', audioBlob, 'voice.webm');
+      formData.append('file', audioFile);
       formData.append('type', 'VOICE');
       formData.append('content', '');
       
-      await sendMessage(chatId, '', audioBlob, 'VOICE');
+      await sendMessage(chatId, '', audioFile, 'VOICE');
       setShowVoiceRecorder(false);
     } catch (error) {
       console.error('Failed to send voice message:', error);
@@ -375,16 +377,16 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
           const fileUrl = message.fileUrl ? `${API_URL}${message.fileUrl}` : null;
           
           // Автоматически определяем тип медиа для старых сообщений
-          let messageType = message.type;
-          if (fileUrl && (!messageType || messageType === 'FILE')) {
+          let messageType: MessageType = message.type;
+          if (fileUrl && (!messageType || messageType === MessageType.FILE)) {
             const fileName = message.fileName || message.fileUrl || '';
             const extension = fileName.split('.').pop()?.toLowerCase();
             if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) {
-              messageType = 'IMAGE';
+              messageType = MessageType.IMAGE;
             } else if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(extension || '')) {
-              messageType = 'VIDEO';
+              messageType = MessageType.VIDEO;
             } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(extension || '')) {
-              messageType = 'AUDIO';
+              messageType = MessageType.AUDIO;
             }
           }
           
@@ -425,7 +427,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                 {/* Отображение файлов */}
                 {fileUrl && (
                   <div className="mb-2">
-                    {messageType === 'IMAGE' && (
+                    {messageType === MessageType.IMAGE && (
                       <div className="relative">
                         <img
                           src={fileUrl}
@@ -454,7 +456,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                         />
                       </div>
                     )}
-                    {messageType === 'VIDEO' && (
+                    {messageType === MessageType.VIDEO && (
                       <div className="mb-1">
                         <video
                           src={fileUrl}
@@ -464,7 +466,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                         />
                       </div>
                     )}
-                    {messageType === 'AUDIO' && (
+                    {messageType === MessageType.AUDIO && (
                       <div className="mb-1">
                         <audio
                           src={fileUrl}
@@ -473,7 +475,7 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                         />
                       </div>
                     )}
-                    {(messageType === 'FILE' || !messageType) && fileUrl && (
+                    {(messageType === MessageType.FILE || !messageType) && fileUrl && (
                       <a
                         href={fileUrl}
                         download={message.fileName}
