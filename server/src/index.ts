@@ -15,9 +15,17 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+/** Parses CLIENT_URL into an array of allowed origins for CORS */
+function parseAllowedOrigins(): string[] | string {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  return clientUrl.split(',').map((url) => url.trim());
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   },
 });
@@ -32,7 +40,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
-      connectSrc: ["'self'", process.env.CLIENT_URL || 'http://localhost:5173'],
+      connectSrc: ["'self'", ...(Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins])],
       fontSrc: ["'self'", 'data:'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'", 'blob:'],
@@ -50,7 +58,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json());
