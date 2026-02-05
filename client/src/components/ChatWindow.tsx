@@ -220,7 +220,10 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
       messageType = MessageType.AUDIO;
     }
 
-    sendMessage(chatId, messageInput || file.name, file, messageType);
+    // For media messages (image/video/audio), don't send filename as content text
+    const isMedia = [MessageType.IMAGE, MessageType.VIDEO, MessageType.AUDIO].includes(messageType);
+    const content = messageInput || (isMedia ? '' : file.name);
+    sendMessage(chatId, content, file, messageType);
     
     // Очищаем поле ввода после отправки файла
     setMessageInput('');
@@ -428,32 +431,45 @@ export default function ChatWindow({ chatId }: ChatWindowProps) {
                 {fileUrl && (
                   <div className="mb-2">
                     {messageType === MessageType.IMAGE && (
-                      <div className="relative">
+                      <div className="relative group">
                         <img
                           src={fileUrl}
                           alt={message.content || 'Image'}
-                          className="max-w-full max-h-96 rounded-lg cursor-pointer object-contain"
+                          className="max-w-full max-h-96 rounded-lg cursor-pointer object-contain bg-gray-200 dark:bg-gray-700"
+                          style={{ minHeight: '80px', minWidth: '120px' }}
+                          loading="lazy"
                           onClick={() => window.open(fileUrl, '_blank')}
+                          onLoad={(e) => {
+                            // Reset min dimensions after load
+                            const target = e.target as HTMLImageElement;
+                            target.style.minHeight = '';
+                            target.style.minWidth = '';
+                          }}
                           onError={(e) => {
-                            // Fallback на файл, если изображение не загрузилось
+                            // Show download link fallback but keep it React-friendly
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <a href="${fileUrl}" download="${message.fileName || 'file'}" 
-                                   class="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                  </svg>
-                                  <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium truncate">${message.fileName || 'File'}</p>
-                                  </div>
-                                </a>
-                              `;
+                            // Show the sibling fallback element
+                            const fallback = target.nextElementSibling;
+                            if (fallback) {
+                              (fallback as HTMLElement).style.display = 'flex';
                             }
                           }}
                         />
+                        <a
+                          href={fileUrl}
+                          download={message.fileName || 'image'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                          style={{ display: 'none' }}
+                        >
+                          <Paperclip className="w-4 h-4 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{message.fileName || 'Image'}</p>
+                            <p className="text-xs text-gray-500">Click to download</p>
+                          </div>
+                        </a>
                       </div>
                     )}
                     {messageType === MessageType.VIDEO && (

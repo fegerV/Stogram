@@ -32,6 +32,16 @@ const io = new Server(httpServer, {
 
 export { prisma };
 
+// Serve uploaded files BEFORE helmet/cors to avoid cross-origin restrictions
+// These are user-uploaded media files that need to be accessible from the frontend (different origin)
+app.use('/uploads', cors({ origin: '*' }), express.static('uploads', {
+  setHeaders: (res) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
+  },
+}));
+
 // Security headers with Helmet - Enhanced with CSP and HSTS
 app.use(helmet({
   contentSecurityPolicy: {
@@ -43,7 +53,7 @@ app.use(helmet({
       connectSrc: ["'self'", ...(Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins])],
       fontSrc: ["'self'", 'data:'],
       objectSrc: ["'none'"],
-      mediaSrc: ["'self'", 'blob:'],
+      mediaSrc: ["'self'", 'blob:', 'https:'],
       frameSrc: ["'none'"],
     },
   },
@@ -52,7 +62,7 @@ app.use(helmet({
     includeSubDomains: true,
     preload: true,
   },
-  crossOriginEmbedderPolicy: true,
+  crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: true,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
@@ -66,8 +76,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Global IP-based rate limiting for all API routes (1000 requests per 15 minutes)
 app.use('/api', lenientIPRateLimit);
-
-app.use('/uploads', express.static('uploads'));
 
 app.use('/api', routes);
 
