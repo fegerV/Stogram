@@ -1,0 +1,75 @@
+# Server files
+server/
+server/**/*
+
+# Mobile app
+mobile/
+mobile/**/*
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Documentation
+*.md
+docs/
+.github/
+
+# Docker files
+docker-compose*.yml
+Dockerfile
+**/Dockerfile
+
+# Database
+*.db
+*.sqlite
+prisma/dev.db
+server/prisma/dev.db
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Test files
+tests/
+**/__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Config files (keep only what's needed)
+playwright.config.ts
+vitest.config.ts
+jest.config.js
+
+# Temporary files
+temp_*
+*.tmp
+.env.local
+.env.*.local
+
+# Build artifacts (Vercel will build them)
+dist/
+**/dist/
+build/
+**/build/
+
+# Railway config
+railway.json
+Procfile
+
+# Scripts
+*.sh
+setup-*.sh
+install-*.sh
+verify-*.sh
+check-*.sh
+
+# Other
+.git/
+.gitignore
+.editorconfig
+.eslintrc*
+.prettierrc*

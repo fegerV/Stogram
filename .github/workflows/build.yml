@@ -1,0 +1,68 @@
+name: Build Application
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  build:
+    name: Build Client and Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ./server
+        run: npx prisma generate
+
+      - name: Build server
+        working-directory: ./server
+        run: npm run build
+
+      - name: Build client
+        working-directory: ./client
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:3001' }}
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL || 'http://localhost:3001' }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            server/dist
+            client/dist
+          retention-days: 30
+          compression-level: 9
+
+      - name: Build summary
+        run: |
+          echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Server built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Client built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Artifacts uploaded" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build artifacts are available for 30 days**" >> $GITHUB_STEP_SUMMARY
