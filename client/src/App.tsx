@@ -18,7 +18,7 @@ const TelegramSettingsPage = lazy(() => import('./pages/TelegramSettingsPage').t
 const TelegramMiniApp = lazy(() => import('./pages/TelegramMiniApp').then(module => ({ default: module.TelegramMiniApp })));
 const PerformanceWidget = lazy(() => import('./components/PerformanceWidget').then(module => ({ default: module.PerformanceWidget })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
-const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET !== 'false';
+const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET === 'true';
 
 function RoutePreloader() {
   const location = useLocation();
