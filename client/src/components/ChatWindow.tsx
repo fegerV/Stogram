@@ -427,6 +427,9 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         {messages.map((message) => {
           const isOwn = message.senderId === user?.id;
           const fileUrl = getMediaUrl(message.fileUrl);
+          // Create fallback URL for original image if compressed version fails
+          // Remove _compressed from path to get original image
+          const originalFileUrl = fileUrl?.replace('_compressed', '') || null;
           
           // Автоматически определяем тип медиа для старых сообщений
           let messageType: MessageType = message.type;
@@ -442,16 +445,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             }
           }
           
-          // Debug logging for image messages
-          if (messageType === MessageType.IMAGE && fileUrl) {
-            console.log('Rendering image message:', {
-              messageId: message.id,
-              fileUrl,
-              fileName: message.fileName,
-              type: message.type,
-              resolvedType: messageType,
-            });
-          }
+          // Debug logging removed to reduce console noise
           
           return (
             <div
@@ -504,20 +498,23 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                             const target = e.target as HTMLImageElement;
                             target.style.minHeight = '';
                             target.style.minWidth = '';
-                            console.log('Image loaded successfully:', fileUrl);
                           }}
                           onError={(e) => {
-                            // Log error for debugging
                             const target = e.target as HTMLImageElement;
-                            console.error('Image load error:', {
-                              src: target.src,
-                              fileUrl,
-                              messageId: message.id,
-                              messageType,
-                              fileName: message.fileName,
-                            });
+                            const currentSrc = target.src;
                             
-                            // Show download link fallback
+                            // Try fallback to original image if compressed version failed
+                            if (currentSrc.includes('_compressed') && originalFileUrl && originalFileUrl !== currentSrc) {
+                              // Prevent infinite loop - only retry once
+                              if (!target.dataset.fallbackTried) {
+                                target.dataset.fallbackTried = 'true';
+                                // Retry with original image
+                                target.src = originalFileUrl;
+                                return;
+                              }
+                            }
+                            
+                            // If original also fails or no fallback available, show download link
                             target.style.display = 'none';
                             const fallback = target.nextElementSibling;
                             if (fallback) {
