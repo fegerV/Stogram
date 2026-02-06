@@ -23,17 +23,16 @@ export default defineConfig({
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
-        icons: [
-          {
-            src: '/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any',
-          },
-          // TODO: Add proper PNG icons (192x192 and 512x512)
-          // For now using SVG as fallback
-        ],
+        // Icons are optional for PWA to work, but recommended
+        // Will be added when proper PNG icons are created
+        icons: [],
       },
+      // Disable icon generation for now (requires additional setup)
+      // icons: {
+      //   src: 'path/to/icon.png',
+      //   sizes: [192, 512],
+      //   purpose: 'any maskable'
+      // },
       workbox: {
         // Ensure new SW takes over immediately on update
         skipWaiting: true,

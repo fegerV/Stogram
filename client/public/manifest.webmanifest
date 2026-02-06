@@ -9,12 +9,8 @@
   "theme_color": "#0088cc",
   "orientation": "portrait",
   "icons": [
-    {
-      "src": "/vite.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    // Icons will be added when PNG files are created
+    // For now, empty array to avoid manifest errors
   ],
   "shortcuts": [
     {
@@ -22,7 +18,7 @@
       "short_name": "New Chat",
       "description": "Start a new conversation",
       "url": "/?action=new-chat",
-      "icons": [{ "src": "/vite.svg", "sizes": "any" }]
+      "icons": []
     }
   ],
   "categories": ["social", "communication"],
