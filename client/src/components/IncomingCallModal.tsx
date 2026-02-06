@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { socketService } from '../services/socket';
 import { Call } from '../types';
 import { getMediaUrl } from '../utils/helpers';
+import { notificationSound } from '../utils/notificationSound';
 
 interface IncomingCallModalProps {
   call: Call;
@@ -12,21 +13,54 @@ interface IncomingCallModalProps {
 
 export default function IncomingCallModal({ call, onAnswer, onReject }: IncomingCallModalProps) {
   const [duration, setDuration] = useState(0);
+  const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    // Play ringtone repeatedly
+    const playRingtone = () => {
+      notificationSound.playCallRingtone();
+    };
+    
+    // Play immediately
+    playRingtone();
+    
+    // Then repeat every 2 seconds
+    ringtoneIntervalRef.current = setInterval(playRingtone, 2000);
+
+    // Duration counter
+    const durationInterval = setInterval(() => {
       setDuration((prev) => prev + 1);
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (ringtoneIntervalRef.current) {
+        clearInterval(ringtoneIntervalRef.current);
+      }
+      clearInterval(durationInterval);
+      notificationSound.stopCallRingtone();
+    };
   }, []);
 
   const handleAnswer = () => {
+    // Stop ringtone
+    if (ringtoneIntervalRef.current) {
+      clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+    notificationSound.stopCallRingtone();
+    
     socketService.answerCall(call.id);
     onAnswer();
   };
 
   const handleReject = () => {
+    // Stop ringtone
+    if (ringtoneIntervalRef.current) {
+      clearInterval(ringtoneIntervalRef.current);
+      ringtoneIntervalRef.current = null;
+    }
+    notificationSound.stopCallRingtone();
+    
     socketService.rejectCall(call.id);
     onReject();
   };

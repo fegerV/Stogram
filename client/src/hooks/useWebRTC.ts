@@ -76,11 +76,26 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
     }
   };
 
-  const handleOffer = async ({ callId: incomingCallId, from, offer }: any) => {
+  const handleOffer = async ({ callId: incomingCallId, from, offer, video }: any) => {
     // Обрабатываем только предложения для текущего звонка
     if (incomingCallId !== callId) return;
     
     try {
+      // If we're not the initiator and don't have a local stream yet, get it
+      // Determine if this is a video call from the offer's SDP
+      const isVideoCall = offer?.sdp?.includes('m=video') || false;
+      
+      if (!localStream) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: isVideoCall,
+        });
+        setLocalStream(stream);
+        stream.getTracks().forEach((track) => {
+          peerConnection.current?.addTrack(track, stream);
+        });
+      }
+
       await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peerConnection.current?.createAnswer();
       await peerConnection.current?.setLocalDescription(answer);

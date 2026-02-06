@@ -16,6 +16,7 @@ interface CallModalProps {
 export default function CallModal({ callId, chatId, callType, isInitiator, onClose }: CallModalProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const { currentChat } = useChatStore();
   const { user: currentUser } = useAuthStore();
   
@@ -35,8 +36,14 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
   } = useWebRTC(callId, isInitiator, remoteUserId);
 
   useEffect(() => {
-    startCall(callType === 'VIDEO');
-  }, []);
+    // Only start call if we're the initiator
+    // For non-initiators, getUserMedia will be called when we receive the offer
+    if (isInitiator) {
+      startCall(callType === 'VIDEO').catch((error) => {
+        console.error('Failed to start call:', error);
+      });
+    }
+  }, [callId, callType, isInitiator, startCall]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -48,7 +55,11 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream]);
+    // For audio calls, also set remote stream to audio element
+    if (remoteAudioRef.current && remoteStream && callType === 'AUDIO') {
+      remoteAudioRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callType]);
 
   const handleEndCall = () => {
     cleanup();
@@ -93,7 +104,16 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
               <span className="text-4xl">👤</span>
             </div>
             <h2 className="text-2xl font-bold mb-2">Audio Call</h2>
-            <p className="text-gray-300">Calling...</p>
+            <p className="text-gray-300">
+              {remoteStream ? 'Connected' : isInitiator ? 'Calling...' : 'Connecting...'}
+            </p>
+            {/* Hidden audio element for remote stream */}
+            <audio
+              ref={remoteAudioRef}
+              autoPlay
+              playsInline
+              className="hidden"
+            />
           </div>
         )}
 

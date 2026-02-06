@@ -66,6 +66,34 @@ class NotificationSoundService {
     this.playTone(ctx, masterGain, 1046.5, currentTime, 0.03, 0.08);
   }
 
+  /**
+   * Play a ringing sound for incoming calls (repeating pattern)
+   */
+  playCallRingtone(): void {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const currentTime = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.4, currentTime);
+    masterGain.connect(ctx.destination);
+
+    // Ring pattern: two tones, repeating every 2 seconds
+    // First tone
+    this.playTone(ctx, masterGain, 800, currentTime, 0.05, 0.15);
+    // Second tone (slightly higher)
+    this.playTone(ctx, masterGain, 1000, currentTime + 0.2, 0.05, 0.15);
+  }
+
+  /**
+   * Stop call ringtone (cleanup)
+   */
+  stopCallRingtone(): void {
+    // The tones are short-lived, so no explicit stop needed
+    // But we can reset the lastPlayedAt to allow immediate replay
+    this.lastPlayedAt = 0;
+  }
+
   private playTone(
     ctx: AudioContext,
     destination: AudioNode,
