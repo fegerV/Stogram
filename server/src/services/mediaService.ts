@@ -26,20 +26,33 @@ export const compressImage = async (
   quality = 80
 ): Promise<string> => {
   try {
+    const ext = path.extname(inputPath).toLowerCase();
     const outputPath = inputPath.replace(/(\.[^.]+)$/, '_compressed$1');
     
-    await sharp(inputPath)
+    const sharpInstance = sharp(inputPath)
       .resize(maxWidth, maxHeight, {
         fit: 'inside',
         withoutEnlargement: true,
-      })
-      .jpeg({ quality })
-      .toFile(outputPath);
+      });
+
+    // Preserve original format
+    if (ext === '.png') {
+      await sharpInstance.png({ quality }).toFile(outputPath);
+    } else if (ext === '.webp') {
+      await sharpInstance.webp({ quality }).toFile(outputPath);
+    } else if (ext === '.gif') {
+      // GIFs are handled separately
+      return inputPath;
+    } else {
+      // Default to JPEG for jpg, jpeg, and other formats
+      await sharpInstance.jpeg({ quality }).toFile(outputPath);
+    }
 
     return outputPath;
   } catch (error) {
     console.error('Error compressing image:', error);
-    throw error;
+    // Return original path if compression fails
+    return inputPath;
   }
 };
 
@@ -200,7 +213,13 @@ export const processMedia = async (
       if (mimeType === 'image/gif') {
         result.compressedPath = await processGif(filePath);
       } else {
-        result.compressedPath = await compressImage(filePath);
+        // Try to compress, but keep original if compression fails
+        const compressed = await compressImage(filePath);
+        // Only use compressed if it's different from original (compression succeeded)
+        if (compressed !== filePath) {
+          result.compressedPath = compressed;
+        }
+        // Always keep original path available
       }
     } else if (mimeType.startsWith('video/')) {
       result.thumbnailPath = await generateVideoThumbnail(filePath);
@@ -213,6 +232,7 @@ export const processMedia = async (
     return result;
   } catch (error) {
     console.error('Error processing media:', error);
+    // Return original path if processing fails
     return result;
   }
 };

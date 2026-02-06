@@ -139,9 +139,15 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       try {
         const mediaResult = await processMedia(req.file.path, req.file.mimetype);
         
-        if (mediaResult.compressedPath) {
+        // Use compressed path if available, otherwise use original
+        if (mediaResult.compressedPath && mediaResult.compressedPath !== mediaResult.originalPath) {
           fileUrl = mediaResult.compressedPath.replace(/^.*\/uploads/, '/uploads');
+          console.log(`Using compressed image: ${fileUrl}`);
+        } else {
+          // Keep original file URL
+          console.log(`Using original image: ${fileUrl}`);
         }
+        
         if (mediaResult.thumbnailPath) {
           thumbnailUrl = mediaResult.thumbnailPath.replace(/^.*\/uploads/, '/uploads');
         }
@@ -154,6 +160,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       } catch (error) {
         console.error('Media processing error:', error);
         // Continue with original file if processing fails
+        console.log(`Falling back to original file: ${fileUrl}`);
       }
     }
 

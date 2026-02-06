@@ -402,6 +402,17 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             }
           }
           
+          // Debug logging for image messages
+          if (messageType === MessageType.IMAGE && fileUrl) {
+            console.log('Rendering image message:', {
+              messageId: message.id,
+              fileUrl,
+              fileName: message.fileName,
+              type: message.type,
+              resolvedType: messageType,
+            });
+          }
+          
           return (
             <div
               key={message.id}
@@ -453,12 +464,21 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                             const target = e.target as HTMLImageElement;
                             target.style.minHeight = '';
                             target.style.minWidth = '';
+                            console.log('Image loaded successfully:', fileUrl);
                           }}
                           onError={(e) => {
-                            // Show download link fallback but keep it React-friendly
+                            // Log error for debugging
                             const target = e.target as HTMLImageElement;
+                            console.error('Image load error:', {
+                              src: target.src,
+                              fileUrl,
+                              messageId: message.id,
+                              messageType,
+                              fileName: message.fileName,
+                            });
+                            
+                            // Show download link fallback
                             target.style.display = 'none';
-                            // Show the sibling fallback element
                             const fallback = target.nextElementSibling;
                             if (fallback) {
                               (fallback as HTMLElement).style.display = 'flex';
@@ -470,7 +490,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                           download={message.fileName || 'image'}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                          className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
                           style={{ display: 'none' }}
                         >
                           <Paperclip className="w-4 h-4 flex-shrink-0" />
