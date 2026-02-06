@@ -487,7 +487,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                           src={fileUrl}
                           controls
                           className="max-w-full max-h-96 rounded-lg"
-                          poster={message.thumbnailUrl ? `${API_URL}${message.thumbnailUrl}` : undefined}
+                          poster={message.thumbnailUrl ? getMediaUrl(message.thumbnailUrl) ?? undefined : undefined}
                         />
                       </div>
                     )}
