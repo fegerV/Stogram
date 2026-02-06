@@ -20,9 +20,9 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
           { id: { not: userId } },
           {
             OR: [
-              { username: { contains: query } },
-              { displayName: { contains: query } },
-              { email: { contains: query } },
+              { username: { contains: query, mode: 'insensitive' } },
+              { displayName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } },
             ],
           },
         ],
@@ -35,6 +35,11 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
         bio: true,
         status: true,
       },
+      orderBy: [
+        // Prioritize exact matches and starts with
+        { username: 'asc' },
+        { displayName: 'asc' },
+      ],
       take: 20,
     });
 
