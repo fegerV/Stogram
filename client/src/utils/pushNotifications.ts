@@ -49,8 +49,13 @@ export const subscribeToPushNotifications = async (
       return null;
     }
 
-    // Register service worker
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    // Wait for service worker to be ready (vite-plugin-pwa auto-registers it)
+    // If not registered yet, register it manually
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      // Fallback: try to register the generated service worker
+      registration = await navigator.serviceWorker.register('/sw.js');
+    }
     await navigator.serviceWorker.ready;
 
     // Subscribe to push notifications

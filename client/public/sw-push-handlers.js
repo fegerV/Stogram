@@ -1,16 +1,7 @@
 /* eslint-disable no-restricted-globals */
+// Push notification handlers to be injected into Workbox service worker
 
-// Service Worker for Push Notifications
-self.addEventListener('install', (event) => {
-  console.log('Service Worker installing.');
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating.');
-  event.waitUntil(self.clients.claim());
-});
-
+// Listen for push events
 self.addEventListener('push', (event) => {
   console.log('Push notification received', event);
 
@@ -31,8 +22,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Stogram';
   const options = {
     body: data.body || 'You have a new message',
-    icon: data.icon || '/icon-192x192.png',
-    badge: data.badge || '/badge-72x72.png',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
     tag: data.tag || 'default',
     data: data.data || {},
     requireInteraction: data.requireInteraction || false,
@@ -47,6 +38,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked', event);
   
@@ -77,6 +69,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Handle push subscription changes
 self.addEventListener('pushsubscriptionchange', (event) => {
   console.log('Push subscription changed', event);
   

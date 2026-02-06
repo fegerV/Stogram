@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'sw-push-handlers.js'],
       manifest: {
         name: 'Stogram - Modern Messenger',
         short_name: 'Stogram',
@@ -25,21 +25,13 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
+            src: '/vite.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any',
           },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
+          // TODO: Add proper PNG icons (192x192 and 512x512)
+          // For now using SVG as fallback
         ],
       },
       workbox: {
@@ -49,6 +41,8 @@ export default defineConfig({
         // Don't precache index.html — always fetch from network
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
+        // Inject push notification handlers into generated service worker
+        importScripts: ['/sw-push-handlers.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\..*/i,
