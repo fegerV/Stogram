@@ -8,12 +8,32 @@ interface MonitoredRequestConfig extends AxiosRequestConfig {
   };
 }
 
+// Get API URL from environment or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 class MonitoredApi {
   private instance: AxiosInstance;
 
   constructor(baseURL?: string) {
+    // If baseURL is provided, use it. Otherwise, construct from API_URL
+    // If baseURL starts with '/', it's a relative path - prepend API_URL
+    // If baseURL is undefined, use API_URL + '/api'
+    let finalBaseURL: string;
+    if (baseURL) {
+      if (baseURL.startsWith('/')) {
+        // Relative path - prepend API_URL
+        finalBaseURL = `${API_URL}${baseURL}`;
+      } else {
+        // Absolute URL
+        finalBaseURL = baseURL;
+      }
+    } else {
+      // Default to API_URL + '/api'
+      finalBaseURL = `${API_URL}/api`;
+    }
+
     this.instance = axios.create({
-      baseURL: baseURL || '/api',
+      baseURL: finalBaseURL,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
