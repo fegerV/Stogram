@@ -83,7 +83,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
         }));
 
       if (newReads.length > 0) {
-        await prisma.messageRead.createMany({
+        await (prisma.messageRead.createMany as any)({
           data: newReads,
           skipDuplicates: true,
         });

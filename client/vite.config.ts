@@ -43,6 +43,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Ensure new SW takes over immediately on update
+        skipWaiting: true,
+        clientsClaim: true,
+        // Don't precache index.html — always fetch from network
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\..*/i,
