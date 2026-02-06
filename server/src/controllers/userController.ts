@@ -84,26 +84,79 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     
-    const validation = updateProfileSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ 
-        error: 'Invalid input', 
-        details: validation.error.errors 
-      });
+    // Extract text fields from FormData (multer parses them into req.body)
+    const bodyData: any = {};
+    if (req.body.displayName !== undefined) bodyData.displayName = req.body.displayName;
+    if (req.body.bio !== undefined) bodyData.bio = req.body.bio;
+    if (req.body.status !== undefined) bodyData.status = req.body.status;
+
+    // Validate only if text fields are provided
+    if (Object.keys(bodyData).length > 0) {
+      const validation = updateProfileSchema.safeParse(bodyData);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: 'Invalid input', 
+          details: validation.error.errors 
+        });
+      }
     }
 
-    const { displayName, bio, status } = validation.data;
+    const { displayName, bio, status } = bodyData;
 
+    // Handle avatar file upload
     let avatar;
     if (req.file) {
       avatar = `/uploads/${req.file.filename}`;
+      console.log(`Avatar uploaded: ${avatar} for user ${userId}`);
+      
+      // Optionally delete old avatar file if exists
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { avatar: true },
+      });
+      
+      if (currentUser?.avatar && currentUser.avatar.startsWith('/uploads/')) {
+        const fs = require('fs');
+        const path = require('path');
+        const oldAvatarPath = path.join(process.env.UPLOAD_DIR || './uploads', path.basename(currentUser.avatar));
+        try {
+          if (fs.existsSync(oldAvatarPath)) {
+            fs.unlinkSync(oldAvatarPath);
+            console.log(`Deleted old avatar: ${oldAvatarPath}`);
+          }
+        } catch (err) {
+          console.error('Error deleting old avatar:', err);
+          // Don't fail the request if old avatar deletion fails
+        }
+      }
     }
 
+    // Build update data object
     const updateData: any = {};
-    if (displayName !== undefined) updateData.displayName = displayName;
-    if (bio !== undefined) updateData.bio = bio;
-    if (status !== undefined) updateData.status = status;
+    if (displayName !== undefined && displayName !== '') updateData.displayName = displayName;
+    if (bio !== undefined) updateData.bio = bio || null; // Allow empty bio
+    if (status !== undefined && status !== '') updateData.status = status;
     if (avatar) updateData.avatar = avatar;
+
+    // Only update if there's something to update
+    if (Object.keys(updateData).length === 0) {
+      // If only file was sent but it's the same, or no changes, return current user
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          displayName: true,
+          avatar: true,
+          bio: true,
+          status: true,
+          lastSeen: true,
+          createdAt: true,
+        },
+      });
+      return res.json(currentUser);
+    }
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -119,6 +172,12 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         lastSeen: true,
         createdAt: true,
       },
+    });
+
+    console.log(`Profile updated for user ${userId}:`, { 
+      displayName: user.displayName, 
+      hasAvatar: !!user.avatar,
+      avatar: user.avatar 
     });
 
     res.json(user);

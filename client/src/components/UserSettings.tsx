@@ -254,18 +254,42 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     setSavingProfile(true);
     try {
       const formData = new FormData();
-      if (profileFormData.displayName !== user?.displayName) formData.append('displayName', profileFormData.displayName);
-      if (profileFormData.bio !== (user?.bio || '')) formData.append('bio', profileFormData.bio);
-      if (profileFormData.status !== (user?.status || '')) formData.append('status', profileFormData.status);
-      if (avatarFile) formData.append('avatar', avatarFile);
+      
+      // Always send displayName, bio, status if they exist (even if unchanged)
+      // This ensures the form data is properly structured
+      if (profileFormData.displayName !== undefined) {
+        formData.append('displayName', profileFormData.displayName);
+      }
+      if (profileFormData.bio !== undefined) {
+        formData.append('bio', profileFormData.bio);
+      }
+      if (profileFormData.status !== undefined) {
+        formData.append('status', profileFormData.status);
+      }
+      
+      // Always send avatar file if selected
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+        console.log('Sending avatar file:', avatarFile.name, avatarFile.size, 'bytes');
+      }
 
       const response = await userApi.updateProfile(formData);
+      console.log('Profile update response:', response.data);
+      
+      // Update user state with response data
       setUser(response.data);
       setAuthUser(response.data);
+      
+      // Clear preview only after successful save
       setAvatarFile(null);
       setAvatarPreview(null);
+      
+      // Force re-render to show new avatar
+      // The avatarSrc will use the new user.avatar from response
+      
       toast.success('Профиль обновлён');
     } catch (error: any) {
+      console.error('Profile update error:', error);
       toast.error(error.response?.data?.error || 'Ошибка обновления профиля');
     } finally {
       setSavingProfile(false);
@@ -378,6 +402,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   }, [section]);
 
   /* ── UI Helpers ── */
+  // Use preview if available (during selection), otherwise use saved avatar
   const avatarSrc = avatarPreview || getMediaUrl(user?.avatar) || '';
   const displayName = user?.displayName || user?.username || '';
 
