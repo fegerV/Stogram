@@ -187,24 +187,43 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   /* ── Handlers ── */
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
-      await monitoredApi.patch('/users/privacy', { [key]: value });
-      setPrivacy({ ...privacy, [key]: value });
+      const response = await monitoredApi.patch('/users/privacy', { [key]: value });
+      // Update local state with server response
+      if (response.data?.settings) {
+        setPrivacy(response.data.settings);
+      } else {
+        setPrivacy({ ...privacy, [key]: value });
+      }
       toast.success('Настройки обновлены');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update privacy:', error);
-      toast.error('Ошибка обновления');
+      const errorMessage = error?.response?.data?.error || 'Ошибка обновления настроек приватности';
+      toast.error(errorMessage);
+      // Revert local state on error
+      setPrivacy({ ...privacy, [key]: !value });
     }
   };
 
   const debouncedUpdateNotifications = useCallback(
-    (prefs: typeof notifications) => {
+    (prefs: typeof notifications, onError?: () => void) => {
       if (updateNotificationsTimeoutRef.current) clearTimeout(updateNotificationsTimeoutRef.current);
       updateNotificationsTimeoutRef.current = setTimeout(async () => {
         try {
-          await monitoredApi.patch('/users/notifications', prefs);
-        } catch (error) {
+          const response = await monitoredApi.patch('/users/notifications', prefs);
+          // Update local state with server response
+          if (response.data?.preferences) {
+            setNotifications(response.data.preferences);
+          }
+        } catch (error: any) {
           console.error('Failed to update notifications:', error);
-          toast.error('Ошибка обновления уведомлений');
+          const errorMessage = error?.response?.data?.error || 'Ошибка обновления уведомлений';
+          toast.error(errorMessage);
+          // Reload preferences from server to revert to correct state
+          if (onError) {
+            onError();
+          } else {
+            loadNotificationPreferences();
+          }
         }
       }, 500);
     },
@@ -212,6 +231,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   );
 
   const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
+    const previousState = { ...notifications };
     const updated = { ...notifications, [key]: value };
     setNotifications(updated);
 
@@ -234,7 +254,11 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     if (key === 'notificationsVibration') {
       useNotificationStore.getState().setVibrationEnabled(value);
     }
-    debouncedUpdateNotifications(updated);
+    debouncedUpdateNotifications(updated, () => {
+      // Revert to previous state on error
+      setNotifications(previousState);
+      loadNotificationPreferences();
+    });
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {

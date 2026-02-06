@@ -360,13 +360,48 @@ export const updatePrivacySettings = async (req: AuthRequest, res: Response) => 
     const userId = req.userId!;
     const { showOnlineStatus, showProfilePhoto, showLastSeen } = req.body;
 
+    // Validate input types and build update data
+    const updateData: any = {};
+    
+    if (showOnlineStatus !== undefined) {
+      if (typeof showOnlineStatus !== 'boolean') {
+        return res.status(400).json({ error: 'showOnlineStatus must be a boolean' });
+      }
+      updateData.showOnlineStatus = showOnlineStatus;
+    }
+    if (showProfilePhoto !== undefined) {
+      if (typeof showProfilePhoto !== 'boolean') {
+        return res.status(400).json({ error: 'showProfilePhoto must be a boolean' });
+      }
+      updateData.showProfilePhoto = showProfilePhoto;
+    }
+    if (showLastSeen !== undefined) {
+      if (typeof showLastSeen !== 'boolean') {
+        return res.status(400).json({ error: 'showLastSeen must be a boolean' });
+      }
+      updateData.showLastSeen = showLastSeen;
+    }
+
+    // Check if there's anything to update
+    if (Object.keys(updateData).length === 0) {
+      // Return current settings if nothing to update
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          showOnlineStatus: true,
+          showProfilePhoto: true,
+          showLastSeen: true,
+        },
+      });
+      if (!currentUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      return res.json({ message: 'No changes to update', settings: currentUser });
+    }
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(showOnlineStatus !== undefined && { showOnlineStatus }),
-        ...(showProfilePhoto !== undefined && { showProfilePhoto }),
-        ...(showLastSeen !== undefined && { showLastSeen }),
-      },
+      data: updateData,
       select: {
         id: true,
         showOnlineStatus: true,
@@ -376,9 +411,11 @@ export const updatePrivacySettings = async (req: AuthRequest, res: Response) => 
     });
 
     res.json({ message: 'Privacy settings updated successfully', settings: user });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update privacy settings error:', error);
-    res.status(500).json({ error: 'Failed to update privacy settings' });
+    // Provide more detailed error message
+    const errorMessage = error?.message || 'Failed to update privacy settings';
+    res.status(500).json({ error: errorMessage });
   }
 };
 
@@ -470,19 +507,50 @@ export const updateNotificationPreferences = async (req: AuthRequest, res: Respo
     const userId = req.userId!;
     const { notificationsPush, notificationsEmail, notificationsSound, notificationsVibration } = req.body;
 
+    // Validate input types and build update data
     const updateData: any = {};
     
-    if (notificationsPush !== undefined && typeof notificationsPush === 'boolean') {
+    if (notificationsPush !== undefined) {
+      if (typeof notificationsPush !== 'boolean') {
+        return res.status(400).json({ error: 'notificationsPush must be a boolean' });
+      }
       updateData.notificationsPush = notificationsPush;
     }
-    if (notificationsEmail !== undefined && typeof notificationsEmail === 'boolean') {
+    if (notificationsEmail !== undefined) {
+      if (typeof notificationsEmail !== 'boolean') {
+        return res.status(400).json({ error: 'notificationsEmail must be a boolean' });
+      }
       updateData.notificationsEmail = notificationsEmail;
     }
-    if (notificationsSound !== undefined && typeof notificationsSound === 'boolean') {
+    if (notificationsSound !== undefined) {
+      if (typeof notificationsSound !== 'boolean') {
+        return res.status(400).json({ error: 'notificationsSound must be a boolean' });
+      }
       updateData.notificationsSound = notificationsSound;
     }
-    if (notificationsVibration !== undefined && typeof notificationsVibration === 'boolean') {
+    if (notificationsVibration !== undefined) {
+      if (typeof notificationsVibration !== 'boolean') {
+        return res.status(400).json({ error: 'notificationsVibration must be a boolean' });
+      }
       updateData.notificationsVibration = notificationsVibration;
+    }
+
+    // Check if there's anything to update
+    if (Object.keys(updateData).length === 0) {
+      // Return current preferences if nothing to update
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          notificationsPush: true,
+          notificationsEmail: true,
+          notificationsSound: true,
+          notificationsVibration: true,
+        },
+      });
+      if (!currentUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      return res.json({ message: 'No changes to update', preferences: currentUser });
     }
 
     const user = await prisma.user.update({
@@ -497,8 +565,10 @@ export const updateNotificationPreferences = async (req: AuthRequest, res: Respo
     });
 
     res.json({ message: 'Notification preferences updated successfully', preferences: user });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update notification preferences error:', error);
-    res.status(500).json({ error: 'Failed to update notification preferences' });
+    // Provide more detailed error message
+    const errorMessage = error?.message || 'Failed to update notification preferences';
+    res.status(500).json({ error: errorMessage });
   }
 };
