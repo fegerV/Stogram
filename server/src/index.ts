@@ -88,13 +88,17 @@ app.use(errorHandler);
 initSocketHandlers(io);
 initScheduler();
 
+// Render automatically sets PORT, use it or fallback to 3001
 const PORT = Number(process.env.PORT) || 3001;
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+// Always listen on 0.0.0.0 in production (required by Render)
+const HOST = '0.0.0.0';
 
 httpServer.listen(PORT, HOST, () => {
   console.log(`🚀 Stogram server running on ${HOST}:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  // Explicitly log that server is ready for Render health checks
+  console.log(`✅ Server is ready to accept connections on port ${PORT}`);
 });
 
 process.on('SIGTERM', async () => {
