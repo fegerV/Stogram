@@ -13,7 +13,12 @@ export const getMediaUrl = (path: string | null | undefined): string | null => {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
     return path;
   }
-  return `${API_URL}${path}`;
+  
+  // Ensure API_URL doesn't end with / and path starts with /
+  const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+  const mediaPath = path.startsWith('/') ? path : `/${path}`;
+  
+  return `${baseUrl}${mediaPath}`;
 };
 
 export const formatMessageTime = (date: string | Date): string => {
