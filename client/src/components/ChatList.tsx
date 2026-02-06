@@ -1,12 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Edit3, Menu as MenuIcon, Users, Pin } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
-import { getChatName, getChatAvatar, formatMessageTime, getInitials } from '../utils/helpers';
+import { getChatName, getChatAvatar, formatMessageTime, getInitials, getMediaUrl } from '../utils/helpers';
+import { userApi } from '../services/api';
+import { User } from '../types';
 import NewChatModal from './NewChatModal';
 import SideDrawer from './SideDrawer';
 import { LazyUserSettings } from './LazyComponents';
 import { ChatType } from '../types';
+import toast from 'react-hot-toast';
 
 type ChatFilter = 'all' | 'private' | 'groups' | 'bots';
 
@@ -19,7 +22,7 @@ interface ChatListProps {
  * Telegram-style chat list with hamburger menu, search, tabs, and FAB.
  */
 export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps) {
-  const { chats } = useChatStore();
+  const { chats, createChat } = useChatStore();
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -27,6 +30,8 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
   /** Apply search + tab filter to chats */
   const filteredChats = useMemo(() => {
@@ -50,6 +55,58 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
     return result;
   }, [chats, activeFilter, searchQuery, user?.id]);
+
+  /** Search users via API when search query is entered */
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearchingUsers(true);
+      try {
+        const response = await userApi.search(searchQuery);
+        setSearchResults(response.data || []);
+      } catch (error: any) {
+        console.error('Search users error:', error);
+        // Don't show error toast for search - just clear results
+        setSearchResults([]);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  /** Handle creating a new chat with a searched user */
+  const handleCreateChatWithUser = async (selectedUser: User) => {
+    try {
+      // Check if chat already exists with this user
+      const existingChat = chats.find((chat) => {
+        if (chat.type !== ChatType.PRIVATE) return false;
+        return chat.members?.some((member) => member.userId === selectedUser.id);
+      });
+
+      if (existingChat) {
+        // Chat exists, just select it
+        onSelectChat(existingChat.id);
+        setSearchQuery('');
+        setIsSearchOpen(false);
+        return;
+      }
+
+      // Create new private chat
+      await createChat(ChatType.PRIVATE, [selectedUser.id]);
+      setSearchQuery('');
+      setIsSearchOpen(false);
+      toast.success(`Чат с ${selectedUser.displayName || selectedUser.username} создан`);
+    } catch (error: any) {
+      console.error('Create chat error:', error);
+      toast.error('Ошибка создания чата');
+    }
+  };
 
   /** Count unread for each tab (placeholder — real logic would need unread data) */
   const tabCounts = useMemo(() => {
@@ -144,7 +201,84 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
       {/* ── Chat List ── */}
       <div className="flex-1 overflow-y-auto scrollbar-thin bg-white dark:bg-[#0b141a]">
-        {filteredChats.length === 0 ? (
+        {/* Search Results - Users */}
+        {searchQuery.trim().length >= 2 && (
+          <div className="border-b border-gray-100 dark:border-[#202c33]">
+            {isSearchingUsers ? (
+              <div className="flex items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <Search className="w-5 h-5 mr-2 animate-pulse" />
+                <span className="text-sm">Поиск...</span>
+              </div>
+            ) : searchResults.length > 0 ? (
+              <div>
+                <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  Пользователи
+                </div>
+                {searchResults.map((searchUser) => {
+                  const userAvatar = getMediaUrl(searchUser.avatar);
+                  const userName = searchUser.displayName || searchUser.username;
+                  
+                  return (
+                    <div
+                      key={searchUser.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleCreateChatWithUser(searchUser)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleCreateChatWithUser(searchUser);
+                        }
+                      }}
+                      className="flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors hover:bg-[#f4f4f5] dark:hover:bg-[#202c33] active:bg-[#e5e5e6] dark:active:bg-[#2a3942]"
+                    >
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        {userAvatar ? (
+                          <img
+                            src={userAvatar}
+                            alt={userName}
+                            className="w-[54px] h-[54px] rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-[54px] h-[54px] rounded-full flex items-center justify-center text-white font-medium text-base bg-[#3390ec]">
+                            {getInitials(userName)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 border-b border-gray-100 dark:border-[#202c33] py-1.5">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <h3 className="font-semibold text-[15px] truncate text-[#222222] dark:text-[#e1e1e1]">
+                            {userName}
+                          </h3>
+                        </div>
+                        {searchUser.bio && (
+                          <p className="text-[14px] truncate text-[#8e8e93] dark:text-[#6c7883]">
+                            {searchUser.bio}
+                          </p>
+                        )}
+                        {searchUser.username && (
+                          <p className="text-[13px] truncate text-[#8e8e93] dark:text-[#6c7883]">
+                            @{searchUser.username}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+                <Search className="w-10 h-10 opacity-40 mb-2" />
+                <p className="text-sm">Пользователи не найдены</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Existing Chats */}
+        {filteredChats.length === 0 && (!searchQuery.trim() || searchQuery.length < 2) ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 gap-2">
             <Search className="w-10 h-10 opacity-40" />
             <p className="text-sm">Чаты не найдены</p>
