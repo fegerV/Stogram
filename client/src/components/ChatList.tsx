@@ -118,7 +118,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
             return (
               <div
                 key={chat.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectChat(chat.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectChat(chat.id); }}
                 className={`px-3 py-2.5 cursor-pointer transition-colors border-b border-gray-100 dark:border-[#202c33] ${
                   isSelected 
                     ? 'bg-[#e9edef] dark:bg-[#202c33]' 
