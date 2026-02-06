@@ -91,7 +91,7 @@ export default function ChatPage() {
     >
       <div className="flex h-screen bg-white dark:bg-[#0b141a]">
         {/* ChatList: visible on mobile when no chat selected, always visible on desktop */}
-        <div className={`w-full md:w-96 border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] ${selectedChatId ? 'hidden md:block' : 'block'}`}>
+        <div className={`w-full md:w-[420px] lg:w-[440px] border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] flex-shrink-0 ${selectedChatId ? 'hidden md:block' : 'block'}`}>
           <ErrorBoundary>
             <ChatList 
               onSelectChat={(chatId) => {
@@ -113,10 +113,10 @@ export default function ChatPage() {
               />
             </ErrorBoundary>
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-[#efeae2] dark:bg-[#0b141a]">
+            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500 bg-[#dfe4e7] dark:bg-[#0e1621]">
               <div className="text-center">
-                <div className="text-6xl mb-4">💬</div>
-                <p className="text-xl">Выберите чат</p>
+                <div className="text-6xl mb-4 opacity-40">💬</div>
+                <p className="text-lg font-medium text-[#707579] dark:text-[#6c7883]">Выберите чат для начала</p>
               </div>
             </div>
           )}
