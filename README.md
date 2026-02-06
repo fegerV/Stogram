@@ -631,6 +631,8 @@ npm run test:e2e
 - **[Migration Guide](./docs/deployment/MIGRATION_GUIDE.md)**: Database migration instructions
 - **[Railway Deployment](./docs/deployment/RAILWAY_DEPLOYMENT.md)**: Complete Railway.app deployment guide
 - **[Railway Quick Start](./docs/deployment/RAILWAY_QUICKSTART.md)**: Quick Railway deployment instructions
+- **[Render + Neon Setup](./docs/deployment/RENDER_NEON_SETUP.md)**: Render backend and Neon PostgreSQL deployment
+- **[SMTP Email Setup](./docs/deployment/SMTP_SETUP.md)**: Email configuration for verification and password reset (Gmail, Yandex, Mail.ru)
 
 ### 🔌 Integrations
 - **[Telegram Integration](./docs/api/TELEGRAM.md)**: Complete Telegram integration guide
