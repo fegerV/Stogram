@@ -14,6 +14,7 @@ import VoiceRecorder from './VoiceRecorder';
 import SelfDestructTimer from './SelfDestructTimer';
 import SelfDestructOptions from './SelfDestructOptions';
 import LinkPreview from './LinkPreview';
+import { TypingIndicator } from './TypingIndicator';
 import { Call, Message, MessageType } from '../types';
 import { messageApi } from '../services/api';
 
@@ -27,6 +28,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const { user } = useAuthStore();
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Map<string, { username: string; displayName?: string }>>(new Map());
   const [showCallModal, setShowCallModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
@@ -162,6 +164,44 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    // Обработка события печати от других пользователей
+    const handleUserTyping = ({ userId, chatId: eventChatId, isTyping: userIsTyping }: { userId: string; chatId: string; isTyping: boolean }) => {
+      // Игнорируем события для других чатов и для себя
+      if (eventChatId !== chatId || userId === user?.id) {
+        return;
+      }
+
+      setTypingUsers((prev) => {
+        const newMap = new Map(prev);
+        
+        if (userIsTyping) {
+          // Найти пользователя в чате
+          const chatMember = currentChat?.members?.find((m: any) => m.userId === userId);
+          if (chatMember?.user) {
+            newMap.set(userId, {
+              username: chatMember.user.username,
+              displayName: chatMember.user.displayName || undefined,
+            });
+          }
+        } else {
+          // Удаляем пользователя из списка печатающих
+          newMap.delete(userId);
+        }
+        
+        return newMap;
+      });
+    };
+
+    socketService.on('user:typing', handleUserTyping);
+
+    return () => {
+      socketService.off('user:typing', handleUserTyping);
+      // Очищаем список печатающих при размонтировании
+      setTypingUsers(new Map());
+    };
+  }, [chatId, user?.id, currentChat]);
 
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessageInput(e.target.value);
@@ -584,6 +624,16 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             </div>
           );
         })}
+        
+        {/* Индикаторы печати */}
+        {Array.from(typingUsers.entries()).map(([userId, userInfo]) => (
+          <div key={userId} className="flex justify-start mb-1">
+            <TypingIndicator 
+              username={userInfo.displayName || userInfo.username} 
+            />
+          </div>
+        ))}
+        
         <div ref={messagesEndRef} />
       </div>
 
