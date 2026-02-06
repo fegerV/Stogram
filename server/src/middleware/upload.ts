@@ -20,25 +20,30 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Разрешенные расширения файлов
-  const allowedExtensions = /\.(jpeg|jpg|png|gif|mp4|mov|avi|mp3|wav|pdf|doc|docx|txt)$/i;
-  // Разрешенные MIME-типы
+  // Разрешённые расширения файлов (включая webm/ogg для голосовых сообщений)
+  const allowedExtensions = /\.(jpeg|jpg|png|gif|webp|mp4|mov|avi|webm|ogg|mp3|wav|aac|m4a|pdf|doc|docx|txt|zip|rar)$/i;
+  // Разрешённые MIME-типы (общий паттерн)
   const allowedMimeTypes = /^(image|video|audio|application|text)\//;
   
-  const extname = allowedExtensions.test(path.extname(file.originalname));
-  const mimetype = allowedMimeTypes.test(file.mimetype) || 
-                   /^(image\/(jpeg|jpg|png|gif)|video\/(mp4|mov|avi)|audio\/(mp3|wav)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)|text\/plain)$/i.test(file.mimetype);
+  const ext = path.extname(file.originalname).toLowerCase();
+  const hasAllowedExtension = allowedExtensions.test(ext);
+  const hasAllowedMimeType = allowedMimeTypes.test(file.mimetype);
 
-  if (extname && mimetype) {
+  if (hasAllowedExtension && hasAllowedMimeType) {
     return cb(null, true);
-  } else {
-    console.error('Invalid file type:', {
-      filename: file.originalname,
-      mimetype: file.mimetype,
-      extname: path.extname(file.originalname)
-    });
-    cb(new Error('Invalid file type'));
   }
+
+  // Разрешаем файлы без расширения, если MIME-тип валиден (для blob-ов)
+  if (!ext && hasAllowedMimeType) {
+    return cb(null, true);
+  }
+
+  console.error('Invalid file type:', {
+    filename: file.originalname,
+    mimetype: file.mimetype,
+    extension: ext,
+  });
+  cb(new Error('Invalid file type'));
 };
 
 export const upload = multer({
