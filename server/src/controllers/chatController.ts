@@ -10,6 +10,10 @@ const createChatSchema = z.object({
   memberIds: z.array(z.string()),
 });
 
+const pinMessageSchema = z.object({
+  messageId: z.string(),
+});
+
 export const createChat = async (req: AuthRequest, res: Response) => {
   try {
     const { type, name, description, memberIds } = createChatSchema.parse(req.body);
@@ -133,6 +137,18 @@ export const getChats = async (req: AuthRequest, res: Response) => {
               },
             },
           },
+          pinnedMessage: {
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
         },
         orderBy: { updatedAt: 'desc' },
       });
@@ -156,6 +172,18 @@ export const getChats = async (req: AuthRequest, res: Response) => {
                   avatar: true,
                   status: true,
                   lastSeen: true,
+                },
+              },
+            },
+          },
+          pinnedMessage: {
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatar: true,
                 },
               },
             },
@@ -223,6 +251,18 @@ export const getChatById = async (req: AuthRequest, res: Response) => {
                 avatar: true,
                 status: true,
                 lastSeen: true,
+              },
+            },
+          },
+        },
+        pinnedMessage: {
+          include: {
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
               },
             },
           },
@@ -385,5 +425,127 @@ export const removeMember = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Remove member error:', error);
     res.status(500).json({ error: 'Failed to remove member' });
+  }
+};
+
+export const pinMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { chatId } = req.params;
+    const { messageId } = pinMessageSchema.parse(req.body);
+
+    const isMember = await prisma.chatMember.findFirst({
+      where: {
+        chatId,
+        userId,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+    });
+
+    if (!isMember) {
+      return res.status(403).json({ error: 'Only owners and admins can pin messages' });
+    }
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message || message.chatId !== chatId) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const chat = await prisma.chat.update({
+      where: { id: chatId },
+      data: { pinnedMessageId: messageId },
+      include: {
+        pinnedMessage: {
+          include: {
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json({ chat, message: 'Message pinned successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Pin message error:', error);
+    res.status(500).json({ error: 'Failed to pin message' });
+  }
+};
+
+export const unpinMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { chatId } = req.params;
+
+    const isMember = await prisma.chatMember.findFirst({
+      where: {
+        chatId,
+        userId,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+    });
+
+    if (!isMember) {
+      return res.status(403).json({ error: 'Only owners and admins can unpin messages' });
+    }
+
+    const chat = await prisma.chat.update({
+      where: { id: chatId },
+      data: { pinnedMessageId: null },
+      include: {
+        pinnedMessage: {
+          include: {
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json({ chat, message: 'Message unpinned successfully' });
+  } catch (error) {
+    console.error('Unpin message error:', error);
+    res.status(500).json({ error: 'Failed to unpin message' });
   }
 };

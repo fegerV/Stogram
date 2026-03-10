@@ -52,8 +52,8 @@ Thumbs.db
 service-worker.js
 workbox-*.js
 
-# Prisma
-server/prisma/migrations
+# Prisma - keep migration files
+# server/prisma/migrations - removed exclusion
 
 # Build
 *.tsbuildinfo

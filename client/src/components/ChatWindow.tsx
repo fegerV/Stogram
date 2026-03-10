@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, Paperclip, Phone, Video, MoreVertical, Search, Mic, Forward, Copy, Edit, Trash2, Clock, Link as LinkIcon, ArrowLeft } from 'lucide-react';
+import { Send, Paperclip, Phone, Video, Search, Mic, Forward, Copy, Edit, Trash2, Clock, ArrowLeft, Pin, PinOff, Settings } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { socketService } from '../services/socket';
@@ -15,8 +16,10 @@ import SelfDestructTimer from './SelfDestructTimer';
 import SelfDestructOptions from './SelfDestructOptions';
 import LinkPreview from './LinkPreview';
 import { TypingIndicator } from './TypingIndicator';
-import { Call, Message, MessageType } from '../types';
-import { messageApi } from '../services/api';
+import { Call, Message, MessageType, NotificationLevel } from '../types';
+import { messageApi, chatApi, chatSettingsApi } from '../services/api';
+import ChatSettingsDrawer from './ChatSettingsDrawer';
+import PinnedMessageBanner from './PinnedMessageBanner';
 
 interface ChatWindowProps {
   chatId: string;
@@ -41,6 +44,9 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const [contextMenu, setContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
   const [selfDestructSeconds, setSelfDestructSeconds] = useState<number | null>(null);
   const [showSelfDestructOptions, setShowSelfDestructOptions] = useState(false);
+  const [showChatSettings, setShowChatSettings] = useState(false);
+  const [chatSettings, setChatSettings] = useState<{ isMuted?: boolean; notificationLevel?: NotificationLevel } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const selfDestructButtonRef = useRef<HTMLButtonElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -48,6 +54,25 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   useEffect(() => {
     selectChat(chatId);
+  }, [chatId]);
+
+  useEffect(() => {
+    if (currentChat && user) {
+      const member = currentChat.members?.find((m: any) => m.userId === user.id);
+      setIsAdmin(member?.role === 'OWNER' || member?.role === 'ADMIN');
+    }
+  }, [currentChat, user]);
+
+  useEffect(() => {
+    const loadChatSettings = async () => {
+      try {
+        const response = await chatSettingsApi.get(chatId);
+        setChatSettings(response.data.settings);
+      } catch (error) {
+        console.error('Failed to load chat settings:', error);
+      }
+    };
+    loadChatSettings();
   }, [chatId]);
 
   useEffect(() => {
@@ -194,10 +219,20 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       });
     };
 
+    const handlePinUpdated = ({ chat: updatedChat }: { chat: any }) => {
+      if (updatedChat.id === chatId) {
+        useChatStore.setState((state) => ({
+          currentChat: state.currentChat ? { ...state.currentChat, pinnedMessageId: updatedChat.pinnedMessageId, pinnedMessage: updatedChat.pinnedMessage } : null,
+        }));
+      }
+    };
+
     socketService.on('user:typing', handleUserTyping);
+    socketService.on('chat:pin-updated', handlePinUpdated);
 
     return () => {
       socketService.off('user:typing', handleUserTyping);
+      socketService.off('chat:pin-updated', handlePinUpdated);
       // Очищаем список печатающих при размонтировании
       setTypingUsers(new Map());
     };
@@ -333,6 +368,38 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
     setContextMenu(null);
   };
 
+  const handlePinMessage = async (messageId: string) => {
+    try {
+      await chatApi.pinMessage(chatId, messageId);
+      toast.success('Сообщение закреплено');
+    } catch (error) {
+      console.error('Failed to pin message:', error);
+      toast.error('Не удалось закрепить сообщение');
+    }
+    setContextMenu(null);
+  };
+
+  const handleUnpinMessage = async () => {
+    try {
+      await chatApi.unpinMessage(chatId);
+      toast.success('Сообщение откреплено');
+    } catch (error) {
+      console.error('Failed to unpin message:', error);
+      toast.error('Не удалось открепить сообщение');
+    }
+  };
+
+  const handleUpdateNotificationLevel = async (level: NotificationLevel) => {
+    try {
+      await chatSettingsApi.updateNotificationLevel(chatId, level);
+      setChatSettings((prev) => ({ ...prev, notificationLevel: level, isMuted: level === 'MUTED' }));
+      toast.success('Настройки уведомлений обновлены');
+    } catch (error) {
+      console.error('Failed to update notification level:', error);
+      toast.error('Не удалось обновить настройки уведомлений');
+    }
+  };
+
   const handleVoiceSend = async (audioBlob: Blob) => {
     try {
       // Convert Blob to File for sendMessage
@@ -395,6 +462,15 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
           </div>
           
           <div className="flex items-center gap-1">
+            {currentChat?.pinnedMessageId && (
+              <button
+                onClick={handleUnpinMessage}
+                className="p-2 hover:bg-white/10 rounded-full transition"
+                title="Открепить сообщение"
+              >
+                <PinOff className="w-5 h-5 text-white" />
+              </button>
+            )}
             <button
               onClick={() => setShowSearch(true)}
               className="p-2 hover:bg-white/10 rounded-full transition"
@@ -416,12 +492,23 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             >
               <Video className="w-5 h-5 text-white" />
             </button>
-            <button className="p-2 hover:bg-white/10 rounded-full transition">
-              <MoreVertical className="w-5 h-5 text-white" />
+            <button 
+              onClick={() => setShowChatSettings(true)}
+              className="p-2 hover:bg-white/10 rounded-full transition"
+              title="Настройки чата"
+            >
+              <Settings className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
       </div>
+
+      {currentChat?.pinnedMessage && (
+        <PinnedMessageBanner 
+          message={currentChat.pinnedMessage} 
+          onUnpin={isAdmin ? handleUnpinMessage : undefined}
+        />
+      )}
 
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1 bg-[#efeae2] dark:bg-[#0b141a] scrollbar-thin" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'grid\' width=\'100\' height=\'100\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M 100 0 L 0 0 0 100\' fill=\'none\' stroke=\'%23e5ddd5\' stroke-width=\'1\' opacity=\'0.3\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'100\' height=\'100\' fill=\'url(%23grid)\'/%3E%3C/svg%3E")' }}>
         {messages.map((message) => {
@@ -780,43 +867,63 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
               return (
                 <>
-                  <button
-                    onClick={() => handleCopyMessage(message)}
-                    className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Копировать
-                  </button>
-                  <button
-                    onClick={() => handleForwardMessage(message.id)}
-                    className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
-                  >
-                    <Forward className="w-4 h-4" />
-                    Переслать
-                  </button>
-                  {isOwn && (
-                    <>
+                    <button
+                      onClick={() => handleCopyMessage(message)}
+                      className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Копировать
+                    </button>
+                    <button
+                      onClick={() => handleForwardMessage(message.id)}
+                      className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
+                    >
+                      <Forward className="w-4 h-4" />
+                      Переслать
+                    </button>
+                    {isAdmin && (
                       <button
-                        onClick={() => handleEditMessage(message)}
+                        onClick={() => handlePinMessage(message.id)}
                         className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
                       >
-                        <Edit className="w-4 h-4" />
-                        Редактировать
+                        <Pin className="w-4 h-4" />
+                        Закрепить
                       </button>
-                      <button
-                        onClick={() => handleDeleteMessage(message.id)}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Удалить
-                      </button>
-                    </>
-                  )}
-                </>
+                    )}
+                    {isOwn && (
+                      <>
+                        <button
+                          onClick={() => handleEditMessage(message)}
+                          className="w-full px-4 py-2 text-left text-sm text-[#111b21] dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#2a3942] flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Удалить
+                        </button>
+                      </>
+                    )}
+                  </>
               );
             })()}
           </div>
         </>
+      )}
+
+      {showChatSettings && (
+        <ChatSettingsDrawer
+          chatId={chatId}
+          chatName={chatName}
+          notificationLevel={chatSettings?.notificationLevel || 'ALL'}
+          isMuted={chatSettings?.isMuted || false}
+          onUpdateNotificationLevel={handleUpdateNotificationLevel}
+          onClose={() => setShowChatSettings(false)}
+        />
       )}
     </div>
   );
