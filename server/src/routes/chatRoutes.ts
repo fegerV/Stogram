@@ -7,6 +7,8 @@ import {
   deleteChat,
   addMember,
   removeMember,
+  pinMessage,
+  unpinMessage,
 } from '../controllers/chatController';
 import { authenticate } from '../middleware/auth';
 
@@ -21,5 +23,7 @@ router.patch('/:chatId', updateChat);
 router.delete('/:chatId', deleteChat);
 router.post('/:chatId/members', addMember);
 router.delete('/:chatId/members/:memberId', removeMember);
+router.patch('/:chatId/pin', pinMessage);
+router.delete('/:chatId/pin', unpinMessage);
 
 export default router;

@@ -332,6 +332,130 @@ export const initSocketHandlers = (io: Server) => {
       }
     });
 
+    socket.on('chat:pin-message', async ({ chatId, messageId }) => {
+      try {
+        const isMember = await prisma.chatMember.findFirst({
+          where: {
+            chatId,
+            userId,
+            role: { in: ['OWNER', 'ADMIN'] },
+          },
+        });
+
+        if (!isMember) {
+          return socket.emit('error', { message: 'Only owners and admins can pin messages' });
+        }
+
+        const message = await prisma.message.findUnique({
+          where: { id: messageId },
+        });
+
+        if (!message || message.chatId !== chatId) {
+          return socket.emit('error', { message: 'Message not found' });
+        }
+
+        const chat = await prisma.chat.update({
+          where: { id: chatId },
+          data: { pinnedMessageId: messageId },
+          include: {
+            pinnedMessage: {
+              include: {
+                sender: {
+                  select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        io.to(`chat:${chatId}`).emit('chat:pin-updated', { chat });
+      } catch (error) {
+        console.error('Pin message socket error:', error);
+        socket.emit('error', { message: 'Failed to pin message' });
+      }
+    });
+
+    socket.on('chat:unpin-message', async ({ chatId }) => {
+      try {
+        const isMember = await prisma.chatMember.findFirst({
+          where: {
+            chatId,
+            userId,
+            role: { in: ['OWNER', 'ADMIN'] },
+          },
+        });
+
+        if (!isMember) {
+          return socket.emit('error', { message: 'Only owners and admins can unpin messages' });
+        }
+
+        const chat = await prisma.chat.update({
+          where: { id: chatId },
+          data: { pinnedMessageId: null },
+          include: {
+            pinnedMessage: {
+              include: {
+                sender: {
+                  select: {
+                    id: true,
+                    username: true,
+                    displayName: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        io.to(`chat:${chatId}`).emit('chat:pin-updated', { chat });
+      } catch (error) {
+        console.error('Unpin message socket error:', error);
+        socket.emit('error', { message: 'Failed to unpin message' });
+      }
+    });
+
+    socket.on('chat:update-notifications', async ({ chatId, level }) => {
+      try {
+        const isMember = await prisma.chatMember.findFirst({
+          where: { chatId, userId },
+        });
+
+        if (!isMember) {
+          return socket.emit('error', { message: 'Not a member of this chat' });
+        }
+
+        const settings = await prisma.chatSettings.upsert({
+          where: {
+            userId_chatId: {
+              userId,
+              chatId
+            }
+          },
+          update: {
+            notificationLevel: level,
+            isMuted: level === 'MUTED'
+          },
+          create: {
+            userId,
+            chatId,
+            notificationLevel: level,
+            isMuted: level === 'MUTED'
+          }
+        });
+
+        socket.emit('chat:notification-updated', { settings });
+      } catch (error) {
+        console.error('Update notification socket error:', error);
+        socket.emit('error', { message: 'Failed to update notification settings' });
+      }
+    });
+
     socket.on('disconnect', async () => {
       console.log(`User disconnected: ${userId}`);
       userSockets.delete(userId);

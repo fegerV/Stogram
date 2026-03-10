@@ -25,6 +25,8 @@ export interface Chat {
   type: ChatType;
   avatar: string | null;
   description: string | null;
+  pinnedMessageId?: string | null;
+  pinnedMessage?: Message | null;
   createdAt: string;
   updatedAt: string;
   members: ChatMember[];
@@ -50,6 +52,12 @@ export enum MemberRole {
   OWNER = 'OWNER',
   ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
+}
+
+export enum NotificationLevel {
+  ALL = 'ALL',
+  MENTIONS = 'MENTIONS',
+  MUTED = 'MUTED',
 }
 
 export interface Message {

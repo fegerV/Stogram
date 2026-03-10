@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Edit3, Menu as MenuIcon, Users, Pin } from 'lucide-react';
+import { Search, Edit3, Menu as MenuIcon, Users, Pin, BellOff } from 'lucide-react';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { getChatName, getChatAvatar, formatMessageTime, getInitials, getMediaUrl } from '../utils/helpers';
-import { userApi } from '../services/api';
-import { User } from '../types';
+import { userApi, chatSettingsApi } from '../services/api';
+import { User, NotificationLevel } from '../types';
 import NewChatModal from './NewChatModal';
 import SideDrawer from './SideDrawer';
 import { LazyUserSettings } from './LazyComponents';
@@ -32,6 +32,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [chatSettings, setChatSettings] = useState<Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel }>>(new Map());
 
   /** Apply search + tab filter to chats */
   const filteredChats = useMemo(() => {
@@ -114,6 +115,28 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
     const privateCount = chats.filter((c) => c.type === ChatType.PRIVATE).length;
     const groupCount = chats.filter((c) => c.type === ChatType.GROUP || c.type === ChatType.CHANNEL).length;
     return { all, private: privateCount, groups: groupCount, bots: 0 };
+  }, [chats]);
+
+  /** Load chat settings for all chats */
+  useEffect(() => {
+    const loadChatSettings = async () => {
+      const settingsMap = new Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel }>();
+      
+      for (const chat of chats) {
+        try {
+          const response = await chatSettingsApi.get(chat.id);
+          settingsMap.set(chat.id, response.data.settings);
+        } catch (error) {
+          console.error(`Failed to load settings for chat ${chat.id}:`, error);
+        }
+      }
+      
+      setChatSettings(settingsMap);
+    };
+    
+    if (chats.length > 0) {
+      loadChatSettings();
+    }
   }, [chats]);
 
   const filters: { id: ChatFilter; label: string; count?: number }[] = [
@@ -405,6 +428,16 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                         )}
                         {previewText}
                       </p>
+                      {isMuted && (
+                        <BellOff className={`w-4 h-4 flex-shrink-0 ${
+                          isSelected ? 'text-white/60' : 'text-[#8e8e93] dark:text-[#6c7883]'
+                        }`} />
+                      )}
+                      {chat.pinnedMessageId && !isMuted && (
+                        <Pin className={`w-4 h-4 flex-shrink-0 ${
+                          isSelected ? 'text-white/60' : 'text-[#8e8e93] dark:text-[#6c7883]'
+                        }`} />
+                      )}
                     </div>
                   )}
                 </div>

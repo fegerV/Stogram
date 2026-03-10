@@ -1,6 +1,11 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { z } from 'zod';
+
+const updateNotificationSchema = z.object({
+  level: z.enum(['ALL', 'MENTIONS', 'MUTED']),
+});
 
 export const getChatSettings = async (req: AuthRequest, res: Response) => {
   try {
@@ -42,7 +47,7 @@ export const updateChatSettings = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { chatId } = req.params;
-    const { isMuted, isFavorite, folderId } = req.body;
+    const { isMuted, isFavorite, folderId, notificationLevel } = req.body;
 
     const settings = await prisma.chatSettings.upsert({
       where: {
@@ -54,14 +59,16 @@ export const updateChatSettings = async (req: AuthRequest, res: Response) => {
       update: {
         isMuted: isMuted !== undefined ? isMuted : undefined,
         isFavorite: isFavorite !== undefined ? isFavorite : undefined,
-        folderId: folderId !== undefined ? folderId : undefined
+        folderId: folderId !== undefined ? folderId : undefined,
+        notificationLevel: notificationLevel !== undefined ? notificationLevel : undefined
       },
       create: {
         userId,
         chatId,
         isMuted: isMuted || false,
         isFavorite: isFavorite || false,
-        folderId: folderId || null
+        folderId: folderId || null,
+        notificationLevel: notificationLevel || 'ALL'
       },
       include: {
         folder: true
@@ -88,12 +95,14 @@ export const muteChat = async (req: AuthRequest, res: Response) => {
         }
       },
       update: {
-        isMuted: true
+        isMuted: true,
+        notificationLevel: 'MUTED'
       },
       create: {
         userId,
         chatId,
-        isMuted: true
+        isMuted: true,
+        notificationLevel: 'MUTED'
       }
     });
 
@@ -117,12 +126,14 @@ export const unmuteChat = async (req: AuthRequest, res: Response) => {
         }
       },
       update: {
-        isMuted: false
+        isMuted: false,
+        notificationLevel: 'ALL'
       },
       create: {
         userId,
         chatId,
-        isMuted: false
+        isMuted: false,
+        notificationLevel: 'ALL'
       }
     });
 
@@ -130,6 +141,41 @@ export const unmuteChat = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Unmute chat error:', error);
     res.status(500).json({ error: 'Failed to unmute chat' });
+  }
+};
+
+export const updateNotificationLevel = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { chatId } = req.params;
+    const { level } = updateNotificationSchema.parse(req.body);
+
+    const settings = await prisma.chatSettings.upsert({
+      where: {
+        userId_chatId: {
+          userId,
+          chatId
+        }
+      },
+      update: {
+        notificationLevel: level,
+        isMuted: level === 'MUTED'
+      },
+      create: {
+        userId,
+        chatId,
+        notificationLevel: level,
+        isMuted: level === 'MUTED'
+      }
+    });
+
+    res.json({ settings, message: 'Notification level updated successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Update notification level error:', error);
+    res.status(500).json({ error: 'Failed to update notification level' });
   }
 };
 

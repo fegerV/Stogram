@@ -5,6 +5,7 @@ import {
   updateChatSettings,
   muteChat,
   unmuteChat,
+  updateNotificationLevel,
   toggleFavorite,
   updateUnreadCount,
   resetUnreadCount,
@@ -19,6 +20,7 @@ router.get('/:chatId', auth, getChatSettings);
 router.put('/:chatId', auth, updateChatSettings);
 router.post('/:chatId/mute', auth, muteChat);
 router.post('/:chatId/unmute', auth, unmuteChat);
+router.patch('/:chatId/notifications', auth, updateNotificationLevel);
 router.post('/:chatId/favorite', auth, toggleFavorite);
 router.put('/:chatId/unread', auth, updateUnreadCount);
 router.post('/:chatId/unread/reset', auth, resetUnreadCount);

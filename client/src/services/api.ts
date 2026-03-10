@@ -78,6 +78,23 @@ export const chatApi = {
     api.post(`/chats/${chatId}/members`, { userId }),
   removeMember: (chatId: string, memberId: string) =>
     api.delete(`/chats/${chatId}/members/${memberId}`),
+  pinMessage: (chatId: string, messageId: string) =>
+    api.patch(`/chats/${chatId}/pin`, { messageId }),
+  unpinMessage: (chatId: string) =>
+    api.delete(`/chats/${chatId}/pin`),
+};
+
+export const chatSettingsApi = {
+  get: (chatId: string) => api.get(`/chat-settings/${chatId}`),
+  update: (chatId: string, data: { isMuted?: boolean; isFavorite?: boolean; notificationLevel?: string; folderId?: string }) =>
+    api.put(`/chat-settings/${chatId}`, data),
+  mute: (chatId: string) => api.post(`/chat-settings/${chatId}/mute`),
+  unmute: (chatId: string) => api.post(`/chat-settings/${chatId}/unmute`),
+  updateNotificationLevel: (chatId: string, level: 'ALL' | 'MENTIONS' | 'MUTED') =>
+    api.patch(`/chat-settings/${chatId}/notifications`, { level }),
+  archive: (chatId: string) => api.post(`/chat-settings/${chatId}/archive`),
+  unarchive: (chatId: string) => api.post(`/chat-settings/${chatId}/unarchive`),
+  toggleFavorite: (chatId: string) => api.post(`/chat-settings/${chatId}/favorite`),
 };
 
 export const messageApi = {
