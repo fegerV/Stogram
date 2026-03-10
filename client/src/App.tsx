@@ -16,6 +16,8 @@ const ChatPage = lazy(() => import('./pages/ChatPage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({ default: module.VerifyEmailPage })));
 const TelegramSettingsPage = lazy(() => import('./pages/TelegramSettingsPage').then(module => ({ default: module.TelegramSettingsPage })));
 const TelegramMiniApp = lazy(() => import('./pages/TelegramMiniApp').then(module => ({ default: module.TelegramMiniApp })));
+const N8nSettings = lazy(() => import('./pages/N8nSettings').then(module => ({ default: module.default })));
+const BotSettings = lazy(() => import('./pages/BotSettings').then(module => ({ default: module.default })));
 const PerformanceWidget = lazy(() => import('./components/PerformanceWidget').then(module => ({ default: module.PerformanceWidget })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
 const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET === 'true';
@@ -158,6 +160,22 @@ function App() {
               element={
                 <ErrorBoundary>
                   {isAuthenticated ? <AnalyticsDashboard /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/n8n"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <N8nSettings /> : <Navigate to="/login" />}
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/bot"
+              element={
+                <ErrorBoundary>
+                  {isAuthenticated ? <BotSettings /> : <Navigate to="/login" />}
                 </ErrorBoundary>
               }
             />

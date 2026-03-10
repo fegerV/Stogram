@@ -131,4 +131,30 @@ export const reactionApi = {
     api.get(`/messages/${messageId}/reactions`),
 };
 
+export const n8nApi = {
+  getConfig: () => api.get('/n8n/config'),
+  saveConfig: (data: any) => api.post('/n8n/config', data),
+  getWebhooks: () => api.get('/n8n/webhooks'),
+  createWebhook: (data: any) => api.post('/n8n/webhooks', data),
+  updateWebhook: (id: string, data: any) => api.put(`/n8n/webhooks/${id}`, data),
+  deleteWebhook: (id: string) => api.delete(`/n8n/webhooks/${id}`),
+  testWebhook: (data: any) => api.post('/n8n/test', data),
+  getWorkflows: () => api.get('/n8n/workflows'),
+  triggerWorkflow: (workflowId: string, data?: any) => api.post(`/n8n/trigger/${workflowId}`, data),
+};
+
+export const telegramBotApi = {
+  getConfig: () => api.get('/telegram-bot/config'),
+  saveConfig: (data: any) => api.post('/telegram-bot/config', data),
+  getStats: () => api.get('/telegram-bot/stats'),
+  sendMessage: (data: { telegramUserId: string; content: string }) => 
+    api.post('/telegram-bot/send', data),
+  broadcast: (message: string) => api.post('/telegram-bot/broadcast', { message }),
+  getUsers: () => api.get('/telegram-bot/users'),
+  authorizeUser: (data: { telegramId: string; stogramUserId: string }) => 
+    api.post('/telegram-bot/authorize', data),
+  testConnection: (botToken: string) => 
+    api.post('/telegram-bot/test-connection', { botToken }),
+};
+
 export default api;
