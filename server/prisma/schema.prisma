@@ -706,3 +706,88 @@ enum NotificationLevel {
   MENTIONS
   MUTED
 }
+
+// n8n Integration Models
+
+model N8nConfig {
+  id              String   @id @default(cuid())
+  webhookUrl      String?
+  apiKey          String?
+  enabled         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model N8nWebhook {
+  id              String   @id @default(cuid())
+  name            String
+  webhookUrl      String
+  events          String   // JSON array
+  enabled         Boolean  @default(true)
+  secret          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model N8nWebhookLog {
+  id          String   @id @default(cuid())
+  webhookId   String
+  event       String
+  payload     String
+  status      Int
+  response    String?
+  attempts    Int      @default(0)
+  deliveredAt DateTime @default(now())
+
+  @@index([webhookId])
+  @@index([event])
+  @@index([deliveredAt])
+}
+
+// Telegram Bot Models
+
+model TelegramBotConfig {
+  id              String   @id @default(cuid())
+  botToken        String
+  botUsername      String?
+  webhookUrl      String?
+  commands        String   // JSON
+  notifications   Boolean  @default(true)
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model TelegramBotUser {
+  id              String   @id @default(cuid())
+  telegramId      String   @unique
+  stogramUserId   String?
+  username        String?
+  firstName       String?
+  lastName        String?
+  isAuthorized    Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([stogramUserId])
+}
+
+model TelegramBotMessage {
+  id              String   @id @default(cuid())
+  telegramBotId   String
+  telegramChatId  String
+  telegramUserId  String
+  messageId       Int
+  stogramMessageId String?
+  direction      String   // 'incoming' | 'outgoing'
+  content         String?
+  createdAt       DateTime @default(now())
+
+  @@index([telegramBotId])
+  @@index([telegramChatId])
+  @@index([telegramUserId])
+}

@@ -14,8 +14,8 @@ import botRoutes from './bot';
 import webhookRoutes from './webhook';
 import securityRoutes from './security';
 import analyticsRoutes from './analytics';
-// import n8nRoutes from './n8n';
-// import telegramRoutes from './telegram';
+import n8nRoutes from './n8n';
+import telegramBotRoutes from './telegramBot';
 
 const router = Router();
 
@@ -33,8 +33,8 @@ router.use('/bots', botRoutes);
 router.use('/webhooks', webhookRoutes);
 router.use('/security', securityRoutes);
 router.use('/analytics', analyticsRoutes);
-// router.use('/n8n', n8nRoutes);
-// router.use('/telegram', telegramRoutes);
+router.use('/n8n', n8nRoutes);
+router.use('/telegram-bot', telegramBotRoutes);
 router.use('/', reactionRoutes);
 
 export default router;

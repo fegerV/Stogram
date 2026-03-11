@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
+import n8nService from '../services/n8nService';
 
 const createChatSchema = z.object({
   type: z.enum(['PRIVATE', 'GROUP', 'CHANNEL']),
@@ -73,6 +74,16 @@ export const createChat = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    // Send n8n webhook event (async, don't wait)
+    n8nService.deliverWebhookEvent('new_chat', {
+      chatId: chat.id,
+      type: chat.type,
+      name: chat.name,
+      createdBy: userId,
+      memberIds: [userId, ...memberIds],
+      timestamp: chat.createdAt.toISOString(),
+    }).catch(console.error);
 
     res.status(201).json(chat);
   } catch (error) {

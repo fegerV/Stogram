@@ -10,6 +10,7 @@ import { extractMentions, extractHashtags, extractUrls } from '../utils/textPars
 import { fetchLinkPreview } from '../utils/linkPreview';
 import { basicUserSelect } from '../utils/userSelect';
 import { io } from '../index';
+import n8nService from '../services/n8nService';
 
 const sendMessageSchema = z.object({
   content: z.string().optional(),
@@ -269,6 +270,16 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Send n8n webhook event (async, don't wait)
+    n8nService.deliverWebhookEvent('new_message', {
+      messageId: message.id,
+      chatId,
+      senderId: userId,
+      content: data.content,
+      type: messageType,
+      timestamp: message.createdAt.toISOString(),
+    }).catch(console.error);
+
     res.status(201).json(message);
   } catch (error) {
     handleControllerError(error, res, 'Failed to send message');
@@ -446,6 +457,15 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
     // Emit update
     io.to(`chat:${message.chatId}`).emit('message:update', updatedMessage);
 
+    // Send n8n webhook event (async, don't wait)
+    n8nService.deliverWebhookEvent('message_updated', {
+      messageId,
+      chatId: message.chatId,
+      userId,
+      newContent: content,
+      timestamp: new Date().toISOString(),
+    }).catch(console.error);
+
     res.json(updatedMessage);
   } catch (error) {
     handleControllerError(error, res, 'Failed to edit message');
@@ -476,6 +496,14 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
 
     // Emit deletion
     io.to(`chat:${message.chatId}`).emit('message:delete', { messageId });
+
+    // Send n8n webhook event (async, don't wait)
+    n8nService.deliverWebhookEvent('message_deleted', {
+      messageId,
+      chatId: message.chatId,
+      userId,
+      timestamp: new Date().toISOString(),
+    }).catch(console.error);
 
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {
