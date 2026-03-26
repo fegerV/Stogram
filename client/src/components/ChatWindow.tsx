@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
 import { socketService } from '../services/socket';
-import { getChatName, formatMessageTime, getInitials, getMediaUrl } from '../utils/helpers';
+import { getChatAvatar, getChatName, formatMessageTime, getInitials, getMediaUrl } from '../utils/helpers';
 import CallModal from './CallModal';
 import IncomingCallModal from './IncomingCallModal';
 import { EmojiInput } from './EmojiInput';
@@ -20,6 +20,8 @@ import { Call, ChatType, Message, MessageType, NotificationLevel } from '../type
 import { messageApi, chatApi, chatSettingsApi } from '../services/api';
 import ChatSettingsDrawer from './ChatSettingsDrawer';
 import PinnedMessageBanner from './PinnedMessageBanner';
+import ChatProfileDrawer from './ChatProfileDrawer';
+import { monitoredApi } from '../utils/monitoredApi';
 
 const PENDING_CALL_REQUEST_KEY = 'stogram-pending-call-request';
 
@@ -29,6 +31,12 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
+  interface FolderOption {
+    id: string;
+    name: string;
+    color?: string;
+  }
+
   const { currentChat, messages, selectChat, sendMessage, markMessageAsRead, deleteMessage: deleteMessageFromStore } = useChatStore();
   const { user } = useAuthStore();
   const [messageInput, setMessageInput] = useState('');
@@ -47,7 +55,9 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const [selfDestructSeconds, setSelfDestructSeconds] = useState<number | null>(null);
   const [showSelfDestructOptions, setShowSelfDestructOptions] = useState(false);
   const [showChatSettings, setShowChatSettings] = useState(false);
-  const [chatSettings, setChatSettings] = useState<{ isMuted?: boolean; notificationLevel?: NotificationLevel } | null>(null);
+  const [showChatProfile, setShowChatProfile] = useState(false);
+  const [chatSettings, setChatSettings] = useState<{ isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null } | null>(null);
+  const [folders, setFolders] = useState<FolderOption[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const selfDestructButtonRef = useRef<HTMLButtonElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -76,6 +86,19 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
     };
     loadChatSettings();
   }, [chatId]);
+
+  useEffect(() => {
+    const loadFolders = async () => {
+      try {
+        const response = await monitoredApi.get('/folders');
+        setFolders(response.data.folders || []);
+      } catch (error) {
+        console.error('Failed to load folders for chat settings:', error);
+      }
+    };
+
+    loadFolders();
+  }, []);
 
   useEffect(() => {
     // Обработка новых сообщений
@@ -442,6 +465,25 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
     }
   };
 
+  const handleUpdateFolder = async (folderId: string | null) => {
+    try {
+      await chatSettingsApi.update(chatId, { folderId: folderId ?? undefined });
+      setChatSettings((prev) => ({ ...prev, folderId }));
+      window.dispatchEvent(
+        new CustomEvent('chat-settings-updated', {
+          detail: {
+            chatId,
+            settings: { ...(chatSettings || {}), folderId },
+          },
+        }),
+      );
+      toast.success(folderId ? 'Чат добавлен в папку' : 'Чат убран из папки');
+    } catch (error) {
+      console.error('Failed to update chat folder:', error);
+      toast.error('Не удалось обновить папку чата');
+    }
+  };
+
   const handleVoiceSend = async (audioBlob: Blob) => {
     try {
       // Convert Blob to File for sendMessage
@@ -479,11 +521,19 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   }
 
   const chatName = getChatName(currentChat, user?.id || '');
+  const chatAvatar = getChatAvatar(currentChat, user?.id || '') || null;
   const canStartCall = currentChat?.type === ChatType.PRIVATE;
+  const chatSubtitle =
+    currentChat.type === ChatType.PRIVATE
+      ? 'личный чат'
+      : currentChat.type === ChatType.GROUP
+        ? `${currentChat.members.length} участников`
+        : 'канал';
 
   return (
-    <div className="flex flex-col h-full bg-[#efeae2] dark:bg-[#0b141a]">
-      <div className="px-2 md:px-4 py-3 border-b border-gray-200 dark:border-[#202c33] bg-[#008069] dark:bg-[#202c33] text-white shadow-sm">
+    <div className="flex h-full bg-[#0e1621]">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#0f1822]">
+      <div className="border-b border-[#21303d] bg-[#18232e] px-3 py-3 text-white shadow-sm dark:border-[#202c33] dark:bg-[#202c33] md:px-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-3 min-w-0">
             {onBack && (
@@ -495,16 +545,26 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                 <ArrowLeft className="w-5 h-5 text-white" />
               </button>
             )}
-            <div className="w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
-              {getInitials(chatName)}
-            </div>
-            <div>
-              <h2 className="font-medium text-white text-[16px]">{chatName}</h2>
-              <p className="text-xs text-white/70">Online</p>
-            </div>
+            <button
+              onClick={() => setShowChatProfile(true)}
+              className="flex min-w-0 items-center gap-2 md:gap-3 rounded-2xl px-1 py-1 text-left transition hover:bg-white/10"
+              title="Открыть профиль"
+            >
+              {chatAvatar ? (
+                <img src={chatAvatar} alt={chatName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                  {getInitials(chatName)}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h2 className="truncate font-medium text-white text-[16px]">{chatName}</h2>
+                <p className="truncate text-xs text-white/60">{chatSubtitle}</p>
+              </div>
+            </button>
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 rounded-2xl bg-white/5 px-1 py-1">
             {currentChat?.pinnedMessageId && (
               <button
                 onClick={handleUnpinMessage}
@@ -555,7 +615,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1 bg-[#efeae2] dark:bg-[#0b141a] scrollbar-thin" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'grid\' width=\'100\' height=\'100\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M 100 0 L 0 0 0 100\' fill=\'none\' stroke=\'%23e5ddd5\' stroke-width=\'1\' opacity=\'0.3\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'100\' height=\'100\' fill=\'url(%23grid)\'/%3E%3C/svg%3E")' }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#0f1822] scrollbar-thin md:px-7" style={{ backgroundImage: 'radial-gradient(circle at center, rgba(108,130,147,0.16) 1px, transparent 1px)', backgroundSize: '36px 36px' }}>
         {messages.map((message) => {
           const isOwn = message.senderId === user?.id;
           const fileUrl = getMediaUrl(message.fileUrl);
@@ -587,7 +647,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
               onContextMenu={(e) => handleMessageContextMenu(e, message.id)}
             >
               <div
-                className={`max-w-[65%] lg:max-w-[50%] px-2 py-1.5 ${
+                className={`max-w-[70%] xl:max-w-[56%] px-3 py-2 ${
                   isOwn
                     ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-lg rounded-tr-none'
                     : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-lg rounded-tl-none shadow-sm'
@@ -716,7 +776,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                 {/* Превью ссылки */}
                 {message.linkPreview && typeof message.linkPreview === 'object' && (
                   <div className="mt-2">
-                    <LinkPreview preview={message.linkPreview} />
+                    <LinkPreview preview={message.linkPreview} messageId={message.id} />
                   </div>
                 )}
                 
@@ -840,6 +900,22 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
           </button>
         </div>
       </form>
+      </div>
+
+      {showChatProfile && (
+        <div className="hidden xl:block xl:w-[380px] xl:shrink-0">
+          <ChatProfileDrawer
+            chat={currentChat}
+            currentUserId={user?.id || ''}
+            variant="docked"
+            onClose={() => setShowChatProfile(false)}
+            onStartCall={(type) => {
+              setShowChatProfile(false);
+              handleStartCall(type);
+            }}
+          />
+        </div>
+      )}
 
       {incomingCall && (
         <IncomingCallModal
@@ -963,9 +1039,27 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
           chatName={chatName}
           notificationLevel={chatSettings?.notificationLevel ?? NotificationLevel.ALL}
           isMuted={chatSettings?.isMuted || false}
+          folders={folders}
+          selectedFolderId={chatSettings?.folderId ?? null}
           onUpdateNotificationLevel={handleUpdateNotificationLevel}
+          onUpdateFolder={handleUpdateFolder}
           onClose={() => setShowChatSettings(false)}
         />
+      )}
+
+      {showChatProfile && (
+        <div className="xl:hidden">
+          <ChatProfileDrawer
+            chat={currentChat}
+            currentUserId={user?.id || ''}
+            variant="overlay"
+            onClose={() => setShowChatProfile(false)}
+            onStartCall={(type) => {
+              setShowChatProfile(false);
+              handleStartCall(type);
+            }}
+          />
+        </div>
       )}
     </div>
   );

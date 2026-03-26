@@ -366,6 +366,10 @@ model Bot {
   isInline         Boolean             @default(false)
   ownerId          String
   webhookUrl       String?
+  apiWebhookSecret String?
+  apiAllowedUpdates Json?
+  menuButton       Json?
+  lastUpdateId     Int                 @default(0)
   messagesSent     Int                 @default(0)
   messagesReceived Int                 @default(0)
   uniqueUsers      Int                 @default(0)
@@ -374,6 +378,7 @@ model Bot {
   analytics        BotAnalytics[]
   commands         BotCommand[]
   inlineKeyboards  BotInlineKeyboard[]
+  apiUpdates       BotApiUpdate[]
   webhooks         Webhook[]
 
   @@index([token])
@@ -577,11 +582,27 @@ model BotInlineQuery {
   query     String
   offset    String?
   answered  Boolean  @default(false)
+  results   Json?
   createdAt DateTime @default(now())
 
   @@index([botId])
   @@index([userId])
   @@index([answered])
+}
+
+model BotApiUpdate {
+  id         String   @id @default(uuid())
+  botId       String
+  updateId    Int
+  updateType  String
+  payload     Json
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, updateId])
+  @@index([botId, consumedAt])
+  @@index([createdAt])
 }
 
 model BotAnalytics {

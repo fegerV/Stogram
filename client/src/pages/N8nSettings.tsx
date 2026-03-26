@@ -25,12 +25,15 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   
   const [config, setConfig] = useState({
     webhookUrl: '',
-    apiKey: '',
     enabled: false,
   });
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [hasSavedApiKey, setHasSavedApiKey] = useState(false);
+  const [apiKeyDirty, setApiKeyDirty] = useState(false);
   
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,13 +53,19 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
     try {
       const response = await n8nApi.getConfig();
       const data = response.data;
+      setAccessDenied(false);
       setConfig({
         webhookUrl: data.webhookUrl || '',
-        apiKey: data.apiKey || '',
         enabled: data.enabled || false,
       });
+      setApiKeyInput('');
+      setApiKeyDirty(false);
+      setHasSavedApiKey(Boolean(data.hasApiKey || data.apiKey));
     } catch (error) {
       console.error('Failed to load config:', error);
+      if ((error as any)?.response?.status === 403) {
+        setAccessDenied(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,14 +78,27 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
       setWebhooks(data.webhooks || []);
     } catch (error) {
       console.error('Failed to load webhooks:', error);
+      if ((error as any)?.response?.status === 403) {
+        setAccessDenied(true);
+      }
     }
   };
 
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
-      await n8nApi.saveConfig(config);
+      const nextApiKey = apiKeyInput.trim();
+      await n8nApi.saveConfig({
+        ...config,
+        ...(apiKeyDirty && nextApiKey ? { apiKey: nextApiKey } : {}),
+      });
+      if (apiKeyDirty && nextApiKey) {
+        setHasSavedApiKey(true);
+      }
+      setApiKeyInput('');
+      setApiKeyDirty(false);
       toast.success('Settings saved successfully');
+      await loadConfig();
     } catch (error) {
       console.error('Failed to save config:', error);
       toast.error('Failed to save settings');
@@ -93,7 +115,10 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
     
     setTesting(true);
     try {
-      const response = await n8nApi.testWebhook({ webhookUrl: config.webhookUrl, secret: newWebhook.secret });
+      const response = await n8nApi.testWebhook({
+        webhookUrl: config.webhookUrl,
+        apiKey: apiKeyInput.trim() || undefined,
+      });
       const data = response.data;
       if (data.success) {
         toast.success('Test webhook sent successfully!');
@@ -158,6 +183,21 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
+        <div className={`${embedded ? '' : 'max-w-4xl mx-auto'} bg-white dark:bg-gray-800 rounded-lg shadow p-6`}>
+          <h1 className={`font-bold text-gray-900 dark:text-white mb-2 ${embedded ? 'text-xl' : 'text-2xl'}`}>
+            n8n Integration Settings
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            This section is available only to administrators. Add your user to `ADMIN_USER_IDS` on the server to manage the n8n integration.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
       <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
@@ -191,11 +231,19 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
               </label>
               <input
                 type="password"
-                value={config.apiKey}
-                onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                placeholder="Enter your n8n API key"
+                value={apiKeyInput}
+                onChange={(e) => {
+                  setApiKeyInput(e.target.value);
+                  setApiKeyDirty(true);
+                }}
+                placeholder={hasSavedApiKey ? 'Saved API key is configured. Enter a new key only to replace it' : 'Enter your n8n API key'}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {hasSavedApiKey
+                  ? 'An API key is already saved. Leave this field empty to keep it, or paste a new key to replace it.'
+                  : 'Optional Bearer token for authenticated n8n webhook calls.'}
+              </p>
             </div>
             
             <div className="flex items-center">

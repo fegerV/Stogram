@@ -9,6 +9,7 @@ export const getBotConfig = async (req: Request, res: Response) => {
     if (!config) {
       return res.json({
         botToken: '',
+        hasBotToken: false,
         botUsername: null,
         webhookUrl: null,
         commands: [],
@@ -19,6 +20,7 @@ export const getBotConfig = async (req: Request, res: Response) => {
 
     res.json({
       botToken: config.botToken ? '***' + config.botToken.slice(-4) : '',
+      hasBotToken: Boolean(config.botToken),
       botUsername: config.botUsername,
       webhookUrl: config.webhookUrl,
       commands: config.commands ? JSON.parse(config.commands) : [],
@@ -173,14 +175,18 @@ export const setBotCommands = async (req: Request, res: Response) => {
 export const testBotConnection = async (req: Request, res: Response) => {
   try {
     const { botToken } = req.body;
+    const savedConfig = await telegramBotService.getConfig();
+    const tokenToTest = typeof botToken === 'string' && botToken.trim()
+      ? botToken.trim()
+      : savedConfig?.botToken;
 
-    if (!botToken) {
+    if (!tokenToTest) {
       return res.status(400).json({ error: 'Bot token is required' });
     }
 
     // Try to get bot info using the token
     const TelegramBot = require('node-telegram-bot-api');
-    const testBot = new TelegramBot(botToken, { polling: false });
+    const testBot = new TelegramBot(tokenToTest, { polling: false });
     
     const botInfo = await testBot.getMe();
     

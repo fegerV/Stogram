@@ -89,9 +89,10 @@ export default function ChatPage() {
         console.error('ChatPage error:', error, errorInfo);
       }}
     >
-      <div className="flex h-screen bg-white dark:bg-[#0b141a]">
+      <div className="h-screen bg-[#0b141a] md:bg-[#1a2430] md:p-4">
+        <div className="flex h-full overflow-hidden bg-white dark:bg-[#0b141a] md:rounded-[22px] md:border md:border-[#22303b] md:shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
         {/* ChatList: visible on mobile when no chat selected, always visible on desktop */}
-        <div className={`w-full md:w-[420px] lg:w-[440px] border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] flex-shrink-0 ${selectedChatId ? 'hidden md:block' : 'block'}`}>
+        <div className={`w-full md:w-[500px] xl:w-[540px] border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] flex-shrink-0 ${selectedChatId ? 'hidden md:block' : 'block'}`}>
           <ErrorBoundary>
             <ChatList 
               onSelectChat={(chatId) => {
@@ -104,7 +105,7 @@ export default function ChatPage() {
         </div>
         
         {/* ChatWindow: visible on mobile when chat selected, always visible on desktop */}
-        <div className={`flex-1 ${selectedChatId ? 'block' : 'hidden md:block'}`}>
+        <div className={`min-w-0 flex-1 ${selectedChatId ? 'block' : 'hidden md:block'}`}>
           {selectedChatId ? (
             <ErrorBoundary>
               <ChatWindow 
@@ -120,6 +121,7 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
     </ErrorBoundary>

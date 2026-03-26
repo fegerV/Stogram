@@ -25,6 +25,23 @@ export const N8N_EVENTS = {
 };
 
 class N8nService {
+  private resolveSecretValue(incomingValue: string | undefined, existingValue?: string | null) {
+    if (typeof incomingValue !== 'string') {
+      return existingValue ?? undefined;
+    }
+
+    const trimmedValue = incomingValue.trim();
+    if (!trimmedValue) {
+      return existingValue ?? undefined;
+    }
+
+    if (existingValue && trimmedValue === `***${existingValue.slice(-4)}`) {
+      return existingValue;
+    }
+
+    return trimmedValue;
+  }
+
   private getConfig() {
     return prisma.n8nConfig.findFirst();
   }
@@ -136,6 +153,7 @@ class N8nService {
     return {
       webhookUrl: config?.webhookUrl,
       apiKey: config?.apiKey ? '***' + config.apiKey.slice(-4) : null,
+      hasApiKey: Boolean(config?.apiKey),
       enabled: config?.enabled || false,
     };
   }
@@ -143,13 +161,14 @@ class N8nService {
   // Save n8n configuration
   async saveConfigSettings(data: { webhookUrl?: string; apiKey?: string; enabled?: boolean }) {
     const existingConfig = await prisma.n8nConfig.findFirst();
+    const resolvedApiKey = this.resolveSecretValue(data.apiKey, existingConfig?.apiKey);
 
     if (existingConfig) {
       return await prisma.n8nConfig.update({
         where: { id: existingConfig.id },
         data: {
           webhookUrl: data.webhookUrl ?? existingConfig.webhookUrl,
-          apiKey: data.apiKey ?? existingConfig.apiKey,
+          apiKey: resolvedApiKey ?? existingConfig.apiKey,
           enabled: data.enabled ?? existingConfig.enabled,
         },
       });
@@ -157,7 +176,7 @@ class N8nService {
       return await prisma.n8nConfig.create({
         data: {
           webhookUrl: data.webhookUrl || '',
-          apiKey: data.apiKey || '',
+          apiKey: resolvedApiKey || '',
           enabled: data.enabled || false,
         },
       });
@@ -239,7 +258,10 @@ class N8nService {
   }
 
   // Test webhook
-  async testWebhook(webhookUrl: string, secret?: string): Promise<boolean> {
+  async testWebhook(
+    webhookUrl: string,
+    options?: { secret?: string; apiKey?: string }
+  ): Promise<boolean> {
     const testEvent: N8nEvent = {
       type: 'test',
       data: {
@@ -254,10 +276,14 @@ class N8nService {
         'Content-Type': 'application/json',
       };
 
-      if (secret) {
+      if (options?.apiKey) {
+        headers['Authorization'] = `Bearer ${options.apiKey}`;
+      }
+
+      if (options?.secret) {
         const payload = JSON.stringify(testEvent);
         const signature = crypto
-          .createHmac('sha256', secret)
+          .createHmac('sha256', options.secret)
           .update(payload)
           .digest('hex');
         headers['X-Webhook-Signature'] = signature;

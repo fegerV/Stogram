@@ -157,4 +157,11 @@ export const telegramBotApi = {
     api.post('/telegram-bot/test-connection', { botToken }),
 };
 
+export const botEnhancedApi = {
+  createCallbackQuery: (data: { botId: string; messageId: string; callbackData: string }) =>
+    api.post('/bots/enhanced/callback-query', data),
+  createInlineQuery: (data: { botId: string; query: string; offset?: string }) =>
+    api.post('/bots/enhanced/inline-query', data),
+};
+
 export default api;

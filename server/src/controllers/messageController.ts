@@ -11,6 +11,7 @@ import { fetchLinkPreview } from '../utils/linkPreview';
 import { basicUserSelect } from '../utils/userSelect';
 import { io } from '../index';
 import n8nService from '../services/n8nService';
+import internalBotRuntimeService from '../services/internalBotRuntimeService';
 
 const sendMessageSchema = z.object({
   content: z.string().optional(),
@@ -280,6 +281,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       timestamp: message.createdAt.toISOString(),
     }).catch(console.error);
 
+    internalBotRuntimeService.dispatchChatMessageEvent(message.id, 'message.created').catch(console.error);
+
     res.status(201).json(message);
   } catch (error) {
     handleControllerError(error, res, 'Failed to send message');
@@ -466,6 +469,8 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
       timestamp: new Date().toISOString(),
     }).catch(console.error);
 
+    internalBotRuntimeService.dispatchChatMessageEvent(messageId, 'message.updated').catch(console.error);
+
     res.json(updatedMessage);
   } catch (error) {
     handleControllerError(error, res, 'Failed to edit message');
@@ -504,6 +509,8 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
       userId,
       timestamp: new Date().toISOString(),
     }).catch(console.error);
+
+    internalBotRuntimeService.dispatchChatMessageEvent(messageId, 'message.deleted').catch(console.error);
 
     res.json({ message: 'Message deleted successfully' });
   } catch (error) {

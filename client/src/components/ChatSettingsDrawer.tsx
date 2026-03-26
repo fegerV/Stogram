@@ -1,12 +1,21 @@
 import { X, Bell, BellRing, BellOff, Volume2, VolumeX } from 'lucide-react';
 import { NotificationLevel } from '../types';
 
+interface FolderOption {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface ChatSettingsDrawerProps {
   chatId: string;
   chatName: string;
   notificationLevel: NotificationLevel;
   isMuted: boolean;
+  folders: FolderOption[];
+  selectedFolderId?: string | null;
   onUpdateNotificationLevel: (level: NotificationLevel) => void;
+  onUpdateFolder: (folderId: string | null) => void;
   onClose: () => void;
 }
 
@@ -19,7 +28,10 @@ const notificationOptions = [
 export default function ChatSettingsDrawer({
   chatName,
   notificationLevel,
+  folders,
+  selectedFolderId,
   onUpdateNotificationLevel,
+  onUpdateFolder,
   onClose,
 }: ChatSettingsDrawerProps) {
   return (
@@ -93,6 +105,40 @@ export default function ChatSettingsDrawer({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-[#202c33]">
+          <h3 className="text-sm font-medium text-[#667781] dark:text-[#8696a0] uppercase tracking-wide mb-4">
+            Папка
+          </h3>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onUpdateFolder(null)}
+              className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
+                !selectedFolderId
+                  ? 'border-[#00a884] bg-[#00a884]/10 text-[#00a884]'
+                  : 'border-gray-200 bg-white text-[#54656f] dark:border-[#2a3942] dark:bg-[#202c33] dark:text-[#8696a0]'
+              }`}
+            >
+              Без папки
+            </button>
+
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                onClick={() => onUpdateFolder(folder.id)}
+                className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
+                  selectedFolderId === folder.id
+                    ? 'text-white border-transparent'
+                    : 'border-gray-200 bg-white text-[#54656f] dark:border-[#2a3942] dark:bg-[#202c33] dark:text-[#8696a0]'
+                }`}
+                style={selectedFolderId === folder.id ? { backgroundColor: folder.color || '#3390ec' } : undefined}
+              >
+                {folder.name}
+              </button>
+            ))}
           </div>
         </div>
 

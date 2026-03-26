@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { handleControllerError, handleNotFound, handleUnauthorized, handleForbidden, handleBadRequest } from '../utils/errorHandlers';
 import { generateBotToken, sendBotMessage as sendBotMessageService, getBotByToken } from '../services/botService';
+import { io } from '../index';
 
 // Создать нового бота
 export const createBot = async (req: AuthRequest, res: Response) => {
@@ -164,10 +165,24 @@ export const deleteBot = async (req: AuthRequest, res: Response) => {
 export const addBotCommand = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
+    const userId = req.userId!;
     const { command, description } = req.body;
 
     if (!command || !description) {
       return res.status(400).json({ error: 'Command and description are required' });
+    }
+
+    const bot = await prisma.bot.findUnique({
+      where: { id: botId },
+      select: { id: true, ownerId: true }
+    });
+
+    if (!bot) {
+      return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    if (bot.ownerId !== userId) {
+      return res.status(403).json({ error: 'You can only manage commands for your own bots' });
     }
 
     const botCommand = await prisma.botCommand.create({
@@ -192,6 +207,24 @@ export const addBotCommand = async (req: AuthRequest, res: Response) => {
 export const deleteBotCommand = async (req: AuthRequest, res: Response) => {
   try {
     const { commandId } = req.params;
+    const userId = req.userId!;
+
+    const command = await prisma.botCommand.findUnique({
+      where: { id: commandId },
+      include: {
+        bot: {
+          select: { ownerId: true }
+        }
+      }
+    });
+
+    if (!command) {
+      return res.status(404).json({ error: 'Bot command not found' });
+    }
+
+    if (command.bot.ownerId !== userId) {
+      return res.status(403).json({ error: 'You can only manage commands for your own bots' });
+    }
 
     await prisma.botCommand.delete({
       where: { id: commandId }
@@ -263,6 +296,8 @@ export const sendBotMessage = async (req: any, res: any) => {
       fileSize,
       thumbnailUrl
     });
+
+    io.to(`chat:${chatId}`).emit('message:new', message);
 
     res.status(201).json(message);
   } catch (error: any) {

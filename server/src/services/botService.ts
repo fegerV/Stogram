@@ -9,6 +9,7 @@ export interface BotMessageOptions {
   fileName?: string;
   fileSize?: number;
   thumbnailUrl?: string;
+  linkPreview?: unknown;
 }
 
 export const generateBotToken = (): string => {
@@ -36,6 +37,7 @@ export const sendBotMessage = async (
   }
 
   const { chatId, content, type = 'TEXT', fileUrl, fileName, fileSize, thumbnailUrl } = options;
+  const { linkPreview } = options;
 
   // Verify the chat exists and bot owner is a member
   const chat = await prisma.chat.findFirst({
@@ -63,6 +65,7 @@ export const sendBotMessage = async (
       fileName,
       fileSize,
       thumbnailUrl,
+      linkPreview: linkPreview as any,
       isSent: true,
     },
     include: {

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import n8nService from '../services/n8nService';
+import prisma from '../utils/prisma';
 
 // Get n8n configuration
 export const getN8nConfig = async (req: Request, res: Response) => {
@@ -84,13 +85,17 @@ export const deleteWebhook = async (req: Request, res: Response) => {
 // Test webhook
 export const testWebhook = async (req: Request, res: Response) => {
   try {
-    const { webhookUrl, secret } = req.body;
+    const { webhookUrl, secret, apiKey } = req.body;
 
     if (!webhookUrl) {
       return res.status(400).json({ error: 'Webhook URL is required' });
     }
 
-    const success = await n8nService.testWebhook(webhookUrl, secret);
+    const savedConfig = await prisma.n8nConfig.findFirst();
+    const success = await n8nService.testWebhook(webhookUrl, {
+      secret,
+      apiKey: typeof apiKey === 'string' && apiKey.trim() ? apiKey.trim() : savedConfig?.apiKey || undefined,
+    });
     
     if (success) {
       res.json({ success: true, message: 'Test webhook sent successfully' });
@@ -152,6 +157,22 @@ export const n8nWebhook = async (req: Request, res: Response) => {
   try {
     // Handle incoming webhook from n8n
     const { action, data } = req.body;
+    const savedConfig = await prisma.n8nConfig.findFirst();
+    const expectedApiKey = savedConfig?.apiKey?.trim();
+
+    if (expectedApiKey) {
+      const authorizationHeader = req.headers.authorization;
+      const bearerToken = authorizationHeader?.startsWith('Bearer ')
+        ? authorizationHeader.slice('Bearer '.length).trim()
+        : undefined;
+      const headerApiKey = typeof req.headers['x-n8n-api-key'] === 'string'
+        ? req.headers['x-n8n-api-key'].trim()
+        : undefined;
+
+      if (bearerToken !== expectedApiKey && headerApiKey !== expectedApiKey) {
+        return res.status(403).json({ error: 'Invalid n8n webhook credentials' });
+      }
+    }
     
     console.log('Received n8n webhook:', action, data);
     
@@ -161,13 +182,102 @@ export const n8nWebhook = async (req: Request, res: Response) => {
         res.json({ status: 'ok', message: 'pong' });
         break;
       case 'create_chat':
-        // Handle chat creation from n8n
-        // This would need proper user context
-        res.json({ status: 'processed', action: 'create_chat' });
+        if (!data?.userId || !Array.isArray(data.memberIds) || !data.type) {
+          return res.status(400).json({
+            error: 'create_chat requires data.userId, data.type and data.memberIds[]',
+          });
+        }
+
+        if (!['PRIVATE', 'GROUP', 'CHANNEL'].includes(data.type)) {
+          return res.status(400).json({ error: 'Unsupported chat type' });
+        }
+
+        if (data.type === 'GROUP' && !data.name) {
+          return res.status(400).json({ error: 'Group chats require a name' });
+        }
+
+        {
+          const distinctMemberIds = Array.from(
+            new Set(
+              (data.memberIds as string[])
+                .map((memberId) => String(memberId).trim())
+                .filter(Boolean)
+                .filter((memberId) => memberId !== data.userId)
+            )
+          );
+
+          const chat = await prisma.chat.create({
+            data: {
+              name: data.name || null,
+              type: data.type,
+              description: data.description || null,
+              members: {
+                create: [
+                  { userId: data.userId, role: 'OWNER' },
+                  ...distinctMemberIds.map((memberId) => ({ userId: memberId, role: 'MEMBER' as const })),
+                ],
+              },
+            },
+            include: {
+              members: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      displayName: true,
+                      avatar: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          return res.status(201).json({ status: 'processed', action: 'create_chat', chat });
+        }
         break;
       case 'send_message':
-        // Handle message sending from n8n
-        res.json({ status: 'processed', action: 'send_message' });
+        if (!data?.userId || !data?.chatId || !data?.content) {
+          return res.status(400).json({
+            error: 'send_message requires data.userId, data.chatId and data.content',
+          });
+        }
+
+        {
+          const membership = await prisma.chatMember.findFirst({
+            where: {
+              chatId: data.chatId,
+              userId: data.userId,
+            },
+          });
+
+          if (!membership) {
+            return res.status(403).json({ error: 'User is not a member of the target chat' });
+          }
+
+          const message = await prisma.message.create({
+            data: {
+              chatId: data.chatId,
+              senderId: data.userId,
+              content: data.content,
+              type: data.type || 'TEXT',
+              isSent: true,
+            },
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  username: true,
+                  displayName: true,
+                  avatar: true,
+                },
+              },
+            },
+          });
+
+          return res.status(201).json({ status: 'processed', action: 'send_message', message });
+        }
         break;
       default:
         res.json({ status: 'received', action });

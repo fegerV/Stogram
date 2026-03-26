@@ -1,6 +1,24 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { getBotByToken, sendBotMessage as sendBotMessageService } from '../services/botService';
+import internalBotRuntimeService from '../services/internalBotRuntimeService';
+import botApiCompatibilityService from '../services/botApiCompatibilityService';
+import { io } from '../index';
+
+const getBotTokenFromHeaders = (req: AuthRequest) => {
+  const headerValue = req.headers['token'];
+  if (typeof headerValue === 'string' && headerValue.trim()) {
+    return headerValue.trim();
+  }
+
+  const authorization = req.headers.authorization;
+  if (authorization?.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length).trim();
+  }
+
+  return '';
+};
 
 export class BotEnhancedController {
   // Create inline keyboard
@@ -102,6 +120,38 @@ export class BotEnhancedController {
     try {
       const { botId, messageId, callbackData } = req.body;
       const userId = req.userId!;
+      if (!botId || !messageId || !callbackData) {
+        res.status(400).json({ error: 'botId, messageId and callbackData are required' });
+        return;
+      }
+
+      const message = await prisma.message.findUnique({
+        where: { id: messageId },
+        include: {
+          chat: {
+            include: {
+              members: true,
+            },
+          },
+        },
+      });
+
+      if (!message) {
+        res.status(404).json({ error: 'Message not found' });
+        return;
+      }
+
+      const hasAccess = message.chat.members.some((member) => member.userId === userId);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      const messagePreview = message.linkPreview as any;
+      if (messagePreview?.kind === 'bot_keyboard' && messagePreview.botId && messagePreview.botId !== botId) {
+        res.status(400).json({ error: 'Message is linked to another bot' });
+        return;
+      }
 
       // Create callback query record
       const query = await prisma.botCallbackQuery.create({
@@ -113,8 +163,16 @@ export class BotEnhancedController {
         },
       });
 
-      // Notify bot webhook or handler
-      // Implementation depends on bot architecture
+      await internalBotRuntimeService.dispatchToBot(botId, 'callback_query.created', {
+        query: {
+          id: query.id,
+          messageId,
+          callbackData,
+          userId,
+          createdAt: query.createdAt.toISOString(),
+        },
+      });
+      await botApiCompatibilityService.publishCallbackQueryUpdate(botId, query.id);
 
       res.json({ success: true, queryId: query.id });
     } catch (error) {
@@ -128,6 +186,7 @@ export class BotEnhancedController {
     try {
       const { queryId } = req.params;
       const { text } = req.body;
+      const botToken = getBotTokenFromHeaders(req);
 
       // Verify bot ownership
       const query = await prisma.botCallbackQuery.findUnique({
@@ -139,20 +198,8 @@ export class BotEnhancedController {
         return;
       }
 
-      // Get bot to verify token
-      const bot = await prisma.bot.findUnique({
-        where: { id: query.botId },
-        select: { token: true },
-      });
-
-      if (!bot) {
-        res.status(404).json({ error: 'Bot not found' });
-        return;
-      }
-
-      // Verify bot token from header
-      const botToken = req.headers['token'] as string;
-      if (botToken !== bot.token) {
+      const bot = await getBotByToken(botToken);
+      if (!bot || bot.id !== query.botId) {
         res.status(403).json({ error: 'Invalid bot token' });
         return;
       }
@@ -177,6 +224,10 @@ export class BotEnhancedController {
     try {
       const { botId, query, offset } = req.body;
       const userId = req.userId!;
+      if (!botId || !query) {
+        res.status(400).json({ error: 'botId and query are required' });
+        return;
+      }
 
       // Create inline query record
       const inlineQuery = await prisma.botInlineQuery.create({
@@ -188,8 +239,16 @@ export class BotEnhancedController {
         },
       });
 
-      // Notify bot webhook or handler
-      // Return results based on bot's inline handler
+      await internalBotRuntimeService.dispatchToBot(botId, 'inline_query.created', {
+        query: {
+          id: inlineQuery.id,
+          text: query,
+          offset,
+          userId,
+          createdAt: inlineQuery.createdAt.toISOString(),
+        },
+      });
+      await botApiCompatibilityService.publishInlineQueryUpdate(botId, inlineQuery.id);
 
       res.json({ success: true, queryId: inlineQuery.id, results: [] });
     } catch (error) {
@@ -203,8 +262,8 @@ export class BotEnhancedController {
     try {
       const { queryId } = req.params;
       const { results } = req.body;
+      const botToken = getBotTokenFromHeaders(req);
 
-      // Verify bot token
       const query = await prisma.botInlineQuery.findUnique({
         where: { id: queryId },
       });
@@ -214,19 +273,8 @@ export class BotEnhancedController {
         return;
       }
 
-      // Get bot to verify token
-      const bot = await prisma.bot.findUnique({
-        where: { id: query.botId },
-        select: { token: true },
-      });
-
-      if (!bot) {
-        res.status(404).json({ error: 'Bot not found' });
-        return;
-      }
-
-      const botToken = req.headers['token'] as string;
-      if (botToken !== bot.token) {
+      const bot = await getBotByToken(botToken);
+      if (!bot || bot.id !== query.botId) {
         res.status(403).json({ error: 'Invalid bot token' });
         return;
       }
@@ -236,10 +284,7 @@ export class BotEnhancedController {
         data: { answered: true },
       });
 
-      // Send results to user
-      // Implementation depends on messaging system
-
-      res.json({ success: true });
+      res.json({ success: true, results: Array.isArray(results) ? results : [] });
     } catch (error) {
       console.error('Answer inline query error:', error);
       res.status(500).json({ error: 'Failed to answer inline query' });
@@ -250,12 +295,10 @@ export class BotEnhancedController {
   static async sendMessageWithKeyboard(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { chatId, content, keyboardId } = req.body;
-      const botToken = req.headers['token'] as string;
+      const botToken = getBotTokenFromHeaders(req);
 
       // Verify bot token
-      const bot = await prisma.bot.findUnique({
-        where: { token: botToken },
-      });
+      const bot = await getBotByToken(botToken);
 
       if (!bot) {
         res.status(403).json({ error: 'Invalid bot token' });
@@ -272,12 +315,32 @@ export class BotEnhancedController {
         return;
       }
 
-      // Send message (implementation depends on messaging system)
-      // Store keyboard buttons with message
+      let parsedButtons: unknown;
+      try {
+        parsedButtons = JSON.parse(keyboard.buttons);
+      } catch {
+        res.status(500).json({ error: 'Keyboard configuration is invalid' });
+        return;
+      }
+
+      const message = await sendBotMessageService(bot, {
+        chatId,
+        content,
+        type: 'TEXT',
+        linkPreview: {
+          kind: 'bot_keyboard',
+          botId: bot.id,
+          keyboardId: keyboard.id,
+          keyboardName: keyboard.name,
+          buttons: parsedButtons,
+        },
+      });
+
+      io.to(`chat:${chatId}`).emit('message:new', message);
 
       res.json({
         success: true,
-        message: 'Message sent with keyboard',
+        message,
       });
     } catch (error) {
       console.error('Send message with keyboard error:', error);

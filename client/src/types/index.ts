@@ -142,11 +142,23 @@ export enum CallStatus {
 }
 
 export interface LinkPreview {
-  url: string;
+  kind?: 'link' | 'bot_keyboard' | 'bot_meta';
+  url?: string;
   title?: string;
   description?: string;
   image?: string;
   siteName?: string;
+  botId?: string;
+  keyboardId?: string;
+  keyboardName?: string;
+  buttons?: BotKeyboardButton[][];
+}
+
+export interface BotKeyboardButton {
+  text: string;
+  url?: string;
+  callbackData?: string;
+  data?: string;
 }
 
 export interface Contact {

@@ -13,6 +13,23 @@ interface BotCommand {
   handler: (msg: TelegramBot.Message, match?: RegExpExecArray | null) => Promise<void>;
 }
 
+const resolveSecretValue = (incomingValue: string | undefined, existingValue?: string | null) => {
+  if (typeof incomingValue !== 'string') {
+    return existingValue ?? undefined;
+  }
+
+  const trimmedValue = incomingValue.trim();
+  if (!trimmedValue) {
+    return existingValue ?? undefined;
+  }
+
+  if (existingValue && trimmedValue === `***${existingValue.slice(-4)}`) {
+    return existingValue;
+  }
+
+  return trimmedValue;
+};
+
 class TelegramBotService {
   private bot: TelegramBot | null = null;
   private config: Awaited<ReturnType<typeof prisma.telegramBotConfig.findFirst>> | null = null;
@@ -630,9 +647,10 @@ class TelegramBotService {
     enabled?: boolean;
   }) {
     const existing = await prisma.telegramBotConfig.findFirst();
+    const resolvedBotToken = resolveSecretValue(data.botToken, existing?.botToken);
 
     const payload = {
-      botToken: data.botToken ?? existing?.botToken ?? '',
+      botToken: resolvedBotToken ?? '',
       botUsername: data.botUsername ?? existing?.botUsername ?? null,
       webhookUrl: data.webhookUrl ?? existing?.webhookUrl ?? null,
       commands: JSON.stringify(data.commands ?? this.getCommandConfigs()),

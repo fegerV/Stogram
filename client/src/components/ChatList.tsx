@@ -14,6 +14,8 @@ import ContactsModal from './ContactsModal';
 import FavoriteChatsModal from './FavoriteChatsModal';
 import QuickCallsModal from './QuickCallsModal';
 import InviteFriendsModal from './InviteFriendsModal';
+import { monitoredApi } from '../utils/monitoredApi';
+import DesktopNavRail from './DesktopNavRail';
 
 const PENDING_CALL_REQUEST_KEY = 'stogram-pending-call-request';
 
@@ -22,6 +24,12 @@ type ChatFilter = 'all' | 'private' | 'groups' | 'bots';
 interface ChatListProps {
   onSelectChat: (chatId: string) => void;
   selectedChatId: string | null;
+}
+
+interface FolderOption {
+  id: string;
+  name: string;
+  color?: string;
 }
 
 /**
@@ -41,9 +49,11 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
-  const [chatSettings, setChatSettings] = useState<Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel }>>(new Map());
+  const [folders, setFolders] = useState<FolderOption[]>([]);
+  const [chatSettings, setChatSettings] = useState<Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null }>>(new Map());
 
   /** Apply search + tab filter to chats */
   const filteredChats = useMemo(() => {
@@ -56,6 +66,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
       result = result.filter((chat) => chat.type === ChatType.GROUP || chat.type === ChatType.CHANNEL);
     }
 
+    if (selectedFolderId) {
+      result = result.filter((chat) => chatSettings.get(chat.id)?.folderId === selectedFolderId);
+    }
+
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -66,7 +80,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
     }
 
     return result;
-  }, [chats, activeFilter, searchQuery, user?.id]);
+  }, [chats, activeFilter, searchQuery, selectedFolderId, chatSettings, user?.id]);
 
   /** Search users via API when search query is entered */
   useEffect(() => {
@@ -131,7 +145,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   /** Load chat settings for all chats */
   useEffect(() => {
     const loadChatSettings = async () => {
-      const settingsMap = new Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel }>();
+      const settingsMap = new Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null }>();
       
       for (const chat of chats) {
         try {
@@ -149,6 +163,37 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
       loadChatSettings();
     }
   }, [chats]);
+
+  useEffect(() => {
+    const loadFolders = async () => {
+      try {
+        const response = await monitoredApi.get('/folders');
+        setFolders(response.data.folders || []);
+      } catch (error) {
+        console.error('Failed to load folders for chat list:', error);
+      }
+    };
+
+    loadFolders();
+  }, []);
+
+  useEffect(() => {
+    const handleChatSettingsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ chatId: string; settings: { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null } }>;
+      const detail = customEvent.detail;
+
+      if (!detail?.chatId) return;
+
+      setChatSettings((prev) => {
+        const next = new Map(prev);
+        next.set(detail.chatId, { ...next.get(detail.chatId), ...detail.settings });
+        return next;
+      });
+    };
+
+    window.addEventListener('chat-settings-updated', handleChatSettingsUpdated as EventListener);
+    return () => window.removeEventListener('chat-settings-updated', handleChatSettingsUpdated as EventListener);
+  }, []);
 
   const filters: { id: ChatFilter; label: string; count?: number }[] = [
     { id: 'all', label: 'Все', count: tabCounts.all > 0 ? tabCounts.all : undefined },
@@ -182,58 +227,81 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-white dark:bg-[#0b141a]">
+    <div className="relative flex h-full bg-white dark:bg-[#0b141a] md:bg-[#101922]">
+      <DesktopNavRail
+        onOpenSettings={() => setShowSettings(true)}
+        onCreateGroup={openCreateGroup}
+        onOpenContacts={() => setShowContacts(true)}
+        onOpenFavorites={() => setShowFavorites(true)}
+        onOpenCalls={() => setShowCalls(true)}
+        onInviteFriends={() => setShowInviteFriends(true)}
+      />
+
+      <div className="relative flex min-w-0 flex-1 flex-col md:bg-[#0f1822]">
       {/* ── Header ── */}
-      <div className="bg-[#517da2] dark:bg-[#17212b] text-white">
+      <div className="border-b border-[#1c2b38] bg-[#17232e] text-white">
         {/* Top Row: Hamburger / Title / Search */}
-        <div className="flex items-center h-14 px-2">
+        <div className="flex items-center h-16 gap-2 px-3">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2.5 hover:bg-white/10 rounded-full transition"
+            className="p-2.5 hover:bg-white/10 rounded-full transition md:hidden"
             aria-label="Открыть меню"
           >
             <MenuIcon className="w-[22px] h-[22px]" />
           </button>
 
           {isSearchOpen ? (
-            <div className="flex-1 mx-2">
+            <div className="flex-1 rounded-2xl bg-white/8 px-4 py-2 md:max-w-[320px]">
               <input
                 autoFocus
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск..."
-                className="w-full bg-transparent text-white placeholder-white/60 text-[16px] focus:outline-none py-1"
+                placeholder="Поиск"
+                className="w-full bg-transparent py-1 text-[15px] text-white placeholder-white/45 focus:outline-none"
                 onBlur={() => {
                   if (!searchQuery) setIsSearchOpen(false);
                 }}
               />
             </div>
           ) : (
-            <h1 className="flex-1 text-[19px] font-semibold ml-3 tracking-tight">
-              Stogram
-            </h1>
+            <div className="flex flex-1 items-center gap-3 px-2">
+              <div className="hidden md:flex md:flex-1 md:max-w-[290px] md:items-center md:gap-2 md:rounded-2xl md:bg-white/8 md:px-4 md:py-2">
+                <Search className="h-4 w-4 text-white/45" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск"
+                  className="w-full bg-transparent py-1 text-[15px] text-white placeholder-white/45 focus:outline-none"
+                />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-[20px] font-semibold tracking-tight">Stogram</h1>
+                <p className="mt-0.5 text-xs text-white/55">Desktop workspace</p>
+              </div>
+            </div>
           )}
 
           <button
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="p-2.5 hover:bg-white/10 rounded-full transition"
+            className="rounded-full p-2.5 transition hover:bg-white/10 md:hidden"
             aria-label="Поиск"
           >
             <Search className="w-[22px] h-[22px]" />
           </button>
         </div>
 
-        {/* Tab Filters */}
-        <div className="flex overflow-x-auto scrollbar-none border-t border-white/10">
+      {/* Tab Filters */}
+      <div className="flex overflow-x-auto scrollbar-none border-t border-white/5 px-2 pb-2">
           {filters.map((filter) => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors relative ${
+              className={`relative flex items-center gap-1.5 whitespace-nowrap rounded-2xl px-4 py-2.5 text-[13px] font-medium transition-colors ${
                 activeFilter === filter.id
-                  ? 'text-white'
-                  : 'text-white/60 hover:text-white/80'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/60 hover:bg-white/5 hover:text-white/80'
               }`}
             >
               <span>{filter.label}</span>
@@ -250,26 +318,59 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
               )}
               {/* Active indicator line */}
               {activeFilter === filter.id && (
-                <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-white rounded-t-full" />
+                <div className="absolute bottom-1 left-4 right-4 h-[2px] rounded-full bg-[#5fb3ff]" />
               )}
             </button>
           ))}
         </div>
+
+        {folders.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto px-3 pb-3 pt-2 scrollbar-none border-t border-white/5">
+            <button
+              onClick={() => setSelectedFolderId(null)}
+              className={`rounded-full px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition ${
+                selectedFolderId === null
+                  ? 'bg-white text-[#517da2] dark:text-[#17212b]'
+                  : 'bg-white/10 text-white/80 hover:bg-white/15'
+              }`}
+            >
+              Все папки
+            </button>
+            {folders.map((folder) => {
+              const count = chats.filter((chat) => chatSettings.get(chat.id)?.folderId === folder.id).length;
+
+              return (
+                <button
+                  key={folder.id}
+                  onClick={() => setSelectedFolderId(folder.id)}
+                  className={`rounded-full px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition ${
+                    selectedFolderId === folder.id
+                      ? 'text-white'
+                      : 'bg-white/10 text-white/80 hover:bg-white/15'
+                  }`}
+                  style={selectedFolderId === folder.id ? { backgroundColor: folder.color || '#3390ec' } : undefined}
+                >
+                  {folder.name}{count > 0 ? ` (${count})` : ''}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Chat List ── */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin bg-white dark:bg-[#0b141a]">
+      <div className="flex-1 overflow-y-auto scrollbar-thin bg-[#101922]">
         {/* Search Results - Users */}
         {searchQuery.trim().length >= 2 && (
-          <div className="border-b border-gray-100 dark:border-[#202c33]">
+          <div className="border-b border-[#1b2a37]">
             {isSearchingUsers ? (
-              <div className="flex items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+              <div className="flex items-center justify-center py-8 text-[#7f96ab]">
                 <Search className="w-5 h-5 mr-2 animate-pulse" />
                 <span className="text-sm">Поиск...</span>
               </div>
             ) : searchResults.length > 0 ? (
               <div>
-                <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                <div className="px-4 py-2 text-xs font-medium uppercase text-[#7f96ab]">
                   Пользователи
                 </div>
                 {searchResults.map((searchUser) => {
@@ -287,7 +388,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                           handleCreateChatWithUser(searchUser);
                         }
                       }}
-                      className="flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors hover:bg-[#f4f4f5] dark:hover:bg-[#202c33] active:bg-[#e5e5e6] dark:active:bg-[#2a3942]"
+                      className="mx-2 flex items-center gap-3 rounded-2xl px-4 py-3 cursor-pointer transition-colors hover:bg-[#172430] active:bg-[#1d2c39]"
                     >
                       {/* Avatar */}
                       <div className="relative flex-shrink-0">
@@ -305,19 +406,19 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0 border-b border-gray-100 dark:border-[#202c33] py-1.5">
+                      <div className="flex-1 min-w-0 py-1.5">
                         <div className="flex items-center justify-between mb-0.5">
-                          <h3 className="font-semibold text-[15px] truncate text-[#222222] dark:text-[#e1e1e1]">
+                          <h3 className="truncate text-[15px] font-semibold text-white">
                             {userName}
                           </h3>
                         </div>
                         {searchUser.bio && (
-                          <p className="text-[14px] truncate text-[#8e8e93] dark:text-[#6c7883]">
+                          <p className="truncate text-[14px] text-[#8fa3b8]">
                             {searchUser.bio}
                           </p>
                         )}
                         {searchUser.username && (
-                          <p className="text-[13px] truncate text-[#8e8e93] dark:text-[#6c7883]">
+                          <p className="truncate text-[13px] text-[#8fa3b8]">
                             @{searchUser.username}
                           </p>
                         )}
@@ -327,7 +428,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                 })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
+              <div className="flex flex-col items-center justify-center py-8 text-[#7f96ab]">
                 <Search className="w-10 h-10 opacity-40 mb-2" />
                 <p className="text-sm">Пользователи не найдены</p>
               </div>
@@ -337,7 +438,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
         {/* Existing Chats */}
         {filteredChats.length === 0 && (!searchQuery.trim() || searchQuery.length < 2) ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 gap-2">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-[#7f96ab]">
             <Search className="w-10 h-10 opacity-40" />
             <p className="text-sm">Чаты не найдены</p>
           </div>
@@ -379,10 +480,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') onSelectChat(chat.id);
                 }}
-                className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${
+                className={`mx-2 my-0.5 flex items-center gap-3 rounded-2xl px-4 py-3 cursor-pointer transition-colors ${
                   isSelected
-                    ? 'bg-[#419fd9] dark:bg-[#2b5278]'
-                    : 'hover:bg-[#f4f4f5] dark:hover:bg-[#202c33] active:bg-[#e5e5e6] dark:active:bg-[#2a3942]'
+                    ? 'bg-[#21384a] ring-1 ring-[#345267]'
+                    : 'hover:bg-[#172430] active:bg-[#1d2c39]'
                 }`}
               >
                 {/* Avatar */}
@@ -415,14 +516,14 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0 border-b border-gray-100 dark:border-[#202c33] py-1.5">
+                <div className="flex-1 min-w-0 py-1.5">
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <h3
                         className={`font-semibold text-[15px] truncate ${
                           isSelected
                             ? 'text-white'
-                            : 'text-[#222222] dark:text-[#e1e1e1]'
+                            : 'text-white'
                         }`}
                       >
                         {chatName}
@@ -434,7 +535,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                           className={`text-[12px] ${
                             isSelected
                               ? 'text-white/80'
-                              : 'text-[#8e8e93] dark:text-[#6c7883]'
+                              : 'text-[#7f96ab]'
                           }`}
                         >
                           {formatMessageTime(lastMessage.createdAt)}
@@ -449,7 +550,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                         className={`text-[14px] truncate flex-1 ${
                           isSelected
                             ? 'text-white/80'
-                            : 'text-[#8e8e93] dark:text-[#6c7883]'
+                            : 'text-[#8fa3b8]'
                         }`}
                       >
                         {previewSender && (
@@ -467,12 +568,12 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
                       </p>
                       {isMuted && (
                         <BellOff className={`w-4 h-4 flex-shrink-0 ${
-                          isSelected ? 'text-white/60' : 'text-[#8e8e93] dark:text-[#6c7883]'
+                          isSelected ? 'text-white/60' : 'text-[#6f879b]'
                         }`} />
                       )}
                       {chat.pinnedMessageId && !isMuted && (
                         <Pin className={`w-4 h-4 flex-shrink-0 ${
-                          isSelected ? 'text-white/60' : 'text-[#8e8e93] dark:text-[#6c7883]'
+                          isSelected ? 'text-white/60' : 'text-[#6f879b]'
                         }`} />
                       )}
                     </div>
@@ -550,6 +651,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
       {showInviteFriends && (
         <InviteFriendsModal onClose={() => setShowInviteFriends(false)} />
       )}
+      </div>
     </div>
   );
 }

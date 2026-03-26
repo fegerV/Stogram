@@ -22,15 +22,18 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   
   const [config, setConfig] = useState({
-    botToken: '',
     botUsername: '',
     webhookUrl: '',
     commands: DEFAULT_COMMANDS,
     notifications: true,
     enabled: false,
   });
+  const [botTokenInput, setBotTokenInput] = useState('');
+  const [hasSavedToken, setHasSavedToken] = useState(false);
+  const [tokenDirty, setTokenDirty] = useState(false);
   
   const [stats, setStats] = useState({
     authorizedUsers: 0,
@@ -52,16 +55,22 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
     try {
       const response = await telegramBotApi.getConfig();
       const data = response.data;
+      setAccessDenied(false);
       setConfig({
-        botToken: data.botToken || '',
         botUsername: data.botUsername || '',
         webhookUrl: data.webhookUrl || '',
         commands: data.commands || DEFAULT_COMMANDS,
         notifications: data.notifications ?? true,
         enabled: data.enabled ?? false,
       });
+      setBotTokenInput('');
+      setTokenDirty(false);
+      setHasSavedToken(Boolean(data.hasBotToken || data.botToken));
     } catch (error) {
       console.error('Failed to load config:', error);
+      if ((error as any)?.response?.status === 403) {
+        setAccessDenied(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -74,6 +83,9 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
       setStats(data);
     } catch (error) {
       console.error('Failed to load stats:', error);
+      if ((error as any)?.response?.status === 403) {
+        setAccessDenied(true);
+      }
     }
   };
 
@@ -84,15 +96,32 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
       setUsers(data.users || []);
     } catch (error) {
       console.error('Failed to load users:', error);
+      if ((error as any)?.response?.status === 403) {
+        setAccessDenied(true);
+      }
     }
   };
 
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
-      await telegramBotApi.saveConfig(config);
+      const nextBotToken = botTokenInput.trim();
+      if (config.enabled && !hasSavedToken && !nextBotToken) {
+        toast.error('Please enter a bot token before enabling the bot');
+        return;
+      }
+
+      await telegramBotApi.saveConfig({
+        ...config,
+        ...(tokenDirty && nextBotToken ? { botToken: nextBotToken } : {}),
+      });
+      if (tokenDirty && nextBotToken) {
+        setHasSavedToken(true);
+      }
+      setBotTokenInput('');
+      setTokenDirty(false);
       toast.success('Settings saved successfully');
-      loadStats();
+      await Promise.all([loadConfig(), loadStats(), loadUsers()]);
     } catch (error) {
       console.error('Failed to save config:', error);
       toast.error('Failed to save settings');
@@ -102,21 +131,21 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   };
 
   const handleTestConnection = async () => {
-    if (!config.botToken) {
+    const tokenToTest = botTokenInput.trim();
+    if (!tokenToTest && !hasSavedToken) {
       toast.error('Please enter a bot token');
       return;
     }
     
     setTesting(true);
     try {
-      const response = await telegramBotApi.testConnection(config.botToken);
+      const response = await telegramBotApi.testConnection(tokenToTest);
       const data = response.data;
       if (data.success) {
         setBotInfo(data.bot);
         setConfig({
           ...config,
           botUsername: data.bot.username,
-          botToken: config.botToken, // Keep the full token for saving
         });
         toast.success(`Connected to @${data.bot.username}!`);
       } else {
@@ -170,6 +199,21 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
     return (
       <div className={`flex items-center justify-center ${embedded ? 'min-h-[240px]' : 'min-h-screen'}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884]"></div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
+        <div className={`${embedded ? '' : 'max-w-4xl mx-auto'} bg-white dark:bg-gray-800 rounded-lg shadow p-6`}>
+          <h1 className={`font-bold text-gray-900 dark:text-white mb-2 ${embedded ? 'text-xl' : 'text-2xl'}`}>
+            Telegram Bot Settings
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            This section is available only to administrators. Add your user to `ADMIN_USER_IDS` on the server to manage Telegram bot integration.
+          </p>
+        </div>
       </div>
     );
   }
@@ -229,21 +273,26 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
               <div className="flex gap-2">
                 <input
                   type="password"
-                  value={config.botToken}
-                  onChange={(e) => setConfig({ ...config, botToken: e.target.value })}
-                  placeholder="Enter your Telegram bot token"
+                  value={botTokenInput}
+                  onChange={(e) => {
+                    setBotTokenInput(e.target.value);
+                    setTokenDirty(true);
+                  }}
+                  placeholder={hasSavedToken ? 'Saved token is configured. Enter a new token only to replace it' : 'Enter your Telegram bot token'}
                   className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <button
                   onClick={handleTestConnection}
-                  disabled={testing || !config.botToken}
+                  disabled={testing || (!botTokenInput.trim() && !hasSavedToken)}
                   className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
                 >
                   {testing ? 'Testing...' : 'Test'}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Get your bot token from @BotFather on Telegram
+                {hasSavedToken
+                  ? 'A token is already saved. Leave this field empty to keep it, or paste a new token to replace it.'
+                  : 'Get your bot token from @BotFather on Telegram'}
               </p>
             </div>
             
