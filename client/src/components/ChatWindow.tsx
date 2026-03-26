@@ -55,7 +55,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const [selfDestructSeconds, setSelfDestructSeconds] = useState<number | null>(null);
   const [showSelfDestructOptions, setShowSelfDestructOptions] = useState(false);
   const [showChatSettings, setShowChatSettings] = useState(false);
-  const [showChatProfile, setShowChatProfile] = useState(false);
+  const [showChatProfile, setShowChatProfile] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [chatSettings, setChatSettings] = useState<{ isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null } | null>(null);
   const [folders, setFolders] = useState<FolderOption[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -74,6 +74,12 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       setIsAdmin(member?.role === 'OWNER' || member?.role === 'ADMIN');
     }
   }, [currentChat, user]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setShowChatProfile(true);
+    }
+  }, [chatId]);
 
   useEffect(() => {
     const loadChatSettings = async () => {
@@ -903,7 +909,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       </div>
 
       {showChatProfile && (
-        <div className="hidden xl:block xl:w-[380px] xl:shrink-0">
+        <div className="hidden lg:block lg:w-[380px] lg:shrink-0">
           <ChatProfileDrawer
             chat={currentChat}
             currentUserId={user?.id || ''}
@@ -1048,7 +1054,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       )}
 
       {showChatProfile && (
-        <div className="xl:hidden">
+        <div className="lg:hidden">
           <ChatProfileDrawer
             chat={currentChat}
             currentUserId={user?.id || ''}

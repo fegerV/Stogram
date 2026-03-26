@@ -89,8 +89,8 @@ export default function ChatPage() {
         console.error('ChatPage error:', error, errorInfo);
       }}
     >
-      <div className="h-screen bg-[#0b141a] md:bg-[#1a2430] md:p-4">
-        <div className="flex h-full overflow-hidden bg-white dark:bg-[#0b141a] md:rounded-[22px] md:border md:border-[#22303b] md:shadow-[0_24px_80px_rgba(0,0,0,0.38)]">
+      <div className="flex h-screen overflow-hidden bg-[#0b141a]">
+        <div className="flex h-full w-full overflow-hidden bg-white dark:bg-[#0b141a]">
         {/* ChatList: visible on mobile when no chat selected, always visible on desktop */}
         <div className={`w-full md:w-[500px] xl:w-[540px] border-r border-gray-200 dark:border-[#202c33] bg-white dark:bg-[#0b141a] flex-shrink-0 ${selectedChatId ? 'hidden md:block' : 'block'}`}>
           <ErrorBoundary>

@@ -1,82 +1,58 @@
-# 📚 Stogram Documentation
+# Stogram Documentation
 
-Welcome to the Stogram documentation! This guide will help you navigate through all available documentation.
+This folder contains the active documentation entry points for the project.
 
-## 📖 Documentation Structure
+## Start Here
 
-### 🚀 Getting Started
-- **[Quick Start Guide](../README.md#быстрый-старт)** - Get up and running quickly
-- **[Quick Start Script](deployment/QUICKSTART.md)** - Automated setup guide
+- Main project overview: [`../README.md`](/c:/Project/Stogram/README.md)
+- Installation: [`../INSTALLATION.md`](/c:/Project/Stogram/INSTALLATION.md)
+- Roadmap: [`../ROADMAP.md`](/c:/Project/Stogram/ROADMAP.md)
 
-### 👥 User Documentation
-- **[User Guide](user-guide/USER_GUIDE.md)** - Complete guide for end users
-- **[Features Overview](user-guide/FEATURES.md)** - All available features and capabilities
+## Sections
 
-### 🔧 Developer Documentation
-- **[Architecture](development/ARCHITECTURE.md)** - System architecture and design patterns
-- **[Code Review](development/CODE_REVIEW.md)** - Code review and quality assessment
-- **[Deployment Status](development/DEPLOYMENT_STATUS.md)** - Deployment readiness status
-- **[TypeScript Fixes](development/TYPESCRIPT_FIXES.md)** - TypeScript fixes and improvements
-- **[Security Improvements](development/SECURITY_IMPROVEMENTS.md)** - Security enhancements and fixes
-- **[Documentation Audit](development/DOCUMENTATION_AUDIT.md)** - Documentation quality audit
-- **[Implementation Summary](development/IMPLEMENTATION_SUMMARY.md)** - Implementation overview
-- **[Work Summary](development/WORK_SUMMARY.md)** - Development work summary
-- **[Audit Summary (RU)](development/AUDIT_SUMMARY_RU.md)** - Russian audit summary
-- **[Code Review Summary (RU)](development/CODE_REVIEW_SUMMARY_RU.md)** - Russian code review summary
-- **[Contributing](../CONTRIBUTING.md)** - How to contribute to the project
+User docs:
 
-### 🚀 Deployment
-- **[Deployment Guide](deployment/DEPLOYMENT.md)** - Production deployment instructions
-- **[Migration Guide](deployment/MIGRATION_GUIDE.md)** - Database migration instructions
-- **[Quick Start](deployment/QUICKSTART.md)** - Automated deployment setup
-- **[Railway Deployment](deployment/RAILWAY_DEPLOYMENT.md)** - Railway.app specific guide
-- **[Railway Quickstart](deployment/RAILWAY_QUICKSTART.md)** - Quick setup for Railway
-- **[Railway Summary](deployment/RAILWAY_SUMMARY.md)** - Railway deployment overview
-- **[Vercel Analysis](deployment/VERCEL_DEPLOYMENT_ANALYSIS.md)** - Vercel platform compatibility analysis
+- [`user-guide/USER_GUIDE.md`](/c:/Project/Stogram/docs/user-guide/USER_GUIDE.md)
+- [`user-guide/FEATURES.md`](/c:/Project/Stogram/docs/user-guide/FEATURES.md)
 
-### 📱 Mobile Application
-- **[Mobile Overview](mobile/README.md)** - React Native mobile app documentation
-- **[Implementation Status](mobile/STATUS.md)** - Current implementation status
-- **[Features Checklist](mobile/CHECKLIST.md)** - Mobile features development checklist
-- **[Roadmap](mobile/ROADMAP.md)** - Mobile development roadmap
-- **[Documentation Index](mobile/INDEX.md)** - Mobile documentation navigation
+Deployment:
 
-### 🔌 API Documentation
-- **[Telegram Integration](api/TELEGRAM.md)** - Complete Telegram bot and integration guide
-- **[Telegram Setup](api/TELEGRAM_SETUP.md)** - Step-by-step Telegram setup instructions
-- **[Telegram Examples](api/TELEGRAM_EXAMPLES.md)** - Telegram API usage examples
-- **[Bots Usage Guide](../BOTS_USAGE_GUIDE.md)** - Comprehensive guide for bot development and usage
+- [`deployment/DEPLOYMENT.md`](/c:/Project/Stogram/docs/deployment/DEPLOYMENT.md)
+- [`deployment/QUICKSTART.md`](/c:/Project/Stogram/docs/deployment/QUICKSTART.md)
+- [`deployment/VERCEL_SETUP.md`](/c:/Project/Stogram/docs/deployment/VERCEL_SETUP.md)
+- [`deployment/RAILWAY_DEPLOYMENT.md`](/c:/Project/Stogram/docs/deployment/RAILWAY_DEPLOYMENT.md)
+- [`deployment/MIGRATION_GUIDE.md`](/c:/Project/Stogram/docs/deployment/MIGRATION_GUIDE.md)
 
-### 🔒 Security
-- **[Security Policy](../SECURITY.md)** - Security guidelines and vulnerability reporting
+Development:
 
-### 🗺️ Project Planning
-- **[Roadmap](../ROADMAP.md)** - Project development roadmap and milestones
-- **[Comprehensive Analysis & Roadmap](../COMPREHENSIVE_ANALYSIS_AND_ROADMAP.md)** - Detailed analysis, Telegram comparison, and implementation plan
-- **[Changelog](../CHANGELOG.md)** - Version history and changes
-- **[License](../LICENSE)** - MIT License
+- [`development/ARCHITECTURE.md`](/c:/Project/Stogram/docs/development/ARCHITECTURE.md)
+- [`development/SECURITY_IMPROVEMENTS.md`](/c:/Project/Stogram/docs/development/SECURITY_IMPROVEMENTS.md)
+- [`development/DOCUMENTATION_AUDIT.md`](/c:/Project/Stogram/docs/development/DOCUMENTATION_AUDIT.md)
 
-## 🌍 Language Support
+API and integrations:
 
-Documentation is available in multiple languages:
-- **English**: Primary documentation language
-- **Russian (Русский)**: 
-  - [Документация на русском](./ru/README.md) - Full documentation
-  - [Статус реализации](./ru/STATUS.md) - Implementation status
-  - [Локальное тестирование](./ru/LOCAL_TESTING.md) - Local testing guide
+- [`api/TELEGRAM.md`](/c:/Project/Stogram/docs/api/TELEGRAM.md)
+- [`api/TELEGRAM_SETUP.md`](/c:/Project/Stogram/docs/api/TELEGRAM_SETUP.md)
+- [`api/TELEGRAM_EXAMPLES.md`](/c:/Project/Stogram/docs/api/TELEGRAM_EXAMPLES.md)
+- [`../BOTS_USAGE_GUIDE.md`](/c:/Project/Stogram/BOTS_USAGE_GUIDE.md)
 
-## 📞 Support
+Mobile:
 
-If you need help:
-- 📖 Check the [User Guide](user-guide/USER_GUIDE.md)
-- 🐛 Report bugs via GitHub Issues
-- 💬 Join our community chat
-- 📧 Contact: support@stogram.app
+- [`mobile/README.md`](/c:/Project/Stogram/docs/mobile/README.md)
+- [`mobile/STATUS.md`](/c:/Project/Stogram/docs/mobile/STATUS.md)
+- [`mobile/ROADMAP.md`](/c:/Project/Stogram/docs/mobile/ROADMAP.md)
 
-## 🔄 Documentation Status
+Reports:
 
-This documentation is actively maintained and updated with each release. Last updated: 2024
+- [`reports/README.md`](/c:/Project/Stogram/docs/reports/README.md)
 
----
+Russian docs:
 
-**[← Back to Main README](../README.md)**
+- [`ru/README.md`](/c:/Project/Stogram/docs/ru/README.md)
+- [`ru/STATUS.md`](/c:/Project/Stogram/docs/ru/STATUS.md)
+- [`ru/LOCAL_TESTING.md`](/c:/Project/Stogram/docs/ru/LOCAL_TESTING.md)
+
+## Documentation Notes
+
+- The repository includes many historical audit and status files in the root. They are not all obsolete, but they are not the best starting point.
+- Use [`../README.md`](/c:/Project/Stogram/README.md) and this index as the current navigation layer.

@@ -229,12 +229,10 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   return (
     <div className="relative flex h-full bg-white dark:bg-[#0b141a] md:bg-[#101922]">
       <DesktopNavRail
-        onOpenSettings={() => setShowSettings(true)}
-        onCreateGroup={openCreateGroup}
-        onOpenContacts={() => setShowContacts(true)}
-        onOpenFavorites={() => setShowFavorites(true)}
-        onOpenCalls={() => setShowCalls(true)}
-        onInviteFriends={() => setShowInviteFriends(true)}
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={setSelectedFolderId}
+        onOpenMenu={() => setIsDrawerOpen(true)}
       />
 
       <div className="relative flex min-w-0 flex-1 flex-col md:bg-[#0f1822]">
@@ -244,7 +242,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
         <div className="flex items-center h-16 gap-2 px-3">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2.5 hover:bg-white/10 rounded-full transition md:hidden"
+            className="p-2.5 hover:bg-white/10 rounded-full transition"
             aria-label="Открыть меню"
           >
             <MenuIcon className="w-[22px] h-[22px]" />
@@ -325,7 +323,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
         </div>
 
         {folders.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-3 pb-3 pt-2 scrollbar-none border-t border-white/5">
+          <div className="flex gap-2 overflow-x-auto px-3 pb-3 pt-2 scrollbar-none border-t border-white/5 md:hidden">
             <button
               onClick={() => setSelectedFolderId(null)}
               className={`rounded-full px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition ${

@@ -1,719 +1,133 @@
-# 🚀 Stogram - Современный PWA Мессенджер
+# Stogram
 
-<div align="center">
+Stogram is a messenger project with:
 
-![Stogram_logo](https://s3.iimg.su/s/31/th_gDR2WHgxsYtJ8dedtLK18pvduN1dnk8QEonQ95Ii.png)
+- `client/` - React + Vite PWA
+- `server/` - Node.js + Express + Prisma backend
+- `mobile/` - React Native client in progress
 
-**Современное, многофункциональное Progressive Web приложение (PWA) мессенджер с E2E шифрованием, продвинутыми ботами и аналитикой**
+The project already includes chat, folders, profile/settings flows, private calls, bot integrations, Telegram/n8n admin integrations, and an internal Bot API compatibility layer.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-2.0.3-brightgreen.svg)](https://github.com/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18+-61dafb.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178c6.svg)](https://www.typescriptlang.org/)
+## Current Status
 
-</div>
+- Web client: active
+- Backend API: active
+- Mobile app: in progress
+- Desktop-style web layout: active in the client
 
----
+## Quick Start
 
-## 📋 Содержание
+Requirements:
 
-- [Обзор](#обзор)
-- [Возможности](#возможности)
-- [Платформы](#платформы)
-- [Технологический стек](#технологический-стек)
-- [Архитектура](#архитектура)
-- [Быстрый старт](#быстрый-старт)
-- [Документация](#документация)
-- [Дорожная карта](#дорожная-карта)
-- [Code Review и статус деплоя](#code-review-и-статус-деплоя)
-- [Проверка типизации](#проверка-типизации)
-- [Скриншоты](#скриншоты)
-- [Участие в разработке](#участие-в-разработке)
-- [Лицензия](#лицензия)
+- Node.js 18+
+- npm
+- PostgreSQL
 
----
-
-## 🌟 Обзор
-
-**Stogram** - это современная платформа для обмена сообщениями, объединяющая лучшие функции популярных мессенджеров, таких как Telegram, с передовыми веб-технологиями. Созданный как Progressive Web Application, Stogram работает без проблем на всех устройствах и платформах, обеспечивая нативный опыт использования прямо в вашем браузере.
-
-### Почему Stogram?
-
-- 🌐 **Кроссплатформенность**: Работает на десктопе, мобильных устройствах и планшетах - везде, где есть современный браузер
-- 📱 **PWA Технология**: Устанавливается на любое устройство как нативное приложение
-- 🔒 **E2E Шифрование**: Полная реализация end-to-end шифрования с RSA-2048 и AES-256
-- 🛡️ **2FA Защита**: Двухфакторная аутентификация с TOTP и backup кодами
-- ⚡ **Реальное время**: WebSocket-обмен мгновенными сообщениями с Socket.IO
-- 🎥 **Богатые медиа**: Видео и аудио звонки на базе WebRTC, автоматическое сжатие
-- 💾 **Офлайн поддержка**: Service Workers обеспечивают офлайн функциональность
-- 🎨 **Кастомизация UI**: Полная настройка тем оформления и цветовых схем
-- 📊 **Аналитика**: Детальная статистика использования и dashboard
-- 🤖 **Продвинутые боты**: Inline клавиатуры, callback запросы, inline режим
-- ⚡ **Производительность**: Redis кэширование, виртуализация списков, ленивая загрузка
-- 🔧 **Расширяемость**: Хорошо структурированная кодовая база для лёгкой кастомизации
-
-### 🎉 Новое в версии 2.0.3
-
-- 📝 **Документация**: Полная реструктуризация и обновление документации
-- 📊 **Анализ проекта**: Детальный анализ текущего состояния и план реализации
-- 🗂️ **Организация**: Оптимизация структуры документации, удаление дубликатов
-
-### ✨ Версия 2.0.1
-
-- 📤 **Пересылка сообщений**: Пересылка сообщений в другие чаты с сохранением контекста
-- ✓ **Статусы прочтения**: Полная реализация статусов доставки/прочтения (✓, ✓✓, ✓✓ синие)
-- 🎤 **Голосовые сообщения**: Запись и отправка голосовых сообщений с визуализацией
-- 🔍 **Поиск по сообщениям**: Поиск сообщений внутри чата с подсветкой результатов
-- ⏱️ **Самоуничтожающиеся сообщения**: Сообщения с таймером автоматического удаления
-- 🔗 **Превью ссылок**: Автоматическое извлечение и отображение превью для URL
-- 🎨 **Telegram-подобный дизайн**: Обновленный UI в стиле Telegram с точной цветовой схемой
-
-### 🎉 Версия 2.0.0
-
-- ✨ **E2E Шифрование**: Полная реализация с генерацией ключей и обменом
-- 🎬 **Обработка медиа**: Автоматическое сжатие, конвертация видео, генерация превью
-- 🤖 **Расширенные боты**: Inline клавиатуры, callback/inline запросы
-- 📊 **Аналитика**: Статистика пользователей, ботов, системы
-- 🎨 **Темы**: Редактор тем с полной кастомизацией цветов
-- ⚡ **Оптимизация**: Виртуализация, Redis кэш, ленивая загрузка
-- 🔐 **Безопасность**: 2FA, IP блокировка, логирование, защита от спама
-
----
-
-## 📱 Платформы
-
-Stogram доступен на нескольких платформах:
-
-### 🌐 Web (PWA)
-- **Технология**: React + Vite
-- **Статус**: ✅ Полностью реализовано
-- **Папка**: `/client`
-- Работает в любом современном браузере
-- Может быть установлено как PWA на любое устройство
-- Offline-first архитектура
-
-### 📱 Mobile (React Native)
-- **Технология**: React Native
-- **Статус**: 🚧 В активной разработке (65%)
-- **Папка**: `/mobile`
-- **Платформы**: iOS 13.0+, Android 6.0+
-- Нативное приложение для мобильных устройств
-- Полная интеграция с существующим backend
-- [Подробная документация →](./docs/mobile/README.md)
-- [Статус реализации →](./docs/mobile/STATUS.md)
-
-### 🖥 Desktop
-- **Статус**: ⏳ Запланировано
-- Возможные технологии: Electron, Tauri
-- Нативный desktop опыт для Windows, macOS, Linux
-
----
-
-## ✨ Возможности
-
-### 🔐 Аутентификация и безопасность
-
-- **Регистрация по Email/паролю**: Безопасное создание аккаунта с валидацией
-- **Система входа**: Аутентификация по имени пользователя или email
-- **JWT токены**: Безопасная аутентификация без состояния
-- **Безопасность паролей**: Bcrypt хеширование с настраиваемым количеством раундов
-- **E2E Шифрование**: RSA-2048 для обмена ключами, AES-256 для сообщений и файлов
-- **2FA Аутентификация**: TOTP с QR кодами и backup кодами
-- **IP Блокировка**: Автоматическая и ручная блокировка подозрительных IP
-- **Логирование безопасности**: Полная история всех действий безопасности
-- **Brute Force защита**: Блокировка аккаунта после неудачных попыток входа
-- **Доверенные IP**: Список доверенных IP адресов
-- **Ограничение частоты запросов**: Защита от brute force атак через Redis
-
-### 💬 Обмен сообщениями
-
-- **Сообщения в реальном времени**: Мгновенная доставка через WebSockets
-- **Приватные чаты**: Общение один-на-один
-- **Групповые чаты**: Групповой обмен сообщениями для нескольких пользователей
-- **Каналы**: Трансляция сообщений множеству пользователей
-- **Типы сообщений**: Текст, изображения, видео, аудио, файлы, голосовые сообщения
-- **Обмен файлами**: Загрузка и обмен файлами до 10МБ
-- **Редактирование сообщений**: Редактирование отправленных сообщений
-- **Удаление сообщений**: Удаление сообщений для себя или для всех
-- **Функция ответа**: Ответ на конкретные сообщения
-- **Пересылка сообщений**: Пересылка сообщений в другие чаты
-- **Индикаторы набора**: Видно, когда другие печатают
-- **Отметки о прочтении**: Отслеживание доставки и статуса прочтения сообщений (✓, ✓✓, ✓✓ синие)
-- **Поиск сообщений**: Поиск сообщений внутри чата с подсветкой результатов
-- **Превью ссылок**: Автоматическое извлечение и отображение превью для URL
-- **Самоуничтожающиеся сообщения**: Сообщения с таймером автоматического удаления
-- **Стикеры**: Полная система стикеров с паками
-- **Упоминания (@)**: Упоминание пользователей в чатах
-- **Хэштеги (#)**: Организация сообщений с хэштегами
-- **Тихий режим**: Отправка сообщений без уведомлений
-- **Закрепление сообщений**: Закрепление важных сообщений в чате
-- **Запланированные сообщения**: Отправка сообщений в определённое время
-- **Реакции на сообщения**: Эмодзи реакции на сообщения
-- **Контекстное меню**: Правая кнопка мыши для быстрых действий
-
-### 📞 Голосовые и видео звонки
-
-- **Аудио звонки**: Высококачественная голосовая связь
-- **Видео звонки**: Видео разговоры лицом к лицу
-- **WebRTC технология**: Peer-to-peer соединение с низкой задержкой
-- **Управление звонками**: Включение/отключение микрофона и видео
-- **История звонков**: Отслеживание входящих, исходящих и пропущенных звонков
-- **Групповые звонки**: ⚠️ В разработке (заглушка реализована)
-- **Запись звонков**: Запись аудио и видео звонков
-- **Шумоподавление**: Подавление фонового шума во время звонков
-
-### 👥 Управление пользователями
-
-- **Профили пользователей**: Настраиваемое отображаемое имя, аватар и био
-- **Статус пользователя**: Онлайн, Офлайн, Отошёл, Не беспокоить
-- **Последнее посещение**: Отслеживание, когда пользователи были активны в последний раз
-- **Управление контактами**: Добавление и организация контактов
-- **Поиск пользователей**: Поиск пользователей по имени, email или отображаемому имени
-- **Фотографии профиля**: Загрузка и отображение аватаров
-- **Настройки приватности**: Управление видимостью онлайн-статуса, фото профиля и времени последнего посещения
-- **Блокировка пользователей**: Блокировка нежелательных пользователей
-
-### 🎨 Пользовательский интерфейс
-
-- **Современный дизайн**: Чистый интерфейс в стиле Telegram с точной цветовой схемой
-- **Telegram-подобный UI**: Компактные карточки чатов, пузырьки сообщений, зеленый акцент (#00a884)
-- **Адаптивная вёрстка**: Адаптируется к любому размеру экрана
-- **Тёмная тема**: Поддержка светлой и тёмной темы с правильными цветами Telegram
-- **Плавные анимации**: Отполированные переходы и эффекты
-- **Поддержка эмодзи**: Полная интеграция эмодзи с emoji-picker-react
-- **Предпросмотр файлов**: Предпросмотр изображений и видео внутри интерфейса
-- **Система уведомлений**: Toast-уведомления о событиях
-- **Состояния загрузки**: Скелетные экраны и спиннеры
-- **Папки чатов**: Организация чатов по пользовательским папкам
-- **Избранное**: Быстрый доступ к важным чатам
-- **Архивация чатов**: Архивация старых чатов
-- **Контекстное меню**: Правая кнопка мыши для быстрых действий с сообщениями
-
-### 📱 Telegram интеграция
-
-- **Telegram Bot**: Полнофункциональный бот для уведомлений и управления
-- **Telegram Login**: Быстрая авторизация через Telegram аккаунт
-- **Уведомления в Telegram**: Получение уведомлений о новых сообщениях
-- **Мосты для чатов**: Двусторонняя синхронизация между Telegram и Stogram
-- **Telegram Mini App**: Полноценное приложение внутри Telegram
-- **Команды бота**: /start, /status, /notifications, /bridge, /help
-- **Синхронизация профиля**: Автоматическое обновление данных из Telegram
-- **Групповые чаты**: Синхронизация групповых чатов Telegram
-- [Документация по интеграции →](./docs/api/TELEGRAM.md)
-- [Руководство по настройке →](./docs/api/TELEGRAM_SETUP.md)
-- [Примеры API →](./docs/api/TELEGRAM_EXAMPLES.md)
-
-### 🔔 Уведомления
-
-- **Push-уведомления**: Браузерные push-уведомления (PWA)
-- **Оповещения о сообщениях**: Мгновенные уведомления о новых сообщениях
-- **Уведомления о звонках**: Звонок при входящих вызовах
-- **Настраиваемость**: Управление настройками уведомлений
-- **Отключение звука для чатов**: Отключение уведомлений для конкретных чатов
-- **Бейджи непрочитанных**: Счётчик непрочитанных сообщений
-
-### 🌐 Progressive Web App
-
-- **Устанавливаемость**: Добавление на главный экран на любом устройстве
-- **Офлайн режим**: Доступ к кэшированному контенту без интернета
-- **Быстрая загрузка**: Стратегии кэширования Service Worker
-- **App-like опыт**: Полноэкранный режим, нативные жесты
-- **Автообновления**: Беспрепятственные обновления приложения
-
-### 🤖 Боты и интеграции
-
-- **Bot API**: Создание и управление ботами
-- **Inline боты**: Боты, работающие inline в чатах
-- **Команды ботов**: Определение пользовательских команд
-- **Вебхуки**: Интеграция с внешними сервисами
-- **n8n интеграция**: Специальные API для автоматизации
-- **Telegram интеграция**: Мосты и интеграции с Telegram
-
----
-
-## 🛠 Технологический стек
-
-### Frontend
-
-- **React 18**: Современная UI библиотека с хуками и конкурентными возможностями
-- **TypeScript**: Разработка с типобезопасностью
-- **Vite**: Молниеносная система сборки и dev-сервер
-- **TailwindCSS**: Utility-first CSS фреймворк
-- **Zustand**: Легковесное управление состоянием
-- **Socket.IO Client**: WebSocket коммуникация в реальном времени
-- **Axios**: HTTP клиент для API запросов
-- **React Router**: Роутинг на стороне клиента
-- **Lucide React**: Красивый набор иконок
-- **React Hot Toast**: Элегантная система уведомлений
-- **date-fns**: Современная библиотека утилит для дат
-- **Workbox**: Управление Service Worker для PWA
-
-### Backend
-
-- **Node.js**: JavaScript runtime
-- **Express**: Фреймворк веб-приложений
-- **TypeScript**: Разработка типобезопасного сервера
-- **Socket.IO**: Двунаправленная коммуникация в реальном времени
-- **Prisma**: Современный ORM для управления базой данных
-- **PostgreSQL**: Надёжная реляционная база данных
-- **Redis**: In-memory хранилище данных для сессий и кэширования
-- **JWT**: JSON Web Tokens для аутентификации
-- **bcrypt**: Хеширование паролей
-- **Multer**: Обработка загрузки файлов
-- **Zod**: Валидация схемы
-- **Helmet**: Middleware для безопасности
-- **CORS**: Cross-origin resource sharing
-- **Sharp**: Обработка изображений
-- **FFmpeg**: Обработка медиа
-- **node-cron**: Планирование задач
-- **web-push**: Push-уведомления
-
-### DevOps и инфраструктура
-
-- **Docker**: Контейнеризация
-- **Docker Compose**: Оркестрация мульти-контейнеров
-- **Nginx**: Веб-сервер и обратный прокси
-- **Git**: Контроль версий
-
----
-
-## 🏗 Архитектура
-
-### Системная архитектура
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Клиентский уровень                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   Браузер    │  │   Мобильный  │  │   Десктоп    │      │
-│  │     PWA      │  │     PWA      │  │     PWA      │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│         │                  │                  │              │
-│         └──────────────────┴──────────────────┘              │
-│                          │                                   │
-│                    WebSocket + HTTP                          │
-│                          │                                   │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────────┐
-│                  Уровень приложения                          │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              Express.js Сервер                       │    │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │    │
-│  │  │   REST   │  │ Socket.IO│  │  WebRTC Сигнал   │  │    │
-│  │  │   API    │  │  Сервер  │  │     Сервер       │  │    │
-│  │  └──────────┘  └──────────┘  └──────────────────┘  │    │
-│  └─────────────────────────────────────────────────────┘    │
-│           │                │                   │             │
-│     ┌─────┴────┐     ┌─────┴─────┐      ┌─────┴──────┐     │
-│     │   Авториз│     │ Сообщения │      │   Звонки   │     │
-│     │  Сервис  │     │  Сервис   │      │   Сервис   │     │
-│     └──────────┘     └───────────┘      └────────────┘     │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────────┐
-│                     Уровень данных                           │
-│  ┌──────────────┐    ┌─────────┐    ┌──────────────┐       │
-│  │  PostgreSQL  │    │  Redis  │    │  Хранилище   │       │
-│  │ База данных  │    │   Кэш   │    │    файлов    │       │
-│  └──────────────┘    └─────────┘    └──────────────┘       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Схема базы данных
-
-```
-User (Пользователь)
-├── id (UUID, PK)
-├── email (уникальный)
-├── username (уникальный)
-├── password (хешированный)
-├── displayName
-├── avatar
-├── bio
-├── status (enum)
-├── lastSeen
-├── showOnlineStatus
-├── showProfilePhoto
-├── showLastSeen
-└── timestamps
-
-Chat (Чат)
-├── id (UUID, PK)
-├── name
-├── type (PRIVATE|GROUP|CHANNEL)
-├── avatar
-├── description
-├── isSecret
-└── timestamps
-
-ChatMember (Участник чата)
-├── id (UUID, PK)
-├── userId (FK → User)
-├── chatId (FK → Chat)
-├── role (OWNER|ADMIN|MEMBER)
-└── joinedAt
-
-Message (Сообщение)
-├── id (UUID, PK)
-├── content
-├── type (enum)
-├── senderId (FK → User)
-├── chatId (FK → Chat)
-├── replyToId (FK → Message)
-├── fileUrl
-├── fileName
-├── fileSize
-├── stickerId
-├── isEdited
-├── isDeleted
-├── isSilent
-├── mentions[]
-├── hashtags[]
-└── timestamps
-
-StickerPack (Пак стикеров)
-├── id (UUID, PK)
-├── name
-├── slug (уникальный)
-├── description
-├── thumbnail
-├── isPublic
-└── stickers[]
-
-Bot (Бот)
-├── id (UUID, PK)
-├── username (уникальный)
-├── displayName
-├── token (уникальный)
-├── isActive
-├── isInline
-└── commands[], webhooks[]
-```
-
----
-
-## 🚀 Быстрый старт
-
-### Требования
-
-- Node.js 18+ и npm
-- Docker и Docker Compose (для контейнеризованного развёртывания)
-- PostgreSQL 15+ (если запуск без Docker)
-- Redis (опционально, для управления сессиями)
-
-### Локальная разработка
-
-1. **Клонировать репозиторий**
+Install dependencies:
 
 ```bash
-git clone <repository-url>
-cd stogram
+npm install
+cd client && npm install
+cd ../server && npm install
 ```
 
-2. **Установить зависимости**
+Set up environment files:
 
-```bash
-npm run install:all
-```
+- root: [`.env.example`](/c:/Project/Stogram/.env.example)
+- client: [`client/.env.example`](/c:/Project/Stogram/client/.env.example)
+- server: [`server/.env.example`](/c:/Project/Stogram/server/.env.example)
 
-3. **Настроить переменные окружения**
-
-Сервер (.env):
-```bash
-cp server/.env.example server/.env
-# Отредактируйте server/.env с вашей конфигурацией
-```
-
-Клиент (.env):
-```bash
-cp client/.env.example client/.env
-# Отредактируйте client/.env с вашей конфигурацией
-```
-
-4. **Запустить PostgreSQL и Redis**
-
-```bash
-docker-compose up -d postgres redis
-```
-
-5. **Настроить базу данных**
-
-```bash
-cd server
-npx prisma migrate dev
-npx prisma generate
-cd ..
-```
-
-6. **Запустить серверы разработки**
+Run in development:
 
 ```bash
 npm run dev
 ```
 
-Приложение будет доступно по адресам:
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3001
-
-### Развёртывание через Docker
-
-1. **Настроить переменные окружения**
+Build everything:
 
 ```bash
-cp .env.example .env
-# Отредактируйте файл .env с настройками для продакшна
-```
-
-2. **Собрать и запустить контейнеры**
-
-```bash
-docker-compose up -d --build
-```
-
-3. **Доступ к приложению**
-
-- Приложение: http://localhost
-- API: http://localhost:3001
-
-Для детальных инструкций по развёртыванию см. [DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md).
-
----
-
-## 🗺️ Дорожная карта
-
-План развития проекта Stogram на 2024-2025 годы:
-
-**🎯 Текущий статус:**
-- ✅ **v2.0.0** (Декабрь 2024) - E2E шифрование, 2FA, продвинутые боты, аналитика
-- ✅ **v2.0.1** (Декабрь 2024) - Telegram-подобный дизайн, пересылка сообщений, статусы прочтения, голосовые сообщения, поиск, самоуничтожение, превью ссылок
-- ✅ **v2.0.2** (Декабрь 2024) - Code review, статус готовности к деплою, реструктуризация документации
-- ✅ **v2.0.3** (Декабрь 2024) - Полная реструктуризация документации, детальный анализ и план реализации
-- 🚧 **v2.1.0** (Март 2025) - Групповые звонки, мобильное приложение, тестирование, CI/CD
-- ⏳ **v2.2.0** (Декабрь 2025) - Desktop приложение, Fediverse, AI функции
-
-**📱 Приоритеты:**
-1. **Групповые звонки** - WebRTC для нескольких участников (Фаза 1)
-2. **Мобильное приложение** - Полнофункциональный React Native клиент
-3. **Тестирование** - Unit и E2E тесты с 80% покрытием
-4. **CI/CD** - Автоматизация развертывания
-
-📖 **[Полная дорожная карта →](./ROADMAP.md)**  
-📊 **[Детальный анализ и план реализации →](./COMPREHENSIVE_ANALYSIS_AND_ROADMAP.md)**
-
----
-
-## 📋 Code Review и статус деплоя
-
-### ✅ Статус готовности: **ГОТОВ К ДЕПЛОЮ** (80%)
-
-Проект прошел полный code review и готов к production деплою на рекомендуемых платформах.
-
-**📊 Оценка качества:**
-- ✅ TypeScript типизация: 10/10 - Все ошибки исправлены
-- ✅ Безопасность: 9/10 - Следует best practices
-- ✅ Архитектура: 10/10 - Хорошо структурировано
-- ✅ Документация: 10/10 - Исчерпывающая
-- ⚠️ Тестирование: 5/10 - Требуется добавить тесты
-- ✅ Docker Setup: 10/10 - Production-ready
-
-**📝 Детальные отчеты:**
-- **[Code Review](./docs/development/CODE_REVIEW.md)** - Полный code review с оценкой качества кода
-- **[Статус деплоя](./docs/development/DEPLOYMENT_STATUS.md)** - Статус готовности к деплою, чеклисты и план действий
-- **[TypeScript исправления](./docs/development/TYPESCRIPT_FIXES.md)** - Детали исправлений TypeScript (69 ошибок)
-- **[Анализ платформ](./docs/deployment/VERCEL_DEPLOYMENT_ANALYSIS.md)** - Анализ совместимости с платформами
-
-**🚀 Рекомендуемые платформы:**
-- ⭐ **Railway.app** - Рекомендуется (поддержка WebSocket, встроенные DB/Redis)
-- ⭐ **Render.com** - Рекомендуется (managed services, Docker support)
-- ✅ **VPS (DigitalOcean/Linode)** - С Docker Compose
-- ❌ **Vercel** - Не подходит (нет WebSocket поддержки)
-
-**⚠️ Перед деплоем:**
-1. Обновить зависимости с уязвимостями (`npm audit fix`)
-2. Сгенерировать production secrets (JWT_SECRET, VAPID keys)
-3. Настроить production environment variables
-4. Протестировать с production настройками
-
----
-
-## ✅ Проверка типизации
-
-Проект использует TypeScript с строгой типизацией для обеспечения качества кода.
-
-### Проверка типов в клиенте
-
-```bash
-cd client
 npm run build
-# или
-npx tsc --noEmit
 ```
 
-### Проверка типов в сервере
+## Database
+
+The backend uses Prisma.
+
+Generate Prisma client:
 
 ```bash
 cd server
-npx tsc --noEmit
+npm run prisma:generate
 ```
 
-### Статус типизации
+Apply schema changes locally:
 
-✅ **Клиент**: Все TypeScript ошибки исправлены
-- Исправлены импорты неиспользуемых компонентов в BotManager
-- Исправлен неверный тип события в AudioVisualizer (seek → interaction)
-
-✅ **Сервер**: Все TypeScript ошибки исправлены  
-- Добавлены глобальные типы для Express Request (расширение с user и userId)
-- Исправлены все неявные типы 'any' в контроллерах и сервисах
-- Исправлены типы в JWT sign options
-- Добавлены явные типы для callback функций в reduce, map, filter, forEach
-
-### Конфигурация
-
-**Клиент** (`client/tsconfig.json`):
-- Strict mode включен
-- noUnusedLocals и noUnusedParameters включены
-- JSX: react-jsx
-
-**Сервер** (`server/tsconfig.json`):
-- Strict mode включен
-- Добавлены кастомные типы в `src/types/express.d.ts`
-- TypeRoots настроены для поддержки глобальных типов
-
----
-
-## 🧪 E2E тесты
-
-Для проверки критичных пользовательских сценариев добавлен Playwright. Тестовый раннер автоматически поднимает клиентский Vite dev-server и имитирует ответы API, поэтому проверки можно выполнять без локально запущенного backend.
-
-### Подготовка
-
-```
-npm run install:all
-npx playwright install --with-deps
+```bash
+cd server
+npm run prisma:push
 ```
 
-> Если зависимости уже установлены (например, вы ранее запускали `npm run install:all`), достаточно повторить только `npx playwright install` для скачивания браузеров Playwright.
+For production deploys with migration history:
 
-### Запуск тестов
-
+```bash
+cd server
+npx prisma migrate deploy
 ```
-npm run test:e2e
-```
 
-Тесты используют `http://127.0.0.1:4173` по умолчанию. Базовый URL и порт можно переопределить переменными `E2E_BASE_URL` и `E2E_PORT`. При явном указании `E2E_BASE_URL` dev-server автоматически не запускается — целевой адрес должен быть доступен до старта тестов.
+Latest tracked migration:
 
-Текущее покрытие включает:
-- редирект неавторизованных пользователей на экран входа;
-- клиентскую валидацию формы входа;
-- проверку формы регистрации и предупреждения о несовпадении паролей.
+- [`server/prisma/migrations/0003_bot_api_compatibility/migration.sql`](/c:/Project/Stogram/server/prisma/migrations/0003_bot_api_compatibility/migration.sql)
 
----
+## Useful Scripts
 
-## 📚 Документация
+Root:
 
-**📖 [Complete Documentation →](./docs/README.md)**
+- `npm run dev`
+- `npm run build`
+- `npm run test:e2e`
 
-### 👥 User Documentation
-- **[User Guide](./docs/user-guide/USER_GUIDE.md)**: Complete guide for end users
-- **[Features Overview](./docs/user-guide/FEATURES.md)**: All available features and capabilities
+Client:
 
-### 🔧 Developer Documentation
-- **[Architecture](./docs/development/ARCHITECTURE.md)**: System architecture and design
-- **[Contributing Guide](./CONTRIBUTING.md)**: How to contribute to the project
-- **[API Documentation](./docs/api/)**: REST and WebSocket API reference
+- `npm run dev`
+- `npm run build`
+- `npm run test`
 
-### 🚀 Deployment & Setup
-- **[Deployment Guide](./docs/deployment/DEPLOYMENT.md)**: Production deployment instructions
-- **[Quick Start](./docs/deployment/QUICKSTART.md)**: Automated setup guide
-- **[Migration Guide](./docs/deployment/MIGRATION_GUIDE.md)**: Database migration instructions
-- **[Railway Deployment](./docs/deployment/RAILWAY_DEPLOYMENT.md)**: Complete Railway.app deployment guide
-- **[Railway Quick Start](./docs/deployment/RAILWAY_QUICKSTART.md)**: Quick Railway deployment instructions
-- **[Render + Neon Setup](./docs/deployment/RENDER_NEON_SETUP.md)**: Render backend and Neon PostgreSQL deployment
-- **[SMTP Email Setup](./docs/deployment/SMTP_SETUP.md)**: Email configuration for verification and password reset (Gmail, Yandex, Mail.ru)
+Server:
 
-### 🔌 Integrations
-- **[Telegram Integration](./docs/api/TELEGRAM.md)**: Complete Telegram integration guide
-- **[Telegram Setup](./docs/api/TELEGRAM_SETUP.md)**: Step-by-step setup instructions
-- **[Telegram API Examples](./docs/api/TELEGRAM_EXAMPLES.md)**: API usage examples
-- **[Bots Usage Guide](./BOTS_USAGE_GUIDE.md)**: Comprehensive guide for bot development
+- `npm run dev`
+- `npm run build`
+- `npm run test`
+- `npm run prisma:generate`
+- `npm run prisma:push`
 
-### 📱 Mobile Application
-- **[Mobile Documentation](./docs/mobile/README.md)**: React Native mobile app documentation
-- **[Mobile Status](./docs/mobile/STATUS.md)**: Implementation status and roadmap
-- **[Features Checklist](./docs/mobile/CHECKLIST.md)**: Mobile features checklist
+## Bots And Integrations
 
-### 🇷🇺 Русская документация
-- **[Полная документация](./docs/ru/README.md)**: Complete documentation in Russian
-- **[Статус реализации](./docs/ru/STATUS.md)**: Implementation status in Russian
-- **[Локальное тестирование](./docs/ru/LOCAL_TESTING.md)**: Local testing guide in Russian
+Stogram currently has three integration directions:
 
-### 📝 Reference
-- **[Security Policy](./SECURITY.md)**: Security guidelines and reporting
-- **[Changelog](./CHANGELOG.md)**: Version history and changes
-- **[Comprehensive Analysis & Roadmap](./COMPREHENSIVE_ANALYSIS_AND_ROADMAP.md)**: Detailed analysis, roadmap, and Telegram comparison
+1. Internal bots via the Stogram bot API and webhook/runtime flow
+2. Telegram admin integration
+3. `n8n` integration
 
----
+Helpful docs:
 
-## 📸 Скриншоты
+- [`BOTS_USAGE_GUIDE.md`](/c:/Project/Stogram/BOTS_USAGE_GUIDE.md)
+- [`docs/api/TELEGRAM.md`](/c:/Project/Stogram/docs/api/TELEGRAM.md)
+- [`docs/deployment/VERCEL_SETUP.md`](/c:/Project/Stogram/docs/deployment/VERCEL_SETUP.md)
 
-### Вход и регистрация
-<div align="center">
-  <img src="https://via.placeholder.com/400x300/0088cc/ffffff?text=Экран+входа" alt="Вход" width="400"/>
-  <img src="https://via.placeholder.com/400x300/0088cc/ffffff?text=Экран+регистрации" alt="Регистрация" width="400"/>
-</div>
+## Documentation
 
-### Интерфейс чата
-<div align="center">
-  <img src="https://via.placeholder.com/800x500/0088cc/ffffff?text=Интерфейс+чата" alt="Интерфейс чата"/>
-</div>
+Main documentation index:
 
-### Видео звонок
-<div align="center">
-  <img src="https://via.placeholder.com/800x500/0088cc/ffffff?text=Видео+звонок" alt="Видео звонок"/>
-</div>
+- [`docs/README.md`](/c:/Project/Stogram/docs/README.md)
 
----
+Other useful files:
 
-## 🤝 Участие в разработке
+- [`ROADMAP.md`](/c:/Project/Stogram/ROADMAP.md)
+- [`CHANGELOG.md`](/c:/Project/Stogram/CHANGELOG.md)
+- [`INSTALLATION.md`](/c:/Project/Stogram/INSTALLATION.md)
+- [`SECURITY.md`](/c:/Project/Stogram/SECURITY.md)
 
-Мы приветствуем вклад в проект! Пожалуйста, следуйте этим шагам:
+## Notes
 
-1. Форкните репозиторий
-2. Создайте ветку функции (`git checkout -b feature/amazing-feature`)
-3. Зафиксируйте ваши изменения (`git commit -m 'Add amazing feature'`)
-4. Отправьте в ветку (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
-
-Подробнее см. [CONTRIBUTING.md](./CONTRIBUTING.md)
-
----
-
-## 📄 Лицензия
-
-Этот проект лицензирован под лицензией MIT - см. файл [LICENSE](LICENSE) для деталей.
-
----
-
-## 🙏 Благодарности
-
-- Дизайн вдохновлён Telegram
-- Иконки от Lucide
-- Создано с любовью используя React и Node.js
-
----
-
-## 📞 Поддержка
-
-- 📧 Email: support@stogram.com
-- 💬 Discord: [Присоединяйтесь к нашему сообществу](https://discord.gg/stogram)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/stogram/issues)
-
----
-
-<div align="center">
-  <p>Создано с ❤️ командой Stogram</p>
-  <p>⭐ Поставьте звезду на GitHub, если вам нравится этот проект!</p>
-</div>
+- The repository still contains historical reports and audit documents. They were kept, but the main entry documentation was cleaned up.
+- Some older markdown files may still contain outdated analysis snapshots; treat the new `README` and docs index as the current starting points.
