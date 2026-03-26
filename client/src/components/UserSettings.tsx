@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
 import { monitoredApi } from '../utils/monitoredApi';
@@ -83,7 +83,7 @@ interface Folder {
 type SettingsSection = 'main' | 'chat-settings' | 'privacy' | 'notifications' | 'data' | 'appearance' | 'security' | 'sessions' | 'bots' | 'folders';
 
 /**
- * Telegram-style full-screen settings page with profile header and grouped settings.
+ * Responsive Telegram-style settings panel with profile header and grouped settings.
  */
 const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
@@ -143,7 +143,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     loadNotificationPreferences();
   }, []);
 
-  /* в”Ђв”Ђ Data Loading в”Ђв”Ђ */
+  /* ── Data Loading ── */
   const loadUserData = async () => {
     try {
       const response = await monitoredApi.get('/users/me');
@@ -189,7 +189,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       setSessions(response.data.sessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
-      toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЃРµР°РЅСЃС‹');
+      toast.error('Не удалось загрузить сеансы');
     } finally {
       setLoadingSessions(false);
     }
@@ -223,13 +223,13 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       setFolders(response.data.folders || []);
     } catch (error) {
       console.error('Failed to load folders:', error);
-      toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїР°РїРєРё');
+      toast.error('Не удалось загрузить папки');
     } finally {
       setLoadingFolders(false);
     }
   };
 
-  /* в”Ђв”Ђ Handlers в”Ђв”Ђ */
+  /* ── Handlers ── */
   const handlePrivacyChange = async (key: string, value: boolean) => {
     try {
       const response = await monitoredApi.patch('/users/privacy', { [key]: value });
@@ -239,10 +239,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       } else {
         setPrivacy({ ...privacy, [key]: value });
       }
-      toast.success('РќР°СЃС‚СЂРѕР№РєРё РѕР±РЅРѕРІР»РµРЅС‹');
+      toast.success('Настройки обновлены');
     } catch (error: any) {
       console.error('Failed to update privacy:', error);
-      const errorMessage = error?.response?.data?.error || 'РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ РЅР°СЃС‚СЂРѕРµРє РїСЂРёРІР°С‚РЅРѕСЃС‚Рё';
+      const errorMessage = error?.response?.data?.error || 'Ошибка обновления настроек приватности';
       toast.error(errorMessage);
       // Revert local state on error
       setPrivacy({ ...privacy, [key]: !value });
@@ -261,7 +261,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           }
         } catch (error: any) {
           console.error('Failed to update notifications:', error);
-          const errorMessage = error?.response?.data?.error || 'РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ СѓРІРµРґРѕРјР»РµРЅРёР№';
+          const errorMessage = error?.response?.data?.error || 'Ошибка обновления уведомлений';
           toast.error(errorMessage);
           // Reload preferences from server to revert to correct state
           if (onError) {
@@ -310,7 +310,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Р Р°Р·РјРµСЂ С„Р°Р№Р»Р° РЅРµ Р±РѕР»РµРµ 5 РњР‘');
+      toast.error('Размер файла не более 5 МБ');
       return;
     }
     setAvatarFile(file);
@@ -354,10 +354,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       // Force re-render to show new avatar
       // The avatarSrc will use the new user.avatar from response
       
-      toast.success('РџСЂРѕС„РёР»СЊ РѕР±РЅРѕРІР»С‘РЅ');
+      toast.success('Профиль обновлён');
     } catch (error: any) {
       console.error('Profile update error:', error);
-      toast.error(error.response?.data?.error || 'РћС€РёР±РєР° РѕР±РЅРѕРІР»РµРЅРёСЏ РїСЂРѕС„РёР»СЏ');
+      toast.error(error.response?.data?.error || 'Ошибка обновления профиля');
     } finally {
       setSavingProfile(false);
     }
@@ -366,11 +366,11 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (changePasswordData.newPassword !== changePasswordData.confirmPassword) {
-      toast.error('РџР°СЂРѕР»Рё РЅРµ СЃРѕРІРїР°РґР°СЋС‚');
+      toast.error('Пароли не совпадают');
       return;
     }
     if (changePasswordData.newPassword.length < 8) {
-      toast.error('РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РјРµРЅРµРµ 8 СЃРёРјРІРѕР»РѕРІ');
+      toast.error('Пароль должен быть не менее 8 символов');
       return;
     }
     try {
@@ -378,23 +378,23 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         currentPassword: changePasswordData.currentPassword,
         newPassword: changePasswordData.newPassword,
       });
-      toast.success('РџР°СЂРѕР»СЊ РёР·РјРµРЅС‘РЅ');
+      toast.success('Пароль изменён');
       setChangePasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'РћС€РёР±РєР° СЃРјРµРЅС‹ РїР°СЂРѕР»СЏ');
+      toast.error(error.response?.data?.error || 'Ошибка смены пароля');
     }
   };
 
   const handleDisable2FA = async () => {
-    if (!confirm('РћС‚РєР»СЋС‡РёС‚СЊ РґРІСѓС…С„Р°РєС‚РѕСЂРЅСѓСЋ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёСЋ?')) return;
-    const code = prompt('Р’РІРµРґРёС‚Рµ РєРѕРґ 2FA:');
+    if (!confirm('Отключить двухфакторную аутентификацию?')) return;
+    const code = prompt('Введите код 2FA:');
     if (!code) return;
     try {
       await monitoredApi.post('/security/2fa/disable', { code });
-      toast.success('2FA РѕС‚РєР»СЋС‡РµРЅР°');
+      toast.success('2FA отключена');
       await loadSecurityStatus();
     } catch {
-      toast.error('РћС€РёР±РєР° РѕС‚РєР»СЋС‡РµРЅРёСЏ 2FA');
+      toast.error('Ошибка отключения 2FA');
     }
   };
 
@@ -402,31 +402,31 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     try {
       await monitoredApi.delete(`/users/sessions/${sessionId}`);
       setSessions((s) => s.filter((x) => x.id !== sessionId));
-      toast.success('РЎРµР°РЅСЃ Р·Р°РІРµСЂС€С‘РЅ');
+      toast.success('Сеанс завершён');
     } catch {
-      toast.error('РћС€РёР±РєР° Р·Р°РІРµСЂС€РµРЅРёСЏ СЃРµР°РЅСЃР°');
+      toast.error('Ошибка завершения сеанса');
     }
   };
 
   const handleRevokeAllSessions = async () => {
-    if (!confirm('Р—Р°РІРµСЂС€РёС‚СЊ РІСЃРµ РґСЂСѓРіРёРµ СЃРµР°РЅСЃС‹?')) return;
+    if (!confirm('Завершить все другие сеансы?')) return;
     try {
       await monitoredApi.delete('/users/sessions');
       await loadSessions();
-      toast.success('Р’СЃРµ СЃРµР°РЅСЃС‹ Р·Р°РІРµСЂС€РµРЅС‹');
+      toast.success('Все сеансы завершены');
     } catch {
-      toast.error('РћС€РёР±РєР°');
+      toast.error('Ошибка');
     }
   };
 
   const handleClearCache = async () => {
-    if (!confirm('РћС‡РёСЃС‚РёС‚СЊ РєСЌС€?')) return;
+    if (!confirm('Очистить кэш?')) return;
     try {
       await monitoredApi.post('/users/storage/clear-cache');
       await loadStorageInfo();
-      toast.success('РљСЌС€ РѕС‡РёС‰РµРЅ');
+      toast.success('Кэш очищен');
     } catch {
-      toast.error('РћС€РёР±РєР° РѕС‡РёСЃС‚РєРё РєСЌС€Р°');
+      toast.error('Ошибка очистки кэша');
     }
   };
 
@@ -440,9 +440,9 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success('Р”Р°РЅРЅС‹Рµ СЌРєСЃРїРѕСЂС‚РёСЂРѕРІР°РЅС‹');
+      toast.success('Данные экспортированы');
     } catch {
-      toast.error('РћС€РёР±РєР° СЌРєСЃРїРѕСЂС‚Р°');
+      toast.error('Ошибка экспорта');
     }
   };
 
@@ -453,10 +453,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       const text = await file.text();
       const data = JSON.parse(text);
       await monitoredApi.post('/users/import', data);
-      toast.success('Р”Р°РЅРЅС‹Рµ РёРјРїРѕСЂС‚РёСЂРѕРІР°РЅС‹');
+      toast.success('Данные импортированы');
       await loadUserData();
     } catch {
-      toast.error('РћС€РёР±РєР° РёРјРїРѕСЂС‚Р°');
+      toast.error('Ошибка импорта');
     }
     event.target.value = '';
   };
@@ -482,7 +482,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const handleSaveFolder = async () => {
     const trimmedName = folderName.trim();
     if (!trimmedName) {
-      toast.error('Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РїР°РїРєРё');
+      toast.error('Введите название папки');
       return;
     }
 
@@ -493,14 +493,14 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           color: folderColor,
           icon: editingFolder.icon || 'Folder',
         });
-        toast.success('РџР°РїРєР° РѕР±РЅРѕРІР»РµРЅР°');
+        toast.success('Папка обновлена');
       } else {
         await monitoredApi.post('/folders', {
           name: trimmedName,
           color: folderColor,
           icon: 'Folder',
         });
-        toast.success('РџР°РїРєР° СЃРѕР·РґР°РЅР°');
+        toast.success('Папка создана');
       }
 
       setShowFolderModal(false);
@@ -508,20 +508,20 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
       await loadFolders();
     } catch (error) {
       console.error('Failed to save folder:', error);
-      toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїР°РїРєСѓ');
+      toast.error('Не удалось сохранить папку');
     }
   };
 
   const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('РЈРґР°Р»РёС‚СЊ РїР°РїРєСѓ?')) return;
+    if (!confirm('Удалить папку?')) return;
 
     try {
       await monitoredApi.delete(`/folders/${folderId}`);
       setFolders((current) => current.filter((folder) => folder.id !== folderId));
-      toast.success('РџР°РїРєР° СѓРґР°Р»РµРЅР°');
+      toast.success('Папка удалена');
     } catch (error) {
       console.error('Failed to delete folder:', error);
-      toast.error('РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РїР°РїРєСѓ');
+      toast.error('Не удалось удалить папку');
     }
   };
 
@@ -533,7 +533,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     else if (section === 'folders') loadFolders();
   }, [section]);
 
-  /* в”Ђв”Ђ UI Helpers в”Ђв”Ђ */
+  /* ── UI Helpers ── */
   // Use preview if available (during selection), otherwise use saved avatar
   const avatarSrc = avatarPreview || getMediaUrl(user?.avatar) || '';
   const displayName = user?.displayName || user?.username || '';
@@ -612,7 +612,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     <p className="px-5 pt-5 pb-2 text-[13px] font-semibold text-[#3390ec] uppercase tracking-wide">{text}</p>
   );
 
-  /* в”Ђв”Ђ RENDER в”Ђв”Ђ */
+  /* ── RENDER ── */
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
@@ -620,8 +620,15 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         console.error('UserSettings error:', error, errorInfo);
       }}
     >
-      <div className="fixed inset-0 bg-white dark:bg-[#0b141a] z-50 flex flex-col overflow-hidden">
-        {/* в”Ђв”Ђ MAIN Profile View в”Ђв”Ђ */}
+      <div
+        className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 sm:items-center sm:p-4"
+        onClick={onClose}
+      >
+        <div
+          className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:max-w-[920px] sm:rounded-[28px] sm:shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+        {/* ── MAIN Profile View ── */}
         {section === 'main' && (
           <div className="flex flex-col h-full overflow-y-auto">
             {/* Header */}
@@ -646,24 +653,24 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   className="absolute bottom-0 right-0 w-10 h-10 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#2b7fd4] transition"
-                  aria-label="РР·РјРµРЅРёС‚СЊ С„РѕС‚Рѕ"
+                  aria-label="Изменить фото"
                 >
                   <Camera className="w-5 h-5" />
                 </button>
               </div>
               <h2 className="mt-4 text-[22px] font-semibold text-[#222] dark:text-white">{displayName}</h2>
-              <p className="text-[14px] text-[#4fae4e] mt-0.5">РІ СЃРµС‚Рё</p>
+              <p className="text-[14px] text-[#4fae4e] mt-0.5">в сети</p>
             </div>
 
             <Divider />
 
             {/* Account Info */}
             <div className="bg-white dark:bg-[#17212b]">
-              <SectionLabel text="РђРєРєР°СѓРЅС‚" />
+              <SectionLabel text="Аккаунт" />
 
               {/* Phone (placeholder) */}
               <div className="px-5 py-3.5">
-                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.email || 'вЂ”'}</p>
+                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.email || '—'}</p>
                 <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">Email</p>
               </div>
 
@@ -672,15 +679,15 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
               {/* Username */}
               <div className="px-5 py-3.5">
                 <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">@{user?.username || ''}</p>
-                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ</p>
+                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">Имя пользователя</p>
               </div>
 
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
 
               {/* Bio */}
               <div className="px-5 py-3.5">
-                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.bio || 'РќР°РїРёС€РёС‚Рµ РЅРµРјРЅРѕРіРѕ Рѕ СЃРµР±Рµ'}</p>
-                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">Рћ СЃРµР±Рµ</p>
+                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.bio || 'Напишите немного о себе'}</p>
+                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">О себе</p>
               </div>
 
               {(avatarFile || profileFormData.displayName !== (user?.displayName || '') || profileFormData.bio !== (user?.bio || '')) && (
@@ -690,7 +697,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                     disabled={savingProfile}
                     className="w-full py-2.5 bg-[#3390ec] text-white rounded-lg font-medium text-[15px] hover:bg-[#2b7fd4] transition disabled:opacity-50"
                   >
-                    {savingProfile ? 'РЎРѕС…СЂР°РЅРµРЅРёРµ...' : 'РЎРѕС…СЂР°РЅРёС‚СЊ'}
+                    {savingProfile ? 'Сохранение...' : 'Сохранить'}
                   </button>
                 </div>
               )}
@@ -700,21 +707,21 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
             {/* Settings Menu */}
             <div className="bg-white dark:bg-[#17212b]">
-              <SectionLabel text="РќР°СЃС‚СЂРѕР№РєРё" />
-              <MenuRow icon={MessageCircle} label="РќР°СЃС‚СЂРѕР№РєРё С‡Р°С‚РѕРІ" onClick={() => setSection('chat-settings')} color="text-[#3390ec]" />
-              <MenuRow icon={Shield} label="РљРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚СЊ" onClick={() => setSection('privacy')} color="text-[#8e8e93]" />
-              <MenuRow icon={Bell} label="РЈРІРµРґРѕРјР»РµРЅРёСЏ Рё Р·РІСѓРєРё" onClick={() => setSection('notifications')} color="text-[#ef5350]" />
-              <MenuRow icon={Database} label="Р”Р°РЅРЅС‹Рµ Рё РїР°РјСЏС‚СЊ" onClick={() => setSection('data')} color="text-[#4fae4e]" />
-              <MenuRow icon={Palette} label="Р’РЅРµС€РЅРёР№ РІРёРґ" onClick={() => setSection('appearance')} color="text-[#e67e22]" />
-              <MenuRow icon={FolderOpen} label="РџР°РїРєРё СЃ С‡Р°С‚Р°РјРё" onClick={() => setSection('folders')} color="text-[#3390ec]" />
+              <SectionLabel text="Настройки" />
+              <MenuRow icon={MessageCircle} label="Настройки чатов" onClick={() => setSection('chat-settings')} color="text-[#3390ec]" />
+              <MenuRow icon={Shield} label="Конфиденциальность" onClick={() => setSection('privacy')} color="text-[#8e8e93]" />
+              <MenuRow icon={Bell} label="Уведомления и звуки" onClick={() => setSection('notifications')} color="text-[#ef5350]" />
+              <MenuRow icon={Database} label="Данные и память" onClick={() => setSection('data')} color="text-[#4fae4e]" />
+              <MenuRow icon={Palette} label="Внешний вид" onClick={() => setSection('appearance')} color="text-[#e67e22]" />
+              <MenuRow icon={FolderOpen} label="Папки с чатами" onClick={() => setSection('folders')} color="text-[#3390ec]" />
             </div>
 
             <Divider />
 
             <div className="bg-white dark:bg-[#17212b]">
-              <MenuRow icon={Shield} label="Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ" subtitle="2FA, РїР°СЂРѕР»СЊ" onClick={() => setSection('security')} color="text-[#8e8e93]" />
-              <MenuRow icon={Monitor} label="РђРєС‚РёРІРЅС‹Рµ СЃРµР°РЅСЃС‹" onClick={() => setSection('sessions')} color="text-[#3390ec]" />
-              <MenuRow icon={Bot} label="Р‘РѕС‚С‹ Рё РёРЅС‚РµРіСЂР°С†РёРё" onClick={() => setSection('bots')} color="text-[#9c27b0]" />
+              <MenuRow icon={Shield} label="Безопасность" subtitle="2FA, пароль" onClick={() => setSection('security')} color="text-[#8e8e93]" />
+              <MenuRow icon={Monitor} label="Активные сеансы" onClick={() => setSection('sessions')} color="text-[#3390ec]" />
+              <MenuRow icon={Bot} label="Боты и интеграции" onClick={() => setSection('bots')} color="text-[#9c27b0]" />
             </div>
 
             <Divider />
@@ -722,49 +729,49 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* в”Ђв”Ђ PRIVACY в”Ђв”Ђ */}
+        {/* ── PRIVACY ── */}
         {section === 'privacy' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РљРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚СЊ" />
+            <SectionHeader title="Конфиденциальность" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="РџСЂРёРІР°С‚РЅРѕСЃС‚СЊ" />
-              <ToggleRow label="РџРѕРєР°Р·С‹РІР°С‚СЊ СЃС‚Р°С‚СѓСЃ РѕРЅР»Р°Р№РЅ" description="Р”СЂСѓРіРёРµ РІРёРґСЏС‚, РєРѕРіРґР° РІС‹ РІ СЃРµС‚Рё" checked={privacy.showOnlineStatus} onChange={(v) => handlePrivacyChange('showOnlineStatus', v)} />
+              <SectionLabel text="Приватность" />
+              <ToggleRow label="Показывать статус онлайн" description="Другие видят, когда вы в сети" checked={privacy.showOnlineStatus} onChange={(v) => handlePrivacyChange('showOnlineStatus', v)} />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Р’СЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ РїРѕСЃРµС‰РµРЅРёСЏ" description="РљРѕРіРґР° РІС‹ Р±С‹Р»Рё РѕРЅР»Р°Р№РЅ" checked={privacy.showLastSeen} onChange={(v) => handlePrivacyChange('showLastSeen', v)} />
+              <ToggleRow label="Время последнего посещения" description="Когда вы были онлайн" checked={privacy.showLastSeen} onChange={(v) => handlePrivacyChange('showLastSeen', v)} />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Р¤РѕС‚Рѕ РїСЂРѕС„РёР»СЏ" description="Р’РёРґРёРјРѕСЃС‚СЊ РґР»СЏ РґСЂСѓРіРёС…" checked={privacy.showProfilePhoto} onChange={(v) => handlePrivacyChange('showProfilePhoto', v)} />
+              <ToggleRow label="Фото профиля" description="Видимость для других" checked={privacy.showProfilePhoto} onChange={(v) => handlePrivacyChange('showProfilePhoto', v)} />
             </div>
           </div>
         )}
 
-        {/* в”Ђв”Ђ NOTIFICATIONS в”Ђв”Ђ */}
+        {/* ── NOTIFICATIONS ── */}
         {section === 'notifications' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РЈРІРµРґРѕРјР»РµРЅРёСЏ Рё Р·РІСѓРєРё" />
+            <SectionHeader title="Уведомления и звуки" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="РЈРІРµРґРѕРјР»РµРЅРёСЏ" />
-              <ToggleRow label="Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ" description="РџРѕР»СѓС‡Р°С‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ Рѕ СЃРѕРѕР±С‰РµРЅРёСЏС…" checked={notifications.notificationsPush} onChange={(v) => handleNotificationChange('notificationsPush', v)} />
+              <SectionLabel text="Уведомления" />
+              <ToggleRow label="Push-уведомления" description="Получать уведомления о сообщениях" checked={notifications.notificationsPush} onChange={(v) => handleNotificationChange('notificationsPush', v)} />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Email-СѓРІРµРґРѕРјР»РµРЅРёСЏ" checked={notifications.notificationsEmail} onChange={(v) => handleNotificationChange('notificationsEmail', v)} />
+              <ToggleRow label="Email-уведомления" checked={notifications.notificationsEmail} onChange={(v) => handleNotificationChange('notificationsEmail', v)} />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Р—РІСѓРє" description="Р—РІСѓРє РїСЂРё РЅРѕРІРѕРј СЃРѕРѕР±С‰РµРЅРёРё" checked={notifications.notificationsSound} onChange={(v) => handleNotificationChange('notificationsSound', v)} />
+              <ToggleRow label="Звук" description="Звук при новом сообщении" checked={notifications.notificationsSound} onChange={(v) => handleNotificationChange('notificationsSound', v)} />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Р’РёР±СЂР°С†РёСЏ" checked={notifications.notificationsVibration} onChange={(v) => handleNotificationChange('notificationsVibration', v)} />
+              <ToggleRow label="Вибрация" checked={notifications.notificationsVibration} onChange={(v) => handleNotificationChange('notificationsVibration', v)} />
             </div>
           </div>
         )}
 
-        {/* в”Ђв”Ђ APPEARANCE в”Ђв”Ђ */}
+        {/* ── APPEARANCE ── */}
         {section === 'appearance' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="Р’РЅРµС€РЅРёР№ РІРёРґ" />
+            <SectionHeader title="Внешний вид" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
-              <SectionLabel text="РўРµРјР°" />
+              <SectionLabel text="Тема" />
               <div className="grid grid-cols-3 gap-3 mt-2">
                 {[
-                  { value: 'light' as const, label: 'РЎРІРµС‚Р»Р°СЏ', bg: 'bg-white border border-gray-200' },
-                  { value: 'dark' as const, label: 'РўС‘РјРЅР°СЏ', bg: 'bg-[#0b141a]' },
-                  { value: 'system' as const, label: 'РђРІС‚Рѕ', bg: 'bg-gradient-to-br from-white to-[#0b141a]' },
+                  { value: 'light' as const, label: 'Светлая', bg: 'bg-white border border-gray-200' },
+                  { value: 'dark' as const, label: 'Тёмная', bg: 'bg-[#0b141a]' },
+                  { value: 'system' as const, label: 'Авто', bg: 'bg-gradient-to-br from-white to-[#0b141a]' },
                 ].map((t) => (
                   <button
                     key={t.value}
@@ -772,9 +779,9 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       try {
                         if (t.value !== 'system') await monitoredApi.patch('/users/theme', { theme: t.value });
                         setTheme(t.value);
-                        toast.success('РўРµРјР° РёР·РјРµРЅРµРЅР°');
+                        toast.success('Тема изменена');
                       } catch {
-                        toast.error('РћС€РёР±РєР°');
+                        toast.error('Ошибка');
                       }
                     }}
                     className={`p-3 rounded-xl border-2 transition ${
@@ -792,21 +799,21 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* в”Ђв”Ђ SECURITY в”Ђв”Ђ */}
+        {/* ── SECURITY ── */}
         {section === 'security' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ" />
+            <SectionHeader title="Безопасность" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Р”РІСѓС…С„Р°РєС‚РѕСЂРЅР°СЏ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ" />
+              <SectionLabel text="Двухфакторная аутентификация" />
               <div className="px-5 py-3.5">
                 {securityStatus ? (
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">
-                        РЎС‚Р°С‚СѓСЃ: {securityStatus.twoFactorEnabled ? (
-                          <span className="text-[#4fae4e] font-medium">Р’РєР»СЋС‡РµРЅР°</span>
+                        Статус: {securityStatus.twoFactorEnabled ? (
+                          <span className="text-[#4fae4e] font-medium">Включена</span>
                         ) : (
-                          <span className="text-[#ef5350] font-medium">РћС‚РєР»СЋС‡РµРЅР°</span>
+                          <span className="text-[#ef5350] font-medium">Отключена</span>
                         )}
                       </p>
                     </div>
@@ -816,21 +823,21 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                         securityStatus.twoFactorEnabled ? 'bg-[#ef5350]' : 'bg-[#3390ec]'
                       }`}
                     >
-                      {securityStatus.twoFactorEnabled ? 'РћС‚РєР»СЋС‡РёС‚СЊ' : 'Р’РєР»СЋС‡РёС‚СЊ'}
+                      {securityStatus.twoFactorEnabled ? 'Отключить' : 'Включить'}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[#8e8e93]">Р—Р°РіСЂСѓР·РєР°...</p>
+                  <p className="text-[#8e8e93]">Загрузка...</p>
                 )}
               </div>
 
               <Divider />
 
-              <SectionLabel text="РР·РјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ" />
+              <SectionLabel text="Изменить пароль" />
               <form onSubmit={handleChangePassword} className="px-5 space-y-3 pb-5">
                 <input
                   type="password"
-                  placeholder="РўРµРєСѓС‰РёР№ РїР°СЂРѕР»СЊ"
+                  placeholder="Текущий пароль"
                   value={changePasswordData.currentPassword}
                   onChange={(e) => setChangePasswordData({ ...changePasswordData, currentPassword: e.target.value })}
                   className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
@@ -838,7 +845,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                 />
                 <input
                   type="password"
-                  placeholder="РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ"
+                  placeholder="Новый пароль"
                   value={changePasswordData.newPassword}
                   onChange={(e) => setChangePasswordData({ ...changePasswordData, newPassword: e.target.value })}
                   className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
@@ -847,24 +854,24 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                 />
                 <input
                   type="password"
-                  placeholder="РџРѕРґС‚РІРµСЂРґРёС‚Рµ РїР°СЂРѕР»СЊ"
+                  placeholder="Подтвердите пароль"
                   value={changePasswordData.confirmPassword}
                   onChange={(e) => setChangePasswordData({ ...changePasswordData, confirmPassword: e.target.value })}
                   className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
                   required
                 />
                 <button type="submit" className="w-full py-3 bg-[#3390ec] text-white rounded-lg font-medium hover:bg-[#2b7fd4] transition">
-                  РР·РјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ
+                  Изменить пароль
                 </button>
               </form>
             </div>
           </div>
         )}
 
-        {/* в”Ђв”Ђ SESSIONS в”Ђв”Ђ */}
+        {/* ── SESSIONS ── */}
         {section === 'sessions' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РђРєС‚РёРІРЅС‹Рµ СЃРµР°РЅСЃС‹" />
+            <SectionHeader title="Активные сеансы" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
               {loadingSessions ? (
                 <div className="flex items-center justify-center py-12">
@@ -873,14 +880,14 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
               ) : sessions.length === 0 ? (
                 <div className="text-center py-12 text-[#8e8e93]">
                   <Monitor className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p>РќРµС‚ Р°РєС‚РёРІРЅС‹С… СЃРµР°РЅСЃРѕРІ</p>
+                  <p>Нет активных сеансов</p>
                 </div>
               ) : (
                 <>
                   {sessions.length > 1 && (
                     <div className="px-5 py-3">
                       <button onClick={handleRevokeAllSessions} className="text-[#ef5350] text-[14px] font-medium">
-                        Р—Р°РІРµСЂС€РёС‚СЊ РІСЃРµ РґСЂСѓРіРёРµ СЃРµР°РЅСЃС‹
+                        Завершить все другие сеансы
                       </button>
                     </div>
                   )}
@@ -889,9 +896,9 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                       <Monitor className="w-5 h-5 text-[#3390ec] flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-[15px] text-[#222] dark:text-[#e1e1e1] truncate">{s.device || 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ'}</p>
+                          <p className="text-[15px] text-[#222] dark:text-[#e1e1e1] truncate">{s.device || 'Устройство'}</p>
                           {s.isCurrent && (
-                            <span className="px-2 py-0.5 text-[11px] bg-[#4fae4e]/20 text-[#4fae4e] rounded-full font-medium">РўРµРєСѓС‰РёР№</span>
+                            <span className="px-2 py-0.5 text-[11px] bg-[#4fae4e]/20 text-[#4fae4e] rounded-full font-medium">Текущий</span>
                           )}
                         </div>
                         <p className="text-[13px] text-[#8e8e93] truncate">{s.ipAddress}</p>
@@ -909,10 +916,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* в”Ђв”Ђ DATA & STORAGE в”Ђв”Ђ */}
+        {/* ── DATA & STORAGE ── */}
         {section === 'data' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="Р”Р°РЅРЅС‹Рµ Рё РїР°РјСЏС‚СЊ" />
+            <SectionHeader title="Данные и память" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
               {loadingStorage ? (
                 <div className="flex items-center justify-center py-12">
@@ -923,7 +930,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                   <div className="px-5 py-5">
                     <div className="bg-gradient-to-br from-[#3390ec]/10 to-[#3390ec]/5 dark:from-[#3390ec]/20 dark:to-[#3390ec]/10 rounded-xl p-5">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[13px] text-[#8e8e93] font-medium uppercase">РћР±С‰РµРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ</p>
+                        <p className="text-[13px] text-[#8e8e93] font-medium uppercase">Общее использование</p>
                         <HardDrive className="w-5 h-5 text-[#3390ec]" />
                       </div>
                       <p className="text-[28px] font-bold text-[#222] dark:text-white">{storageInfo.total.formatted}</p>
@@ -932,10 +939,10 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
                   <div className="grid grid-cols-2 gap-3 px-5 pb-3">
                     {[
-                      { label: 'РЎРѕРѕР±С‰РµРЅРёСЏ', value: storageInfo.messages.count },
-                      { label: 'РњРµРґРёР°', value: storageInfo.media.count },
-                      { label: 'РљРѕРЅС‚Р°РєС‚С‹', value: storageInfo.contacts.count },
-                      { label: 'Р§Р°С‚С‹', value: storageInfo.chats.count },
+                      { label: 'Сообщения', value: storageInfo.messages.count },
+                      { label: 'Медиа', value: storageInfo.media.count },
+                      { label: 'Контакты', value: storageInfo.contacts.count },
+                      { label: 'Чаты', value: storageInfo.chats.count },
                     ].map((item) => (
                       <div key={item.label} className="bg-[#efeff4] dark:bg-[#202b36] rounded-lg p-3">
                         <p className="text-[12px] text-[#8e8e93]">{item.label}</p>
@@ -946,15 +953,15 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
                   <Divider />
 
-                  <MenuRow icon={Trash2} label="РћС‡РёСЃС‚РёС‚СЊ РєСЌС€" onClick={handleClearCache} color="text-[#e67e22]" />
+                  <MenuRow icon={Trash2} label="Очистить кэш" onClick={handleClearCache} color="text-[#e67e22]" />
                   <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-                  <MenuRow icon={Download} label="Р­РєСЃРїРѕСЂС‚ РґР°РЅРЅС‹С…" onClick={handleExportData} color="text-[#3390ec]" />
+                  <MenuRow icon={Download} label="Экспорт данных" onClick={handleExportData} color="text-[#3390ec]" />
                   <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
                   <div className="px-5 py-3.5">
                     <label className="flex items-center gap-5 cursor-pointer">
                       <Upload className="w-[22px] h-[22px] text-[#4fae4e]" />
                       <div className="flex-1">
-                        <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">РРјРїРѕСЂС‚ РґР°РЅРЅС‹С…</p>
+                        <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">Импорт данных</p>
                       </div>
                       <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                       <ChevronRight className="w-4 h-4 text-[#c7c7cc] dark:text-[#4e5b65]" />
@@ -966,38 +973,38 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* в”Ђв”Ђ CHAT SETTINGS (placeholder) в”Ђв”Ђ */}
+        {/* ── CHAT SETTINGS (placeholder) ── */}
         {section === 'chat-settings' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РќР°СЃС‚СЂРѕР№РєРё С‡Р°С‚РѕРІ" />
+            <SectionHeader title="Настройки чатов" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="РћСЂРіР°РЅРёР·Р°С†РёСЏ" />
-              <MenuRow icon={FolderOpen} label="РџР°РїРєРё СЃ С‡Р°С‚Р°РјРё" subtitle="РЎРѕР·РґР°РЅРёРµ, РёР·РјРµРЅРµРЅРёРµ Рё СѓРґР°Р»РµРЅРёРµ РїР°РїРѕРє" onClick={() => setSection('folders')} color="text-[#3390ec]" />
+              <SectionLabel text="Организация" />
+              <MenuRow icon={FolderOpen} label="Папки с чатами" subtitle="Создание, изменение и удаление папок" onClick={() => setSection('folders')} color="text-[#3390ec]" />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <MenuRow icon={Archive} label="РђСЂС…РёРІРёСЂРѕРІР°РЅРЅС‹Рµ С‡Р°С‚С‹" subtitle="РћС‚РєСЂС‹С‚СЊ Р°СЂС…РёРІ Рё РІРµСЂРЅСѓС‚СЊ С‡Р°С‚С‹ РѕР±СЂР°С‚РЅРѕ" onClick={() => setShowArchivedChats(true)} color="text-[#8e8e93]" />
+              <MenuRow icon={Archive} label="Архивированные чаты" subtitle="Открыть архив и вернуть чаты обратно" onClick={() => setShowArchivedChats(true)} color="text-[#8e8e93]" />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <MenuRow icon={UserX} label="Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»Рё" subtitle="РџСЂРѕСЃРјРѕС‚СЂ Рё СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєР°" onClick={() => setShowBlockedUsers(true)} color="text-[#ef5350]" />
+              <MenuRow icon={UserX} label="Заблокированные пользователи" subtitle="Просмотр и разблокировка" onClick={() => setShowBlockedUsers(true)} color="text-[#ef5350]" />
 
               <Divider />
 
-              <SectionLabel text="Р‘С‹СЃС‚СЂС‹Рµ РїР°СЂР°РјРµС‚СЂС‹" />
+              <SectionLabel text="Быстрые параметры" />
               <ToggleRow
-                label="Р—РІСѓРє СѓРІРµРґРѕРјР»РµРЅРёР№"
-                description="РџСЂРѕРёРіСЂС‹РІР°С‚СЊ Р·РІСѓРє РґР»СЏ РЅРѕРІС‹С… СЃРѕРѕР±С‰РµРЅРёР№"
+                label="Звук уведомлений"
+                description="Проигрывать звук для новых сообщений"
                 checked={notifications.notificationsSound}
                 onChange={(value) => handleNotificationChange('notificationsSound', value)}
               />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
               <ToggleRow
-                label="Р’РёР±СЂР°С†РёСЏ"
-                description="РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РІРёР±СЂР°С†РёСЋ РґР»СЏ СѓРІРµРґРѕРјР»РµРЅРёР№"
+                label="Вибрация"
+                description="Использовать вибрацию для уведомлений"
                 checked={notifications.notificationsVibration}
                 onChange={(value) => handleNotificationChange('notificationsVibration', value)}
               />
               <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
               <ToggleRow
-                label="Push-СѓРІРµРґРѕРјР»РµРЅРёСЏ"
-                description="РџРѕР»СѓС‡Р°С‚СЊ СѓРІРµРґРѕРјР»РµРЅРёСЏ Рѕ РЅРѕРІС‹С… СЃРѕРѕР±С‰РµРЅРёСЏС…"
+                label="Push-уведомления"
+                description="Получать уведомления о новых сообщениях"
                 checked={notifications.notificationsPush}
                 onChange={(value) => handleNotificationChange('notificationsPush', value)}
               />
@@ -1007,7 +1014,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
         {section === 'folders' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РџР°РїРєРё СЃ С‡Р°С‚Р°РјРё" />
+            <SectionHeader title="Папки с чатами" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
               <div className="px-5 py-4">
                 <button
@@ -1015,7 +1022,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#3390ec] text-white rounded-xl font-medium hover:bg-[#2b7fd4] transition"
                 >
                   <Plus className="w-4 h-4" />
-                  РЎРѕР·РґР°С‚СЊ РїР°РїРєСѓ
+                  Создать папку
                 </button>
               </div>
 
@@ -1026,8 +1033,8 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
               ) : folders.length === 0 ? (
                 <div className="px-5 py-12 text-center text-[#8e8e93]">
                   <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-[15px]">РџР°РїРѕРє РїРѕРєР° РЅРµС‚</p>
-                  <p className="text-[13px] mt-1">РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІСѓСЋ РїР°РїРєСѓ, С‡С‚РѕР±С‹ РіСЂСѓРїРїРёСЂРѕРІР°С‚СЊ С‡Р°С‚С‹.</p>
+                  <p className="text-[15px]">Папок пока нет</p>
+                  <p className="text-[13px] mt-1">Создайте первую папку, чтобы группировать чаты.</p>
                 </div>
               ) : (
                 <div className="px-5 pb-5 space-y-3">
@@ -1041,15 +1048,15 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                           <div className="min-w-0">
                             <p className="text-[15px] font-medium text-[#222] dark:text-[#e1e1e1] truncate">{folder.name}</p>
                             <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">
-                              {(folder.chatSettings || []).length} С‡Р°С‚РѕРІ
+                              {(folder.chatSettings || []).length} чатов
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => handleOpenEditFolder(folder)} className="p-2 text-[#3390ec] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РїР°РїРєСѓ">
+                          <button onClick={() => handleOpenEditFolder(folder)} className="p-2 text-[#3390ec] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="Редактировать папку">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDeleteFolder(folder.id)} className="p-2 text-[#ef5350] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="РЈРґР°Р»РёС‚СЊ РїР°РїРєСѓ">
+                          <button onClick={() => handleDeleteFolder(folder.id)} className="p-2 text-[#ef5350] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="Удалить папку">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -1058,7 +1065,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                         <div className="mt-3 flex flex-wrap gap-2">
                           {(folder.chatSettings || []).slice(0, 6).map((item, index) => (
                             <span key={`${folder.id}-${item.chat?.id || index}`} className="px-2.5 py-1 rounded-full bg-white dark:bg-[#17212b] text-[12px] text-[#5b6470] dark:text-[#c3d0db]">
-                              {item.chat?.name || 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ'}
+                              {item.chat?.name || 'Без названия'}
                             </span>
                           ))}
                         </div>
@@ -1073,11 +1080,11 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
         {section === 'bots' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="Р‘РѕС‚С‹ Рё РёРЅС‚РµРіСЂР°С†РёРё" />
+            <SectionHeader title="Боты и интеграции" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
               <div className="grid grid-cols-3 gap-2 mb-5">
                 {[
-                  { id: 'internal' as const, label: 'Р’СЃС‚СЂРѕРµРЅРЅС‹Рµ' },
+                  { id: 'internal' as const, label: 'Встроенные' },
                   { id: 'telegram' as const, label: 'Telegram' },
                   { id: 'n8n' as const, label: 'n8n' },
                 ].map((tab) => (
@@ -1095,7 +1102,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
                 ))}
               </div>
 
-              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Р—Р°РіСЂСѓР·РєР°...</div>}>
+              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Загрузка...</div>}>
                 {integrationTab === 'internal' && <LazyBotManager />}
                 {integrationTab === 'telegram' && <LazyBotSettings embedded />}
                 {integrationTab === 'n8n' && <LazyN8nSettings embedded />}
@@ -1106,28 +1113,28 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 
         {false && section === 'chat-settings' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="РќР°СЃС‚СЂРѕР№РєРё С‡Р°С‚РѕРІ" />
+            <SectionHeader title="Настройки чатов" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] flex items-center justify-center text-[#8e8e93]">
-              <p>РЎРєРѕСЂРѕ...</p>
+              <p>Скоро...</p>
             </div>
           </div>
         )}
 
-        {/* в”Ђв”Ђ BOTS в”Ђв”Ђ */}
+        {/* ── BOTS ── */}
         {false && section === 'bots' && (
           <div className="flex flex-col h-full">
-            <SectionHeader title="Р‘РѕС‚С‹" />
+            <SectionHeader title="Боты" />
             <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
-              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Р—Р°РіСЂСѓР·РєР°...</div>}>
+              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Загрузка...</div>}>
                 <LazyBotManager />
               </Suspense>
             </div>
           </div>
         )}
 
-        {/* в”Ђв”Ђ 2FA Modal в”Ђв”Ђ */}
+        {/* ── 2FA Modal ── */}
         {show2FAModal && (
-          <Suspense fallback={<div>Р—Р°РіСЂСѓР·РєР°...</div>}>
+          <Suspense fallback={<div>Загрузка...</div>}>
             <LazyTwoFactorAuth
               onClose={() => {
                 setShow2FAModal(false);
@@ -1192,6 +1199,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </ErrorBoundary>
   );

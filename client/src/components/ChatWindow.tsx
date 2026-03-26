@@ -21,6 +21,8 @@ import { messageApi, chatApi, chatSettingsApi } from '../services/api';
 import ChatSettingsDrawer from './ChatSettingsDrawer';
 import PinnedMessageBanner from './PinnedMessageBanner';
 
+const PENDING_CALL_REQUEST_KEY = 'stogram-pending-call-request';
+
 interface ChatWindowProps {
   chatId: string;
   onBack?: () => void;
@@ -336,6 +338,30 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
     socketService.initiateCall(chatId, type);
     // Модальное окно откроется после получения call:answered с callId
   };
+
+  useEffect(() => {
+    if (!currentChat || currentChat.id !== chatId || currentChat.type !== ChatType.PRIVATE) {
+      return;
+    }
+
+    try {
+      const rawRequest = sessionStorage.getItem(PENDING_CALL_REQUEST_KEY);
+      if (!rawRequest) return;
+
+      const request = JSON.parse(rawRequest) as { chatId?: string; type?: 'AUDIO' | 'VIDEO'; createdAt?: number };
+      const isFresh = typeof request.createdAt === 'number' && Date.now() - request.createdAt < 15000;
+
+      if (request.chatId === chatId && request.type && isFresh) {
+        sessionStorage.removeItem(PENDING_CALL_REQUEST_KEY);
+        window.setTimeout(() => handleStartCall(request.type!), 0);
+      } else if (!isFresh) {
+        sessionStorage.removeItem(PENDING_CALL_REQUEST_KEY);
+      }
+    } catch (error) {
+      console.error('Failed to consume pending quick call request:', error);
+      sessionStorage.removeItem(PENDING_CALL_REQUEST_KEY);
+    }
+  }, [chatId, currentChat]);
 
   const handleAnswerCall = () => {
     if (incomingCall) {

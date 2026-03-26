@@ -10,6 +10,12 @@ import SideDrawer from './SideDrawer';
 import { LazyUserSettings } from './LazyComponents';
 import { ChatType } from '../types';
 import toast from 'react-hot-toast';
+import ContactsModal from './ContactsModal';
+import FavoriteChatsModal from './FavoriteChatsModal';
+import QuickCallsModal from './QuickCallsModal';
+import InviteFriendsModal from './InviteFriendsModal';
+
+const PENDING_CALL_REQUEST_KEY = 'stogram-pending-call-request';
 
 type ChatFilter = 'all' | 'private' | 'groups' | 'bots';
 
@@ -26,7 +32,12 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   const { user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [newChatInitialType, setNewChatInitialType] = useState<'PRIVATE' | 'GROUP'>('PRIVATE');
   const [showSettings, setShowSettings] = useState(false);
+  const [showContacts, setShowContacts] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showCalls, setShowCalls] = useState(false);
+  const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ChatFilter>('all');
@@ -145,6 +156,30 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
     { id: 'groups', label: 'Группы', count: tabCounts.groups > 0 ? tabCounts.groups : undefined },
     { id: 'bots', label: 'Боты', count: tabCounts.bots > 0 ? tabCounts.bots : undefined },
   ];
+
+  const openCreateGroup = () => {
+    setNewChatInitialType('GROUP');
+    setShowNewChatModal(true);
+  };
+
+  const openNewPrivateChat = () => {
+    setNewChatInitialType('PRIVATE');
+    setShowNewChatModal(true);
+  };
+
+  const handleQuickCall = (chatId: string, type: 'AUDIO' | 'VIDEO') => {
+    try {
+      sessionStorage.setItem(
+        PENDING_CALL_REQUEST_KEY,
+        JSON.stringify({ chatId, type, createdAt: Date.now() }),
+      );
+    } catch (error) {
+      console.error('Failed to persist quick call request:', error);
+    }
+
+    onSelectChat(chatId);
+    toast.success(type === 'VIDEO' ? 'Открываем чат и запускаем видеозвонок' : 'Открываем чат и запускаем аудиозвонок');
+  };
 
   return (
     <div className="relative flex flex-col h-full bg-white dark:bg-[#0b141a]">
@@ -451,7 +486,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
       {/* ── FAB (New Chat) ── */}
       <button
-        onClick={() => setShowNewChatModal(true)}
+        onClick={openNewPrivateChat}
         className="absolute bottom-5 right-5 w-[56px] h-[56px] bg-[#3390ec] dark:bg-[#3390ec] text-white rounded-full shadow-lg hover:bg-[#2b7fd4] dark:hover:bg-[#2b7fd4] transition flex items-center justify-center z-10 active:scale-95"
         title="Новое сообщение"
       >
@@ -463,17 +498,57 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         onOpenSettings={() => setShowSettings(true)}
-        onCreateGroup={() => setShowNewChatModal(true)}
-        onOpenContacts={() => {}}
+        onCreateGroup={openCreateGroup}
+        onOpenContacts={() => setShowContacts(true)}
+        onOpenFavorites={() => setShowFavorites(true)}
+        onOpenCalls={() => setShowCalls(true)}
+        onInviteFriends={() => setShowInviteFriends(true)}
       />
 
       {/* ── Modals ── */}
       {showNewChatModal && (
-        <NewChatModal onClose={() => setShowNewChatModal(false)} />
+        <NewChatModal
+          initialChatType={newChatInitialType}
+          onClose={() => {
+            setShowNewChatModal(false);
+            setNewChatInitialType('PRIVATE');
+          }}
+        />
       )}
 
       {showSettings && (
         <LazyUserSettings onClose={() => setShowSettings(false)} />
+      )}
+      {showContacts && (
+        <ContactsModal
+          onClose={() => setShowContacts(false)}
+          onOpenChat={(chatId) => {
+            onSelectChat(chatId);
+            setShowContacts(false);
+          }}
+        />
+      )}
+      {showFavorites && (
+        <FavoriteChatsModal
+          onClose={() => setShowFavorites(false)}
+          onOpenChat={(chatId) => {
+            onSelectChat(chatId);
+            setShowFavorites(false);
+          }}
+        />
+      )}
+      {showCalls && (
+        <QuickCallsModal
+          onClose={() => setShowCalls(false)}
+          onOpenChat={(chatId) => {
+            onSelectChat(chatId);
+            setShowCalls(false);
+          }}
+          onQuickCall={handleQuickCall}
+        />
+      )}
+      {showInviteFriends && (
+        <InviteFriendsModal onClose={() => setShowInviteFriends(false)} />
       )}
     </div>
   );

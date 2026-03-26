@@ -1,11 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import { socketService } from '../services/socket';
 
-const ICE_SERVERS = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ],
+const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+];
+
+const parseUrls = (value?: string) => {
+  return value
+    ?.split(',')
+    .map((item) => item.trim())
+    .filter(Boolean) ?? [];
+};
+
+const buildIceServers = (): RTCIceServer[] => {
+  const rawIceServers = import.meta.env.VITE_WEBRTC_ICE_SERVERS;
+  if (rawIceServers) {
+    try {
+      const parsed = JSON.parse(rawIceServers);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed as RTCIceServer[];
+      }
+    } catch (error) {
+      console.warn('Invalid VITE_WEBRTC_ICE_SERVERS value, falling back to STUN/TURN variables.', error);
+    }
+  }
+
+  const iceServers: RTCIceServer[] = [];
+  const stunUrls = parseUrls(import.meta.env.VITE_STUN_URLS);
+  const turnUrls = parseUrls(import.meta.env.VITE_TURN_URLS);
+
+  if (stunUrls.length > 0) {
+    iceServers.push({ urls: stunUrls });
+  }
+
+  if (turnUrls.length > 0) {
+    iceServers.push({
+      urls: turnUrls,
+      username: import.meta.env.VITE_TURN_USERNAME,
+      credential: import.meta.env.VITE_TURN_CREDENTIAL,
+    });
+  }
+
+  return iceServers.length > 0 ? iceServers : DEFAULT_ICE_SERVERS;
+};
+
+const ICE_CONFIGURATION: RTCConfiguration = {
+  iceServers: buildIceServers(),
 };
 
 export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: string) => {
@@ -31,7 +72,7 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
 
   const initializePeerConnection = async () => {
     try {
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const pc = new RTCPeerConnection(ICE_CONFIGURATION);
       peerConnection.current = pc;
 
       pc.onicecandidate = (event) => {

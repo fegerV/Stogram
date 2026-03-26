@@ -8,13 +8,14 @@ import toast from 'react-hot-toast';
 
 interface NewChatModalProps {
   onClose: () => void;
+  initialChatType?: 'PRIVATE' | 'GROUP';
 }
 
-export default function NewChatModal({ onClose }: NewChatModalProps) {
+export default function NewChatModal({ onClose, initialChatType = 'PRIVATE' }: NewChatModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
-  const [chatType, setChatType] = useState<'PRIVATE' | 'GROUP'>('PRIVATE');
+  const [chatType, setChatType] = useState<'PRIVATE' | 'GROUP'>(initialChatType);
   const [groupName, setGroupName] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { createChat } = useChatStore();

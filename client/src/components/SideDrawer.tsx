@@ -26,6 +26,12 @@ interface SideDrawerProps {
   onCreateGroup: () => void;
   /** Navigate to contacts list */
   onOpenContacts: () => void;
+  /** Open favorite chats */
+  onOpenFavorites: () => void;
+  /** Open quick calls hub */
+  onOpenCalls: () => void;
+  /** Open invite friends dialog */
+  onInviteFriends: () => void;
 }
 
 /**
@@ -38,6 +44,9 @@ export default function SideDrawer({
   onOpenSettings,
   onCreateGroup,
   onOpenContacts,
+  onOpenFavorites,
+  onOpenCalls,
+  onInviteFriends,
 }: SideDrawerProps) {
   const { user, logout } = useAuthStore();
   const { effectiveTheme, setTheme } = useThemeStore();
@@ -70,13 +79,13 @@ export default function SideDrawer({
     { icon: User, label: 'Мой профиль', action: onOpenSettings },
     { icon: Users, label: 'Создать группу', action: onCreateGroup },
     { icon: User, label: 'Контакты', action: onOpenContacts },
-    { icon: Phone, label: 'Звонки', action: () => {} },
-    { icon: Bookmark, label: 'Избранное', action: () => {} },
+    { icon: Phone, label: 'Звонки', action: onOpenCalls },
+    { icon: Bookmark, label: 'Избранное', action: onOpenFavorites },
     { icon: Settings, label: 'Настройки', action: onOpenSettings },
   ];
 
   const secondaryItems = [
-    { icon: UserPlus, label: 'Пригласить друзей', action: () => {} },
+    { icon: UserPlus, label: 'Пригласить друзей', action: onInviteFriends },
   ];
 
   return (

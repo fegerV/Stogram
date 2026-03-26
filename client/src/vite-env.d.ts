@@ -4,6 +4,11 @@ interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_WS_URL: string
   readonly VITE_ENABLE_PERFORMANCE_WIDGET?: string
+  readonly VITE_WEBRTC_ICE_SERVERS?: string
+  readonly VITE_STUN_URLS?: string
+  readonly VITE_TURN_URLS?: string
+  readonly VITE_TURN_USERNAME?: string
+  readonly VITE_TURN_CREDENTIAL?: string
 }
 
 interface ImportMeta {
