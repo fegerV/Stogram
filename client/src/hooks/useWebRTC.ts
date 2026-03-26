@@ -14,6 +14,11 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
 
   useEffect(() => {
     initializePeerConnection();
@@ -55,6 +60,10 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
 
   const startCall = async (video: boolean = true) => {
     try {
+      if (!remoteUserId) {
+        throw new Error('Remote participant is missing');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video,
@@ -144,8 +153,12 @@ export const useWebRTC = (callId: string, isInitiator: boolean, remoteUserId: st
   };
 
   const cleanup = () => {
-    localStream?.getTracks().forEach((track) => track.stop());
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
     peerConnection.current?.close();
+    peerConnection.current = null;
+    localStreamRef.current = null;
+    setLocalStream(null);
+    setRemoteStream(null);
     socketService.off('webrtc:offer', handleOffer);
     socketService.off('webrtc:answer', handleAnswer);
     socketService.off('webrtc:ice-candidate', handleICECandidate);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { n8nApi } from '../services/api';
 
 const AVAILABLE_EVENTS = [
   { value: 'new_message', label: 'New Message' },
@@ -16,7 +17,11 @@ const AVAILABLE_EVENTS = [
   { value: 'member_left', label: 'Member Left' },
 ];
 
-export default function N8nSettings() {
+interface N8nSettingsProps {
+  embedded?: boolean;
+}
+
+export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -43,10 +48,8 @@ export default function N8nSettings() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('/api/n8n/config', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await n8nApi.getConfig();
+      const data = response.data;
       setConfig({
         webhookUrl: data.webhookUrl || '',
         apiKey: data.apiKey || '',
@@ -61,10 +64,8 @@ export default function N8nSettings() {
 
   const loadWebhooks = async () => {
     try {
-      const response = await fetch('/api/n8n/webhooks', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await n8nApi.getWebhooks();
+      const data = response.data;
       setWebhooks(data.webhooks || []);
     } catch (error) {
       console.error('Failed to load webhooks:', error);
@@ -74,20 +75,8 @@ export default function N8nSettings() {
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/n8n/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(config),
-      });
-      
-      if (response.ok) {
-        toast.success('Settings saved successfully');
-      } else {
-        toast.error('Failed to save settings');
-      }
+      await n8nApi.saveConfig(config);
+      toast.success('Settings saved successfully');
     } catch (error) {
       console.error('Failed to save config:', error);
       toast.error('Failed to save settings');
@@ -104,16 +93,8 @@ export default function N8nSettings() {
     
     setTesting(true);
     try {
-      const response = await fetch('/api/n8n/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ webhookUrl: config.webhookUrl, secret: newWebhook.secret }),
-      });
-      
-      const data = await response.json();
+      const response = await n8nApi.testWebhook({ webhookUrl: config.webhookUrl, secret: newWebhook.secret });
+      const data = response.data;
       if (data.success) {
         toast.success('Test webhook sent successfully!');
       } else {
@@ -134,23 +115,11 @@ export default function N8nSettings() {
     }
     
     try {
-      const response = await fetch('/api/n8n/webhooks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(newWebhook),
-      });
-      
-      if (response.ok) {
-        toast.success('Webhook created successfully');
-        setShowCreateModal(false);
-        setNewWebhook({ name: '', webhookUrl: '', events: [], secret: '' });
-        loadWebhooks();
-      } else {
-        toast.error('Failed to create webhook');
-      }
+      await n8nApi.createWebhook(newWebhook);
+      toast.success('Webhook created successfully');
+      setShowCreateModal(false);
+      setNewWebhook({ name: '', webhookUrl: '', events: [], secret: '' });
+      loadWebhooks();
     } catch (error) {
       console.error('Failed to create webhook:', error);
       toast.error('Failed to create webhook');
@@ -161,17 +130,9 @@ export default function N8nSettings() {
     if (!confirm('Are you sure you want to delete this webhook?')) return;
     
     try {
-      const response = await fetch(`/api/n8n/webhooks/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      
-      if (response.ok) {
-        toast.success('Webhook deleted');
-        loadWebhooks();
-      } else {
-        toast.error('Failed to delete webhook');
-      }
+      await n8nApi.deleteWebhook(id);
+      toast.success('Webhook deleted');
+      loadWebhooks();
     } catch (error) {
       console.error('Failed to delete webhook:', error);
       toast.error('Failed to delete webhook');
@@ -180,21 +141,9 @@ export default function N8nSettings() {
 
   const handleToggleWebhook = async (id: string, enabled: boolean) => {
     try {
-      const response = await fetch(`/api/n8n/webhooks/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ enabled }),
-      });
-      
-      if (response.ok) {
-        toast.success(enabled ? 'Webhook enabled' : 'Webhook disabled');
-        loadWebhooks();
-      } else {
-        toast.error('Failed to update webhook');
-      }
+      await n8nApi.updateWebhook(id, { enabled });
+      toast.success(enabled ? 'Webhook enabled' : 'Webhook disabled');
+      loadWebhooks();
     } catch (error) {
       console.error('Failed to toggle webhook:', error);
       toast.error('Failed to update webhook');
@@ -203,16 +152,16 @@ export default function N8nSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className={`flex items-center justify-center ${embedded ? 'min-h-[240px]' : 'min-h-screen'}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
+      <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
+        <h1 className={`font-bold text-gray-900 dark:text-white mb-6 ${embedded ? 'text-xl' : 'text-2xl'}`}>
           n8n Integration Settings
         </h1>
 

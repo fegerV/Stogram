@@ -1,7 +1,10 @@
 import express from 'express';
 import { AnalyticsController } from '../controllers/analyticsController';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
+
+router.use(authenticate);
 
 // User analytics
 router.get('/user', AnalyticsController.getUserAnalytics);

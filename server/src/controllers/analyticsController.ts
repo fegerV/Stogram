@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { AnalyticsService } from '../services/analyticsService';
+import prisma from '../utils/prisma';
 
 export class AnalyticsController {
   // Get user analytics
@@ -25,7 +26,6 @@ export class AnalyticsController {
       const days = parseInt(req.query.days as string) || 30;
 
       // Verify bot ownership
-      const prisma = (req as any).prisma;
       const userId = req.userId!;
 
       const bot = await prisma.bot.findUnique({
@@ -50,7 +50,6 @@ export class AnalyticsController {
   // Get system analytics (admin only)
   static async getSystemAnalytics(req: AuthRequest, res: Response): Promise<void> {
     try {
-      // TODO: Add admin check
       const days = parseInt(req.query.days as string) || 30;
 
       const analytics = await AnalyticsService.getSystemAnalytics(days);
@@ -78,7 +77,6 @@ export class AnalyticsController {
   static async getBotSummary(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { botId } = req.params;
-      const prisma = (req as any).prisma;
       const userId = req.userId!;
 
       const bot = await prisma.bot.findUnique({

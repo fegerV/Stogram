@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { telegramBotApi } from '../services/api';
 
 const DEFAULT_COMMANDS = [
   { command: 'start', description: 'Start the bot' },
@@ -13,7 +14,11 @@ const DEFAULT_COMMANDS = [
   { command: 'disconnect', description: 'Disconnect account' },
 ];
 
-export default function BotSettings() {
+interface BotSettingsProps {
+  embedded?: boolean;
+}
+
+export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -45,10 +50,8 @@ export default function BotSettings() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('/api/telegram-bot/config', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await telegramBotApi.getConfig();
+      const data = response.data;
       setConfig({
         botToken: data.botToken || '',
         botUsername: data.botUsername || '',
@@ -66,10 +69,8 @@ export default function BotSettings() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/telegram-bot/stats', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await telegramBotApi.getStats();
+      const data = response.data;
       setStats(data);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -78,10 +79,8 @@ export default function BotSettings() {
 
   const loadUsers = async () => {
     try {
-      const response = await fetch('/api/telegram-bot/users', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const data = await response.json();
+      const response = await telegramBotApi.getUsers();
+      const data = response.data;
       setUsers(data.users || []);
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -91,21 +90,9 @@ export default function BotSettings() {
   const handleSaveConfig = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/telegram-bot/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(config),
-      });
-      
-      if (response.ok) {
-        toast.success('Settings saved successfully');
-        loadStats();
-      } else {
-        toast.error('Failed to save settings');
-      }
+      await telegramBotApi.saveConfig(config);
+      toast.success('Settings saved successfully');
+      loadStats();
     } catch (error) {
       console.error('Failed to save config:', error);
       toast.error('Failed to save settings');
@@ -122,16 +109,8 @@ export default function BotSettings() {
     
     setTesting(true);
     try {
-      const response = await fetch('/api/telegram-bot/test-connection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ botToken: config.botToken }),
-      });
-      
-      const data = await response.json();
+      const response = await telegramBotApi.testConnection(config.botToken);
+      const data = response.data;
       if (data.success) {
         setBotInfo(data.bot);
         setConfig({
@@ -156,16 +135,8 @@ export default function BotSettings() {
     if (!message) return;
     
     try {
-      const response = await fetch('/api/telegram-bot/broadcast', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ message }),
-      });
-      
-      const data = await response.json();
+      const response = await telegramBotApi.broadcast(message);
+      const data = response.data;
       if (data.success) {
         toast.success(`Message sent to ${data.usersNotified} users`);
       } else {
@@ -197,16 +168,16 @@ export default function BotSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className={`flex items-center justify-center ${embedded ? 'min-h-[240px]' : 'min-h-screen'}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
+      <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
+        <h1 className={`font-bold text-gray-900 dark:text-white mb-6 ${embedded ? 'text-xl' : 'text-2xl'}`}>
           Telegram Bot Settings
         </h1>
 

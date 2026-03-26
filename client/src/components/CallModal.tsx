@@ -73,7 +73,7 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
       <div className="relative w-full h-full">
         <button
-          onClick={onClose}
+          onClick={handleEndCall}
           className="absolute top-4 right-4 p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition z-10"
         >
           <X className="w-6 h-6 text-white" />

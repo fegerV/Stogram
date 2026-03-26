@@ -9,6 +9,12 @@ export interface AuthRequest extends Request {
   sessionId?: string;
 }
 
+const getAdminIdentifiers = () =>
+  (process.env.ADMIN_USER_IDS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
 const hashToken = (token: string) => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
@@ -76,3 +82,27 @@ export const authenticate = async (
 
 export const auth = authenticate;
 export const authenticateToken = authenticate;
+
+export const requireAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const adminIdentifiers = getAdminIdentifiers();
+
+  if (adminIdentifiers.length === 0) {
+    return res.status(403).json({
+      error: 'Admin access is not configured. Set ADMIN_USER_IDS to enable admin routes.',
+    });
+  }
+
+  const matchesAdmin = adminIdentifiers.includes(req.userId || '')
+    || adminIdentifiers.includes(req.user?.email || '')
+    || adminIdentifiers.includes(req.user?.username || '');
+
+  if (!matchesAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  next();
+};

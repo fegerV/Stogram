@@ -312,6 +312,8 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
             const chatAvatar = getChatAvatar(chat, user?.id || '');
             const lastMessage = chat.messages?.[0];
             const isSelected = chat.id === selectedChatId;
+            const settings = chatSettings.get(chat.id);
+            const isMuted = settings?.notificationLevel === NotificationLevel.MUTED || settings?.isMuted === true;
 
             // Message preview
             let previewText = '';

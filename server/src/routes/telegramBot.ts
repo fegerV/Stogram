@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireAdmin } from '../middleware/auth';
 import {
   getBotConfig,
   saveBotConfig,
@@ -22,6 +22,7 @@ router.post('/test-connection', testBotConnection);
 
 // All other routes require authentication
 router.use(authenticate);
+router.use(requireAdmin);
 
 // Configuration
 router.get('/config', getBotConfig);

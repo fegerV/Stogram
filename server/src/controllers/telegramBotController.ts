@@ -60,10 +60,11 @@ export const saveBotConfig = async (req: Request, res: Response) => {
 // Webhook endpoint for Telegram
 export const botWebhook = async (req: Request, res: Response) => {
   try {
-    // Verify webhook signature
-    const signature = req.headers['x-telegram-bot-api-secret-token'] as string;
-    
-    // Process the update
+    const secretToken = req.headers['x-telegram-bot-api-secret-token'];
+    if (!telegramBotService.isWebhookRequestAuthorized(secretToken)) {
+      return res.status(403).json({ error: 'Invalid webhook secret token' });
+    }
+
     telegramBotService.processWebhookUpdate(req.body);
     
     res.json({ ok: true });

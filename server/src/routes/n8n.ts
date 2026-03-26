@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireAdmin } from '../middleware/auth';
 import {
   getN8nConfig,
   saveN8nConfig,
@@ -21,6 +21,7 @@ router.post('/webhook', n8nWebhook);
 
 // All other routes require authentication
 router.use(authenticate);
+router.use(requireAdmin);
 
 // Configuration
 router.get('/config', getN8nConfig);

@@ -10,6 +10,7 @@ vi.mock('../utils/monitoredApi', () => ({
     get: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
+    put: vi.fn(),
     delete: vi.fn(),
   },
 }));
@@ -26,6 +27,12 @@ vi.mock('../store/authStore', () => ({
   }),
 }));
 
+vi.mock('../store/themeStore', () => ({
+  useThemeStore: () => ({
+    setTheme: vi.fn(),
+  }),
+}));
+
 vi.mock('../utils/performance', () => ({
   usePerformanceMonitor: () => ({
     startRender: vi.fn(),
@@ -38,144 +45,140 @@ vi.mock('../utils/pushNotifications', () => ({
   unsubscribeFromPushNotifications: vi.fn(),
 }));
 
-describe('UserSettings - Security Tab', () => {
+vi.mock('../store/notificationStore', () => ({
+  useNotificationStore: {
+    getState: () => ({
+      setSoundEnabled: vi.fn(),
+      setVibrationEnabled: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('../utils/notificationSound', () => ({
+  notificationSound: {
+    playMessageSound: vi.fn(),
+  },
+}));
+
+vi.mock('../components/LazyComponents', () => ({
+  LazyBotManager: () => <div>Bot manager</div>,
+}));
+
+const baseUser = {
+  id: '1',
+  email: 'test@example.com',
+  username: 'testuser',
+  displayName: 'Test User',
+  bio: 'Test bio',
+  status: 'ONLINE',
+  avatar: null,
+};
+
+const basePrivacy = {
+  showOnlineStatus: true,
+  showProfilePhoto: true,
+  showLastSeen: true,
+};
+
+const baseNotifications = {
+  notificationsPush: true,
+  notificationsEmail: true,
+  notificationsSound: true,
+  notificationsVibration: true,
+};
+
+const baseFolders = [
+  {
+    id: 'folder-1',
+    name: 'Work',
+    color: '#3390ec',
+    order: 1,
+    chatSettings: [{ chat: { id: 'chat-1', name: 'Project Chat', type: 'GROUP' } }],
+  },
+];
+
+const mockDefaultGets = () => {
+  (monitoredApi.get as any).mockImplementation((url: string) => {
+    if (url === '/users/me') return Promise.resolve({ data: baseUser });
+    if (url === '/users/privacy') return Promise.resolve({ data: basePrivacy });
+    if (url === '/users/notifications') return Promise.resolve({ data: baseNotifications });
+    if (url === '/security/status') {
+      return Promise.resolve({
+        data: {
+          twoFactorEnabled: false,
+          encryptionEnabled: false,
+          trustedIPsCount: 0,
+          isLocked: false,
+        },
+      });
+    }
+    if (url === '/folders') return Promise.resolve({ data: { folders: baseFolders } });
+    return Promise.resolve({ data: {} });
+  });
+};
+
+const getMenuButtons = () =>
+  screen
+    .getAllByRole('button')
+    .filter((button) => typeof button.className === 'string' && button.className.includes('w-full flex items-center gap-5'));
+
+describe('UserSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    (monitoredApi.get as any).mockImplementation((url: string) => {
-      if (url === '/users/me') {
-        return Promise.resolve({ data: { id: '1', username: 'testuser', displayName: 'Test User' } });
-      }
-      if (url === '/users/privacy') {
-        return Promise.resolve({ data: { showOnlineStatus: true, showProfilePhoto: true, showLastSeen: true } });
-      }
-      if (url === '/users/notifications') {
-        return Promise.resolve({ 
-          data: { 
-            notificationsPush: true, 
-            notificationsEmail: true, 
-            notificationsSound: true, 
-            notificationsVibration: true 
-          } 
-        });
-      }
-      if (url === '/security/status') {
-        return Promise.resolve({ 
-          data: { 
-            twoFactorEnabled: false, 
-            encryptionEnabled: false,
-            trustedIPsCount: 0,
-            isLocked: false,
-          } 
-        });
-      }
-      return Promise.resolve({ data: {} });
+    mockDefaultGets();
+  });
+
+  it('renders user summary data', async () => {
+    render(<UserSettings onClose={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+      expect(screen.getByText('@testuser')).toBeInTheDocument();
+      expect(screen.getByText('Test bio')).toBeInTheDocument();
     });
   });
 
-  it('should render security tab', async () => {
+  it('loads security data when the security menu item is opened', async () => {
     render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    expect(securityTab).toBeInTheDocument();
-  });
 
-  it('should load security status when security tab is clicked', async () => {
-    render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
+    await waitFor(() => {
+      expect(getMenuButtons()).toHaveLength(9);
+    });
+
+    fireEvent.click(getMenuButtons()[6]);
 
     await waitFor(() => {
       expect(monitoredApi.get).toHaveBeenCalledWith('/security/status');
+      expect(document.querySelectorAll('input[type="password"]')).toHaveLength(3);
     });
   });
 
-  it('should display 2FA status correctly', async () => {
-    render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
-
-    await waitFor(() => {
-      expect(screen.getByText('Двухфакторная аутентификация (2FA)')).toBeInTheDocument();
-      expect(screen.getByText('Отключена')).toBeInTheDocument();
-    });
-  });
-
-  it('should show enable 2FA button when 2FA is disabled', async () => {
-    render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
-
-    await waitFor(() => {
-      const enableButton = screen.getByText('Включить 2FA');
-      expect(enableButton).toBeInTheDocument();
-    });
-  });
-
-  it('should show disable 2FA button when 2FA is enabled', async () => {
-    (monitoredApi.get as any).mockImplementation((url: string) => {
-      if (url === '/security/status') {
-        return Promise.resolve({ 
-          data: { 
-            twoFactorEnabled: true, 
-            encryptionEnabled: false,
-            trustedIPsCount: 0,
-            isLocked: false,
-          } 
-        });
-      }
-      return Promise.resolve({ data: {} });
-    });
-
-    render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
-
-    await waitFor(() => {
-      const disableButton = screen.getByText('Отключить 2FA');
-      expect(disableButton).toBeInTheDocument();
-      expect(screen.getByText('Включена')).toBeInTheDocument();
-    });
-  });
-
-  it('should render change password form', async () => {
-    render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
-
-    await waitFor(() => {
-      expect(screen.getByText('Изменить пароль')).toBeInTheDocument();
-      expect(screen.getByLabelText('Текущий пароль')).toBeInTheDocument();
-      expect(screen.getByLabelText('Новый пароль')).toBeInTheDocument();
-      expect(screen.getByLabelText('Подтвердите новый пароль')).toBeInTheDocument();
-    });
-  });
-
-  it('should call change password API on form submit', async () => {
+  it('submits the change-password form', async () => {
     (monitoredApi.post as any).mockResolvedValue({ data: { success: true } });
 
     render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
 
     await waitFor(() => {
-      const currentPasswordInput = screen.getByLabelText('Текущий пароль');
-      const newPasswordInput = screen.getByLabelText('Новый пароль');
-      const confirmPasswordInput = screen.getByLabelText('Подтвердите новый пароль');
-
-      fireEvent.change(currentPasswordInput, { target: { value: 'oldpassword' } });
-      fireEvent.change(newPasswordInput, { target: { value: 'newpassword123' } });
-      fireEvent.change(confirmPasswordInput, { target: { value: 'newpassword123' } });
-
-      const submitButton = screen.getByText('Изменить пароль');
-      fireEvent.click(submitButton);
+      expect(getMenuButtons()).toHaveLength(9);
     });
+
+    fireEvent.click(getMenuButtons()[6]);
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('input[type="password"]')).toHaveLength(3);
+    });
+
+    const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]')) as HTMLInputElement[];
+    fireEvent.change(passwordInputs[0], { target: { value: 'oldpassword' } });
+    fireEvent.change(passwordInputs[1], { target: { value: 'newpassword123' } });
+    fireEvent.change(passwordInputs[2], { target: { value: 'newpassword123' } });
+
+    const submitButton = screen
+      .getAllByRole('button')
+      .find((button) => typeof button.className === 'string' && button.className.includes('w-full py-3 bg-[#3390ec] text-white rounded-lg'));
+
+    expect(submitButton).toBeTruthy();
+    fireEvent.click(submitButton!);
 
     await waitFor(() => {
       expect(monitoredApi.post).toHaveBeenCalledWith('/users/change-password', {
@@ -185,145 +188,75 @@ describe('UserSettings - Security Tab', () => {
     });
   });
 
-  it('should display security account status', async () => {
-    (monitoredApi.get as any).mockImplementation((url: string) => {
-      if (url === '/security/status') {
-        return Promise.resolve({ 
-          data: { 
-            twoFactorEnabled: true, 
-            encryptionEnabled: true,
-            trustedIPsCount: 2,
-            isLocked: false,
-          } 
-        });
-      }
-      return Promise.resolve({ data: {} });
-    });
-
+  it('opens the chat settings screen with notification toggles', async () => {
     render(<UserSettings onClose={() => {}} />);
-    
-    const securityTab = screen.getByText('Безопасность');
-    fireEvent.click(securityTab);
 
     await waitFor(() => {
-      expect(screen.getByText('Статус аккаунта')).toBeInTheDocument();
-      expect(screen.getByText('E2E шифрование:')).toBeInTheDocument();
-      expect(screen.getByText('Доверенные IP:')).toBeInTheDocument();
+      expect(getMenuButtons()).toHaveLength(9);
     });
-  });
-});
 
-describe('UserSettings - Profile Tab', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    
-    (monitoredApi.get as any).mockImplementation((url: string) => {
-      if (url === '/users/me') {
-        return Promise.resolve({ 
-          data: { 
-            id: '1', 
-            username: 'testuser', 
-            displayName: 'Test User',
-            bio: 'Test bio',
-            status: 'Available',
-            avatar: null
-          } 
-        });
-      }
-      if (url === '/users/privacy') {
-        return Promise.resolve({ data: { showOnlineStatus: true, showProfilePhoto: true, showLastSeen: true } });
-      }
-      if (url === '/users/notifications') {
-        return Promise.resolve({ 
-          data: { 
-            notificationsPush: true, 
-            notificationsEmail: true, 
-            notificationsSound: true, 
-            notificationsVibration: true 
-          } 
-        });
-      }
-      return Promise.resolve({ data: {} });
+    fireEvent.click(getMenuButtons()[0]);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('checkbox')).toHaveLength(3);
     });
   });
 
-  it('should render profile tab with editable fields', async () => {
+  it('loads folders from the folders menu entry', async () => {
     render(<UserSettings onClose={() => {}} />);
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Профиль')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Enter your display name')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('What\'s your status?')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText('Tell us about yourself')).toBeInTheDocument();
+      expect(getMenuButtons()).toHaveLength(9);
+    });
+
+    fireEvent.click(getMenuButtons()[5]);
+
+    await waitFor(() => {
+      expect(monitoredApi.get).toHaveBeenCalledWith('/folders');
+      expect(screen.getByText('Work')).toBeInTheDocument();
+      expect(screen.getByText('Project Chat')).toBeInTheDocument();
     });
   });
 
-  it('should populate form fields with user data', async () => {
+  it('shows bot integrations tabs and the embedded bot manager', async () => {
     render(<UserSettings onClose={() => {}} />);
-    
-    await waitFor(() => {
-      const displayNameInput = screen.getByPlaceholderText('Enter your display name') as HTMLInputElement;
-      const statusInput = screen.getByPlaceholderText('What\'s your status?') as HTMLInputElement;
-      const bioInput = screen.getByPlaceholderText('Tell us about yourself') as HTMLTextAreaElement;
 
-      expect(displayNameInput.value).toBe('Test User');
-      expect(statusInput.value).toBe('Available');
-      expect(bioInput.value).toBe('Test bio');
+    await waitFor(() => {
+      expect(getMenuButtons()).toHaveLength(9);
+    });
+
+    fireEvent.click(getMenuButtons()[8]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Bot manager')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Telegram' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'n8n' })).toBeInTheDocument();
     });
   });
 
-  it('should allow editing profile fields', async () => {
-    render(<UserSettings onClose={() => {}} />);
-    
-    await waitFor(() => {
-      const displayNameInput = screen.getByPlaceholderText('Enter your display name');
-      fireEvent.change(displayNameInput, { target: { value: 'Updated Name' } });
-      
-      expect((displayNameInput as HTMLInputElement).value).toBe('Updated Name');
-    });
-  });
-
-  it('should call updateProfile API on save', async () => {
-    (userApi.updateProfile as any).mockResolvedValue({ 
-      data: { 
-        id: '1', 
-        username: 'testuser', 
-        displayName: 'Updated Name',
-        bio: 'Updated bio',
-        status: 'Busy'
-      } 
-    });
+  it('saves the profile after an avatar file is selected', async () => {
+    (userApi.updateProfile as any).mockResolvedValue({ data: baseUser });
 
     render(<UserSettings onClose={() => {}} />);
-    
+
     await waitFor(() => {
-      const displayNameInput = screen.getByPlaceholderText('Enter your display name');
-      fireEvent.change(displayNameInput, { target: { value: 'Updated Name' } });
+      expect(screen.getByText('Test User')).toBeInTheDocument();
     });
 
-    const saveButton = screen.getByText('Сохранить профиль');
-    fireEvent.click(saveButton);
+    const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const primaryButtons = screen
+        .getAllByRole('button')
+        .filter((button) => typeof button.className === 'string' && button.className.includes('w-full py-2.5 bg-[#3390ec]'));
+      expect(primaryButtons.length).toBeGreaterThan(0);
+      fireEvent.click(primaryButtons[0]);
+    });
 
     await waitFor(() => {
       expect(userApi.updateProfile).toHaveBeenCalled();
-    });
-  });
-
-  it('should show save button and change to loading state when saving', async () => {
-    (userApi.updateProfile as any).mockImplementation(() => 
-      new Promise(resolve => setTimeout(() => resolve({ data: {} }), 100))
-    );
-
-    render(<UserSettings onClose={() => {}} />);
-    
-    await waitFor(() => {
-      const saveButton = screen.getByText('Сохранить профиль');
-      expect(saveButton).toBeInTheDocument();
-      fireEvent.click(saveButton);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Сохранение...')).toBeInTheDocument();
     });
   });
 });

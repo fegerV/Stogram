@@ -16,7 +16,7 @@ import SelfDestructTimer from './SelfDestructTimer';
 import SelfDestructOptions from './SelfDestructOptions';
 import LinkPreview from './LinkPreview';
 import { TypingIndicator } from './TypingIndicator';
-import { Call, Message, MessageType, NotificationLevel } from '../types';
+import { Call, ChatType, Message, MessageType, NotificationLevel } from '../types';
 import { messageApi, chatApi, chatSettingsApi } from '../services/api';
 import ChatSettingsDrawer from './ChatSettingsDrawer';
 import PinnedMessageBanner from './PinnedMessageBanner';
@@ -171,11 +171,21 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       setIncomingCall(null);
     };
 
+    const handleCallMissed = ({ callId }: { callId: string }) => {
+      if (activeCallId === callId || incomingCall?.id === callId) {
+        setShowCallModal(false);
+        setActiveCallId(null);
+        setIncomingCall(null);
+        toast('Call was missed');
+      }
+    };
+
     socketService.on('call:incoming', handleIncomingCall);
     socketService.on('call:initiated', handleCallInitiated);
     socketService.on('call:answered', handleCallAnswered);
     socketService.on('call:rejected', handleCallRejected);
     socketService.on('call:ended', handleCallEnded);
+    socketService.on('call:missed', handleCallMissed);
 
     return () => {
       socketService.off('call:incoming', handleIncomingCall);
@@ -183,6 +193,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       socketService.off('call:answered', handleCallAnswered);
       socketService.off('call:rejected', handleCallRejected);
       socketService.off('call:ended', handleCallEnded);
+      socketService.off('call:missed', handleCallMissed);
     };
   }, [chatId, user?.id, incomingCall, activeCallId]);
 
@@ -315,6 +326,11 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   };
 
   const handleStartCall = (type: 'AUDIO' | 'VIDEO') => {
+    if (currentChat?.type !== ChatType.PRIVATE) {
+      toast.error('Calls are currently available only in private chats');
+      return;
+    }
+
     setCallType(type);
     setIsInitiator(true);
     socketService.initiateCall(chatId, type);
@@ -437,6 +453,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   }
 
   const chatName = getChatName(currentChat, user?.id || '');
+  const canStartCall = currentChat?.type === ChatType.PRIVATE;
 
   return (
     <div className="flex flex-col h-full bg-[#efeae2] dark:bg-[#0b141a]">
@@ -480,14 +497,16 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             </button>
             <button
               onClick={() => handleStartCall('AUDIO')}
-              className="p-2 hover:bg-white/10 rounded-full transition"
+              disabled={!canStartCall}
+              className="p-2 hover:bg-white/10 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
               title="Аудиозвонок"
             >
               <Phone className="w-5 h-5 text-white" />
             </button>
             <button
               onClick={() => handleStartCall('VIDEO')}
-              className="p-2 hover:bg-white/10 rounded-full transition"
+              disabled={!canStartCall}
+              className="p-2 hover:bg-white/10 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
               title="Видеозвонок"
             >
               <Video className="w-5 h-5 text-white" />
@@ -813,9 +832,6 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
           onClose={() => {
             setShowCallModal(false);
             setActiveCallId(null);
-            if (activeCallId) {
-              socketService.endCall(activeCallId);
-            }
           }}
         />
       )}
@@ -919,7 +935,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         <ChatSettingsDrawer
           chatId={chatId}
           chatName={chatName}
-          notificationLevel={chatSettings?.notificationLevel || 'ALL'}
+          notificationLevel={chatSettings?.notificationLevel ?? NotificationLevel.ALL}
           isMuted={chatSettings?.isMuted || false}
           onUpdateNotificationLevel={handleUpdateNotificationLevel}
           onClose={() => setShowChatSettings(false)}
