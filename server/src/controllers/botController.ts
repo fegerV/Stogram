@@ -2,7 +2,14 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { handleControllerError, handleNotFound, handleUnauthorized, handleForbidden, handleBadRequest } from '../utils/errorHandlers';
-import { generateBotToken, sendBotMessage as sendBotMessageService, getBotByToken } from '../services/botService';
+import {
+  generateBotToken,
+  sendBotMessage as sendBotMessageService,
+  getBotByToken,
+  installBotInChat,
+  uninstallBotFromChat,
+  getBotInstallations,
+} from '../services/botService';
 import { io } from '../index';
 
 // Создать нового бота
@@ -73,6 +80,7 @@ export const getUserBots = async (req: AuthRequest, res: Response) => {
 export const getBot = async (req: AuthRequest, res: Response) => {
   try {
     const { botId } = req.params;
+    const userId = req.userId!;
 
     const bot = await prisma.bot.findUnique({
       where: { id: botId },
@@ -179,6 +187,10 @@ export const addBotCommand = async (req: AuthRequest, res: Response) => {
 
     if (!bot) {
       return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    if (bot.ownerId !== userId) {
+      return res.status(403).json({ error: 'You can only view your own bots' });
     }
 
     if (bot.ownerId !== userId) {
@@ -301,12 +313,87 @@ export const sendBotMessage = async (req: any, res: any) => {
 
     res.status(201).json(message);
   } catch (error: any) {
-    if (error.message === 'Chat not found or bot owner is not a member') {
+    if (error.message === 'Bot is not installed in this chat') {
       return handleForbidden(res, error.message);
     }
     if (error.message === 'Bot is not active') {
       return handleBadRequest(res, error.message);
     }
     handleControllerError(error, res, 'Failed to send bot message');
+  }
+};
+
+export const listBotInstallations = async (req: AuthRequest, res: Response) => {
+  try {
+    const { botId } = req.params;
+    const userId = req.userId!;
+
+    const installations = await getBotInstallations(botId, userId);
+    res.json({ installations });
+  } catch (error: any) {
+    if (error.message === 'Bot not found') {
+      return handleNotFound(res, 'Bot');
+    }
+
+    if (error.message === 'You can only view your own bots') {
+      return handleForbidden(res, error.message);
+    }
+
+    handleControllerError(error, res, 'Failed to fetch bot installations');
+  }
+};
+
+export const installBot = async (req: AuthRequest, res: Response) => {
+  try {
+    const { botId } = req.params;
+    const userId = req.userId!;
+    const { chatId } = req.body;
+
+    if (!chatId) {
+      return handleBadRequest(res, 'chatId is required');
+    }
+
+    const installation = await installBotInChat(botId, userId, chatId);
+    res.status(201).json({ installation });
+  } catch (error: any) {
+    if (error.message === 'Bot not found') {
+      return handleNotFound(res, 'Bot');
+    }
+
+    if (
+      error.message === 'You can only install your own bots'
+      || error.message === 'You are not a member of this chat'
+    ) {
+      return handleForbidden(res, error.message);
+    }
+
+    if (error.message === 'Bot is not active') {
+      return handleBadRequest(res, error.message);
+    }
+
+    handleControllerError(error, res, 'Failed to install bot');
+  }
+};
+
+export const uninstallBot = async (req: AuthRequest, res: Response) => {
+  try {
+    const { botId, chatId } = req.params;
+    const userId = req.userId!;
+
+    await uninstallBotFromChat(botId, userId, chatId);
+    res.json({ message: 'Bot removed from chat' });
+  } catch (error: any) {
+    if (error.message === 'Bot not found') {
+      return handleNotFound(res, 'Bot');
+    }
+
+    if (
+      error.message === 'You can only manage your own bots'
+      || error.message === 'Bot is not installed in this chat'
+    ) {
+      return handleForbidden(res, error.message);
+    }
+
+    handleControllerError(error, res, 'Failed to uninstall bot');
   }
 };

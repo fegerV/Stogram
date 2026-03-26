@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import express from 'express';
 import { authenticate } from '../middleware/auth';
 import {
@@ -10,24 +9,26 @@ import {
   addBotCommand,
   deleteBotCommand,
   regenerateBotToken,
-  sendBotMessage
+  sendBotMessage,
+  listBotInstallations,
+  installBot,
+  uninstallBot,
 } from '../controllers/botController';
 
 const router = express.Router();
 
-// Публичные роуты
-router.get('/:botId', getBot);
-
-// Защищенные роуты
 router.get('/', authenticate, getUserBots);
+router.get('/:botId', authenticate, getBot);
 router.post('/', authenticate, createBot);
 router.patch('/:botId', authenticate, updateBot);
 router.delete('/:botId', authenticate, deleteBot);
+router.get('/:botId/installations', authenticate, listBotInstallations);
+router.post('/:botId/installations', authenticate, installBot);
+router.delete('/:botId/installations/:chatId', authenticate, uninstallBot);
 router.post('/:botId/commands', authenticate, addBotCommand);
 router.delete('/commands/:commandId', authenticate, deleteBotCommand);
 router.post('/:botId/regenerate-token', authenticate, regenerateBotToken);
 
-// Bot API endpoint (использует токен бота, не пользовательский JWT)
 router.post('/send-message', (req, res) => sendBotMessage(req as any, res as any));
 
 export default router;

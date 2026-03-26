@@ -29,6 +29,7 @@ import {
   UserX,
   Plus,
   Edit2,
+  Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
@@ -118,6 +119,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const [folderName, setFolderName] = useState('');
   const [folderColor, setFolderColor] = useState('#3390ec');
   const [integrationTab, setIntegrationTab] = useState<'internal' | 'telegram' | 'n8n'>('internal');
+  const [settingsSearch, setSettingsSearch] = useState('');
   const [changePasswordData, setChangePasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -612,6 +614,31 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     <p className="px-5 pt-5 pb-2 text-[13px] font-semibold text-[#3390ec] uppercase tracking-wide">{text}</p>
   );
 
+  const settingsNavItems: Array<{
+    id: SettingsSection;
+    label: string;
+    icon: React.ElementType;
+    subtitle?: string;
+    color?: string;
+  }> = [
+    { id: 'main', label: 'Мой аккаунт', icon: User, subtitle: 'Профиль и основная информация', color: 'text-[#3390ec]' },
+    { id: 'notifications', label: 'Уведомления и звуки', icon: Bell, color: 'text-[#ef5350]' },
+    { id: 'privacy', label: 'Конфиденциальность', icon: Shield, color: 'text-[#8e8e93]' },
+    { id: 'chat-settings', label: 'Настройки чатов', icon: MessageCircle, color: 'text-[#3390ec]' },
+    { id: 'folders', label: 'Папки с чатами', icon: FolderOpen, color: 'text-[#3390ec]' },
+    { id: 'appearance', label: 'Внешний вид', icon: Palette, color: 'text-[#e67e22]' },
+    { id: 'security', label: 'Безопасность', icon: Shield, subtitle: '2FA, пароль', color: 'text-[#8e8e93]' },
+    { id: 'sessions', label: 'Активные сеансы', icon: Monitor, color: 'text-[#3390ec]' },
+    { id: 'data', label: 'Данные и память', icon: Database, color: 'text-[#4fae4e]' },
+    { id: 'bots', label: 'Боты и интеграции', icon: Bot, color: 'text-[#9c27b0]' },
+  ];
+
+  const filteredSettingsNavItems = settingsNavItems.filter((item) => {
+    if (!settingsSearch.trim()) return true;
+    const query = settingsSearch.trim().toLowerCase();
+    return item.label.toLowerCase().includes(query) || item.subtitle?.toLowerCase().includes(query);
+  });
+
   /* ── RENDER ── */
   return (
     <ErrorBoundary
@@ -625,14 +652,85 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         onClick={onClose}
       >
         <div
-          className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:max-w-[920px] sm:rounded-[28px] sm:shadow-2xl"
+          className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:max-w-[1120px] sm:rounded-[28px] sm:shadow-2xl lg:flex-row"
           onClick={(event) => event.stopPropagation()}
         >
+        <aside className="hidden lg:flex lg:w-[318px] lg:flex-col lg:border-r lg:border-[#202c33] lg:bg-[#17212b]">
+          <div className="flex items-center gap-2 px-4 py-3 text-white">
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition" aria-label="Закрыть настройки">
+              <ArrowLeft className="w-[22px] h-[22px]" />
+            </button>
+            <h2 className="flex-1 text-[20px] font-semibold">Настройки</h2>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition" aria-label="Закрыть">
+              <X className="w-[20px] h-[20px]" />
+            </button>
+          </div>
+
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-2.5 text-white/80 ring-1 ring-white/5">
+              <Search className="w-[15px] h-[15px]" />
+              <input
+                value={settingsSearch}
+                onChange={(e) => setSettingsSearch(e.target.value)}
+                placeholder="Поиск"
+                className="w-full bg-transparent text-[13px] placeholder:text-white/35 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="px-3 pb-3">
+            <button
+              onClick={() => setSection('main')}
+              className={`w-full rounded-[20px] px-4 py-3 text-left transition ${
+                section === 'main' ? 'bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' : 'hover:bg-white/5'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={displayName} className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-[#3390ec] flex items-center justify-center text-white text-lg font-bold">
+                    {displayName.charAt(0) || 'U'}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-[16px] font-semibold text-white">{displayName}</p>
+                  <p className="truncate text-[13px] text-white/50">@{user?.username || 'user'}</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-2.5 pb-4">
+            {filteredSettingsNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = section === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setSection(item.id)}
+                  className={`mb-1 flex w-full items-center gap-3 rounded-[18px] px-3.5 py-2.5 text-left transition ${
+                    isActive ? 'bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' : 'hover:bg-white/5'
+                  }`}
+                >
+                  <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-white' : item.color || 'text-white/55'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate text-[14px] ${isActive ? 'text-white' : 'text-white/82'}`}>{item.label}</p>
+                    {item.subtitle && <p className="truncate text-[11px] text-white/35">{item.subtitle}</p>}
+                  </div>
+                  <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white/70' : 'text-white/25'}`} />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-[#17212b]">
         {/* ── MAIN Profile View ── */}
         {section === 'main' && (
           <div className="flex flex-col h-full overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#517da2] dark:bg-[#17212b] text-white">
+            <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#517da2] dark:bg-[#17212b] text-white lg:hidden">
               <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition">
                 <ArrowLeft className="w-[22px] h-[22px]" />
               </button>
@@ -640,25 +738,25 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
             </div>
 
             {/* Avatar + Name */}
-            <div className="flex flex-col items-center py-6 bg-white dark:bg-[#17212b]">
+            <div className="flex flex-col items-center py-6 bg-white dark:bg-[#17212b] lg:items-start lg:px-8 lg:py-7">
               <div className="relative">
                 {avatarSrc ? (
-                  <img src={avatarSrc} alt={displayName} className="w-[110px] h-[110px] rounded-full object-cover" />
+                  <img src={avatarSrc} alt={displayName} className="w-[110px] h-[110px] rounded-full object-cover lg:w-[88px] lg:h-[88px]" />
                 ) : (
-                  <div className="w-[110px] h-[110px] rounded-full bg-[#3390ec] flex items-center justify-center text-white text-4xl font-bold">
+                  <div className="w-[110px] h-[110px] rounded-full bg-[#3390ec] flex items-center justify-center text-white text-4xl font-bold lg:w-[88px] lg:h-[88px] lg:text-3xl">
                     {displayName.charAt(0) || 'U'}
                   </div>
                 )}
                 <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
                 <button
                   onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 w-10 h-10 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#2b7fd4] transition"
+                  className="absolute bottom-0 right-0 w-10 h-10 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#2b7fd4] transition lg:w-8 lg:h-8"
                   aria-label="Изменить фото"
                 >
-                  <Camera className="w-5 h-5" />
+                  <Camera className="w-5 h-5 lg:w-4 lg:h-4" />
                 </button>
               </div>
-              <h2 className="mt-4 text-[22px] font-semibold text-[#222] dark:text-white">{displayName}</h2>
+              <h2 className="mt-4 text-[22px] font-semibold text-[#222] dark:text-white lg:mt-3 lg:text-[20px]">{displayName}</h2>
               <p className="text-[14px] text-[#4fae4e] mt-0.5">в сети</p>
             </div>
 
@@ -1133,6 +1231,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         )}
 
         {/* ── 2FA Modal ── */}
+        </div>
         {show2FAModal && (
           <Suspense fallback={<div>Загрузка...</div>}>
             <LazyTwoFactorAuth

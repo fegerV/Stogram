@@ -623,7 +623,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1 bg-[#0f1822] scrollbar-thin md:px-7" style={{ backgroundImage: 'radial-gradient(circle at center, rgba(108,130,147,0.16) 1px, transparent 1px)', backgroundSize: '36px 36px' }}>
         {messages.map((message) => {
-          const isOwn = message.senderId === user?.id;
+          const isOwn = !message.botId && message.senderId === user?.id;
           const fileUrl = getMediaUrl(message.fileUrl);
           // Create fallback URL for original image if compressed version fails
           // Remove _compressed from path to get original image
@@ -675,7 +675,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
                 )}
                 {!isOwn && currentChat.type !== 'PRIVATE' && (
                   <p className="text-xs font-semibold mb-0.5 text-[#3390ec] dark:text-[#53bdeb]">
-                    {message.sender.displayName || message.sender.username}
+                    {message.bot?.displayName || message.bot?.username || message.sender.displayName || message.sender.username}
                   </p>
                 )}
                 
@@ -987,7 +987,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             {(() => {
               const message = messages.find((m) => m.id === contextMenu.messageId);
               if (!message) return null;
-              const isOwn = message.senderId === user?.id;
+              const isOwn = !message.botId && message.senderId === user?.id;
 
               return (
                 <>

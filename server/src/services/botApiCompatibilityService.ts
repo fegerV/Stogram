@@ -79,6 +79,7 @@ class BotApiCompatibilityService {
     type: string;
     fileUrl?: string | null;
     fileName?: string | null;
+    bot?: { id: string; username?: string | null; displayName?: string | null } | null;
     sender: { id: string; username?: string | null; displayName?: string | null };
     chat: { id: string; type: string; name?: string | null };
     linkPreview?: unknown;
@@ -87,7 +88,9 @@ class BotApiCompatibilityService {
       message_id: message.id,
       date: Math.floor(message.createdAt.getTime() / 1000),
       chat: this.buildChat(message.chat),
-      from: this.buildUser(message.sender),
+      from: message.bot
+        ? this.buildUser(message.bot, true)
+        : this.buildUser(message.sender),
     };
 
     if (message.content) {
@@ -195,6 +198,13 @@ class BotApiCompatibilityService {
     return prisma.message.findUnique({
       where: { id: messageId },
       include: {
+        bot: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
         sender: {
           select: {
             id: true,
@@ -492,7 +502,7 @@ class BotApiCompatibilityService {
       where: { id: payload.message_id },
     });
 
-    if (!message || message.chatId !== payload.chat_id) {
+    if (!message || message.chatId !== payload.chat_id || message.botId !== bot.id) {
       throw new Error('Message not found');
     }
 
@@ -539,7 +549,7 @@ class BotApiCompatibilityService {
       where: { id: payload.message_id },
     });
 
-    if (!message || message.chatId !== payload.chat_id) {
+    if (!message || message.chatId !== payload.chat_id || message.botId !== bot.id) {
       throw new Error('Message not found');
     }
 

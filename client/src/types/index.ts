@@ -65,6 +65,7 @@ export interface Message {
   content: string | null;
   type: MessageType;
   senderId: string;
+  botId?: string | null;
   chatId: string;
   replyToId: string | null;
   forwardedFromId?: string | null;
@@ -88,6 +89,12 @@ export interface Message {
   createdAt: string;
   updatedAt: string;
   sender: User;
+  bot?: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatar?: string | null;
+  } | null;
   replyTo?: Message;
   reactions?: Reaction[];
 }

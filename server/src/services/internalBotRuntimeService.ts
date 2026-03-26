@@ -1,97 +1,110 @@
 import axios from 'axios';
-import crypto from 'crypto';
 import prisma from '../utils/prisma';
 import botApiCompatibilityService from './botApiCompatibilityService';
+import { sendBotMessage as sendBotMessageService } from './botService';
+import { io } from '../index';
+import { deliverToBotWebhooks } from './webhookService';
 
 type JsonRecord = Record<string, unknown>;
 
-interface DeliverOptions {
-  botId: string;
-  event: string;
-  payload: JsonRecord;
-}
-
-const BOT_EVENT_WILDCARD = '*';
-
-const parseSubscribedEvents = (rawEvents?: string | null): string[] => {
-  if (!rawEvents) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(rawEvents);
-    return Array.isArray(parsed) ? parsed.map((value) => String(value)) : [];
-  } catch {
-    return [];
-  }
-};
-
-const signPayload = (secret: string, payload: string) =>
-  crypto.createHmac('sha256', secret).update(payload).digest('hex');
+const BOT_DEFAULT_COMMANDS = new Set(['/start', '/help']);
 
 class InternalBotRuntimeService {
-  private async deliverToRegisteredWebhooks({
-    botId,
-    event,
-    payload,
-  }: DeliverOptions) {
-    const webhooks = await prisma.webhook.findMany({
-      where: {
-        botId,
-        isActive: true,
+  private async deliverToDirectWebhook(
+    bot: {
+      id: string;
+      webhookUrl: string | null;
+    },
+    event: string,
+    payload: JsonRecord
+  ) {
+    if (!bot.webhookUrl) {
+      return;
+    }
+
+    await axios.post(bot.webhookUrl, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Bot-Event': event,
+        'X-Bot-Id': bot.id,
       },
+      timeout: 10000,
+    });
+  }
+
+  private async sendDefaultCommandReply(
+    bot: {
+      id: string;
+      ownerId: string;
+      isActive: boolean;
+      username: string;
+      displayName: string;
+      commands: Array<{ command: string; description: string }>;
+    },
+    message: {
+      chatId: string;
+    }
+  ) {
+    const commandList = bot.commands.length > 0
+      ? bot.commands.map((command) => `${command.command} - ${command.description}`).join('\n')
+      : 'Команды пока не настроены.';
+
+    const helpText = [
+      `Привет, я ${bot.displayName}.`,
+      '',
+      'Я работаю как локальный бот Stogram.',
+      '',
+      'Доступные команды:',
+      commandList,
+    ].join('\n');
+
+    const reply = await sendBotMessageService(bot, {
+      chatId: message.chatId,
+      content: helpText,
+      type: 'TEXT',
     });
 
-    const rawPayload = JSON.stringify(payload);
+    io.to(`chat:${message.chatId}`).emit('message:new', reply);
+  }
 
-    for (const webhook of webhooks) {
-      const subscribedEvents = parseSubscribedEvents(webhook.events);
-      if (
-        subscribedEvents.length > 0
-        && !subscribedEvents.includes(BOT_EVENT_WILDCARD)
-        && !subscribedEvents.includes(event)
-      ) {
-        continue;
-      }
+  private async sendUnavailableCommandReply(
+    bot: {
+      id: string;
+      ownerId: string;
+      isActive: boolean;
+      displayName: string;
+    },
+    message: {
+      chatId: string;
+    },
+    command: string
+  ) {
+    const reply = await sendBotMessageService(bot, {
+      chatId: message.chatId,
+      content: `Команда ${command} зарегистрирована, но для бота ${bot.displayName} ещё не настроен webhook-обработчик.`,
+      type: 'TEXT',
+    });
 
-      try {
-        const signature = webhook.secret
-          ? signPayload(webhook.secret, rawPayload)
-          : undefined;
+    io.to(`chat:${message.chatId}`).emit('message:new', reply);
+  }
 
-        const response = await axios.post(webhook.url, payload, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Bot-Event': event,
-            'X-Bot-Signature': signature,
-            'X-Bot-Id': botId,
-          },
-          timeout: 10000,
-        });
+  private async hasExternalRuntime(botId: string) {
+    const [webhookCount, bot] = await Promise.all([
+      prisma.webhook.count({
+        where: {
+          botId,
+          isActive: true,
+        },
+      }),
+      prisma.bot.findUnique({
+        where: { id: botId },
+        select: {
+          webhookUrl: true,
+        },
+      }),
+    ]);
 
-        await prisma.webhookDelivery.create({
-          data: {
-            webhookId: webhook.id,
-            event,
-            payload: rawPayload,
-            status: response.status,
-            response: JSON.stringify(response.data),
-            attempts: 1,
-          },
-        });
-      } catch (error: any) {
-        await prisma.webhookDelivery.create({
-          data: {
-            webhookId: webhook.id,
-            event,
-            payload: rawPayload,
-            status: error.response?.status || 0,
-            response: error.message || 'Webhook delivery failed',
-            attempts: 1,
-          },
-        });
-      }
-    }
+    return webhookCount > 0 || Boolean(bot?.webhookUrl);
   }
 
   async dispatchToBot(botId: string, event: string, data: JsonRecord) {
@@ -126,7 +139,8 @@ class InternalBotRuntimeService {
     } satisfies JsonRecord;
 
     await Promise.allSettled([
-      this.deliverToRegisteredWebhooks({ botId, event, payload }),
+      deliverToBotWebhooks(botId, event, payload),
+      this.deliverToDirectWebhook(bot, event, payload),
     ]);
   }
 
@@ -134,6 +148,13 @@ class InternalBotRuntimeService {
     const message = await prisma.message.findUnique({
       where: { id: messageId },
       include: {
+        bot: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+          },
+        },
         sender: {
           select: {
             id: true,
@@ -164,16 +185,26 @@ class InternalBotRuntimeService {
       return;
     }
 
-    const ownerIds = message.chat.members.map((member) => member.userId);
-    const bots = await prisma.bot.findMany({
+    const installations = await prisma.botChatInstallation.findMany({
       where: {
-        ownerId: { in: ownerIds },
+        chatId: message.chat.id,
         isActive: true,
+        bot: {
+          isActive: true,
+        },
       },
       include: {
-        commands: true,
+        bot: {
+          include: {
+            commands: true,
+          },
+        },
       },
     });
+
+    const bots = installations
+      .map((installation) => installation.bot)
+      .filter((bot, index, collection) => collection.findIndex((item) => item.id === bot.id) === index);
 
     if (bots.length === 0) {
       return;
@@ -187,6 +218,7 @@ class InternalBotRuntimeService {
         createdAt: message.createdAt.toISOString(),
         updatedAt: message.updatedAt.toISOString(),
         senderId: message.senderId,
+        botId: message.botId,
         linkPreview: message.linkPreview,
       },
       chat: {
@@ -207,10 +239,21 @@ class InternalBotRuntimeService {
         displayName: message.sender.displayName,
         avatar: message.sender.avatar,
       },
+      ...(message.bot ? {
+        bot: {
+          id: message.bot.id,
+          username: message.bot.username,
+          displayName: message.bot.displayName,
+        },
+      } : {}),
     } satisfies JsonRecord;
 
     await Promise.allSettled(
       bots.map(async (bot) => {
+        if (message.botId === bot.id) {
+          return;
+        }
+
         await this.dispatchToBot(bot.id, event, baseData);
         if (event === 'message.created') {
           await botApiCompatibilityService.publishMessageUpdate(bot.id, message.id, 'message');
@@ -223,26 +266,46 @@ class InternalBotRuntimeService {
         }
 
         const [commandName, ...argParts] = message.content.trim().split(/\s+/);
+        const rawMention = commandName.includes('@')
+          ? commandName.slice(commandName.indexOf('@') + 1).toLowerCase()
+          : null;
         const normalizedCommand = commandName.includes('@')
           ? commandName.slice(0, commandName.indexOf('@'))
           : commandName;
 
-        const matchedCommand = bot.commands.find((command) => command.command === normalizedCommand);
-        if (!matchedCommand) {
+        if (rawMention && rawMention !== bot.username.toLowerCase()) {
           return;
         }
 
+        const matchedCommand = bot.commands.find((command) => command.command === normalizedCommand);
+        if (!matchedCommand && !BOT_DEFAULT_COMMANDS.has(normalizedCommand)) {
+          return;
+        }
+
+        const hasExternalRuntime = await this.hasExternalRuntime(bot.id);
         await this.dispatchToBot(bot.id, 'command.received', {
           ...baseData,
           command: {
-            id: matchedCommand.id,
-            command: matchedCommand.command,
-            description: matchedCommand.description,
+            id: matchedCommand?.id || null,
+            command: matchedCommand?.command || normalizedCommand,
+            description: matchedCommand?.description || null,
             raw: message.content,
             args: argParts,
             text: argParts.join(' '),
           },
         });
+
+        if (!hasExternalRuntime) {
+          if (BOT_DEFAULT_COMMANDS.has(normalizedCommand)) {
+            await this.sendDefaultCommandReply(bot, {
+              chatId: message.chat.id,
+            });
+          } else if (matchedCommand) {
+            await this.sendUnavailableCommandReply(bot, {
+              chatId: message.chat.id,
+            }, normalizedCommand);
+          }
+        }
       })
     );
   }

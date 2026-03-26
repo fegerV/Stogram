@@ -164,4 +164,33 @@ export const botEnhancedApi = {
     api.post('/bots/enhanced/inline-query', data),
 };
 
+export const botApi = {
+  getAll: () => api.get('/bots'),
+  getById: (botId: string) => api.get(`/bots/${botId}`),
+  create: (data: { username: string; displayName: string; description?: string; isInline?: boolean }) =>
+    api.post('/bots', data),
+  update: (botId: string, data: { displayName?: string; description?: string; avatar?: string; isActive?: boolean; webhookUrl?: string | null }) =>
+    api.patch(`/bots/${botId}`, data),
+  remove: (botId: string) => api.delete(`/bots/${botId}`),
+  regenerateToken: (botId: string) => api.post(`/bots/${botId}/regenerate-token`),
+  addCommand: (botId: string, data: { command: string; description: string }) =>
+    api.post(`/bots/${botId}/commands`, data),
+  deleteCommand: (commandId: string) => api.delete(`/bots/commands/${commandId}`),
+  getInstallations: (botId: string) => api.get(`/bots/${botId}/installations`),
+  installToChat: (botId: string, chatId: string) => api.post(`/bots/${botId}/installations`, { chatId }),
+  uninstallFromChat: (botId: string, chatId: string) => api.delete(`/bots/${botId}/installations/${chatId}`),
+};
+
+export const webhookApi = {
+  create: (data: { botId: string; url: string; events: string[]; secret?: string }) => api.post('/webhooks', data),
+  getByBot: (botId: string) => api.get(`/webhooks/bot/${botId}`),
+  update: (webhookId: string, data: { url?: string; events?: string[]; isActive?: boolean; secret?: string }) =>
+    api.patch(`/webhooks/${webhookId}`, data),
+  remove: (webhookId: string) => api.delete(`/webhooks/${webhookId}`),
+  getDeliveries: (webhookId: string, limit = 30) => api.get(`/webhooks/${webhookId}/deliveries?limit=${limit}`),
+  getBotDeliveries: (botId: string, limit = 30) => api.get(`/webhooks/bot/${botId}/deliveries?limit=${limit}`),
+  test: (webhookId: string) => api.post(`/webhooks/${webhookId}/test`),
+  retryDelivery: (deliveryId: string) => api.post(`/webhooks/deliveries/${deliveryId}/retry`),
+};
+
 export default api;

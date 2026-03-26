@@ -1,279 +1,417 @@
-import React, { useState, useEffect } from 'react';
-import { Bot, Plus, Trash2, RefreshCw } from 'lucide-react';
-import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
+import { Bot, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { botApi, chatApi, webhookApi } from '../services/api';
+import { Chat } from '../types';
 
-// Используем прокси в dev режиме или полный URL в production
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api` 
-  : '/api'; // Используем прокси из vite.config в dev режиме
-
-interface BotType {
+type BotCommand = { id: string; command: string; description: string };
+type WebhookItem = { id: string; url: string; events: string | null; isActive: boolean };
+type Delivery = { id: string; event: string; status: number; attempts: number; deliveredAt: string; webhook?: { url: string } };
+type Installation = { id: string; chatId: string; chat: { id: string; name: string | null; type: string } };
+type ManagedBot = {
   id: string;
   username: string;
   displayName: string;
-  description?: string;
-  avatar?: string;
+  description?: string | null;
   isActive: boolean;
   isInline: boolean;
-  token?: string;
   commands: BotCommand[];
-  webhooks: any[];
-}
+  webhooks: WebhookItem[];
+};
 
-interface BotCommand {
-  id: string;
-  command: string;
-  description: string;
-}
+const DEFAULT_EVENTS = 'message.created, command.received, callback_query';
 
-const BotManager: React.FC = () => {
-  const [bots, setBots] = useState<BotType[]>([]);
+export default function BotManager() {
+  const [bots, setBots] = useState<ManagedBot[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
+  const [installations, setInstallations] = useState<Installation[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    username: '',
-    displayName: '',
-    description: '',
-    isInline: false
-  });
+  const [busy, setBusy] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ username: '', displayName: '', description: '', isInline: false });
+  const [commandForm, setCommandForm] = useState({ command: '', description: '' });
+  const [webhookForm, setWebhookForm] = useState({ url: '', events: DEFAULT_EVENTS, secret: '' });
+  const [installChatId, setInstallChatId] = useState('');
+
+  const selectedBot = useMemo(() => bots.find((bot) => bot.id === selectedBotId) || null, [bots, selectedBotId]);
+
+  const loadBase = async () => {
+    const [botsResponse, chatsResponse] = await Promise.all([botApi.getAll(), chatApi.getAll()]);
+    const loadedBots = botsResponse.data as ManagedBot[];
+    setBots(loadedBots);
+    setChats(chatsResponse.data as Chat[]);
+    setSelectedBotId((current) => current || loadedBots[0]?.id || null);
+  };
+
+  const loadSelectedBot = async (botId: string) => {
+    const [installationsResponse, deliveriesResponse, webhooksResponse, botResponse] = await Promise.all([
+      botApi.getInstallations(botId),
+      webhookApi.getBotDeliveries(botId),
+      webhookApi.getByBot(botId),
+      botApi.getById(botId),
+    ]);
+    setInstallations(installationsResponse.data.installations || []);
+    setDeliveries(deliveriesResponse.data.deliveries || []);
+    setBots((current) => current.map((bot) => bot.id === botId ? { ...(botResponse.data as ManagedBot), webhooks: webhooksResponse.data || [] } : bot));
+  };
 
   useEffect(() => {
-    loadBots();
+    (async () => {
+      try {
+        await loadBase();
+      } catch (error) {
+        console.error(error);
+        toast.error('Не удалось загрузить ботов');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const loadBots = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE}/bots`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBots(response.data);
-    } catch (error) {
-      console.error('Failed to load bots:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!selectedBotId) return;
+    loadSelectedBot(selectedBotId).catch((error) => console.error(error));
+  }, [selectedBotId]);
+
+  const reloadAll = async () => {
+    await loadBase();
+    if (selectedBotId) {
+      await loadSelectedBot(selectedBotId);
     }
   };
 
-  const handleCreateBot = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_BASE}/bots`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBots([...bots, response.data]);
-      setShowCreateForm(false);
-      setFormData({ username: '', displayName: '', description: '', isInline: false });
+      const response = await botApi.create(createForm);
+      setShowCreate(false);
+      setCreateForm({ username: '', displayName: '', description: '', isInline: false });
+      await loadBase();
+      setSelectedBotId(response.data.id);
+      toast.success('Бот создан');
     } catch (error) {
-      console.error('Failed to create bot:', error);
-      alert('Ошибка при создании бота');
+      console.error(error);
+      toast.error('Не удалось создать бота');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDeleteBot = async (botId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этого бота?')) return;
-    
+    if (!window.confirm('Удалить бота?')) return;
+    setBusy(true);
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE}/bots/${botId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBots(bots.filter(b => b.id !== botId));
+      await botApi.remove(botId);
+      await loadBase();
+      toast.success('Бот удалён');
     } catch (error) {
-      console.error('Failed to delete bot:', error);
+      console.error(error);
+      toast.error('Не удалось удалить бота');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleRegenerateToken = async (botId: string) => {
-    if (!confirm('Регенерировать токен? Старый токен перестанет работать.')) return;
-    
+    if (!window.confirm('Регенерировать токен?')) return;
+    setBusy(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_BASE}/bots/${botId}/regenerate-token`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert(`Новый токен: ${response.data.token}\n\nСохраните его в безопасном месте!`);
-      loadBots();
+      const response = await botApi.regenerateToken(botId);
+      await navigator.clipboard.writeText(response.data.token);
+      toast.success('Новый токен скопирован');
     } catch (error) {
-      console.error('Failed to regenerate token:', error);
+      console.error(error);
+      toast.error('Не удалось регенерировать токен');
+    } finally {
+      setBusy(false);
     }
   };
 
+  const handleAddCommand = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedBotId) return;
+    setBusy(true);
+    try {
+      await botApi.addCommand(selectedBotId, commandForm);
+      setCommandForm({ command: '', description: '' });
+      await loadSelectedBot(selectedBotId);
+      toast.success('Команда добавлена');
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось добавить команду');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteCommand = async (commandId: string) => {
+    setBusy(true);
+    try {
+      await botApi.deleteCommand(commandId);
+      if (selectedBotId) await loadSelectedBot(selectedBotId);
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось удалить команду');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreateWebhook = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedBotId) return;
+    setBusy(true);
+    try {
+      await webhookApi.create({
+        botId: selectedBotId,
+        url: webhookForm.url,
+        secret: webhookForm.secret || undefined,
+        events: webhookForm.events.split(',').map((value) => value.trim()).filter(Boolean),
+      });
+      setWebhookForm({ url: '', events: DEFAULT_EVENTS, secret: '' });
+      await loadSelectedBot(selectedBotId);
+      toast.success('Webhook создан');
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось создать webhook');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleWebhook = async (webhookId: string, isActive: boolean) => {
+    setBusy(true);
+    try {
+      await webhookApi.update(webhookId, { isActive: !isActive });
+      if (selectedBotId) await loadSelectedBot(selectedBotId);
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось обновить webhook');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const testWebhook = async (webhookId: string) => {
+    setBusy(true);
+    try {
+      await webhookApi.test(webhookId);
+      if (selectedBotId) await loadSelectedBot(selectedBotId);
+      toast.success('Тестовая доставка выполнена');
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось выполнить тест');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retryDelivery = async (deliveryId: string) => {
+    setBusy(true);
+    try {
+      await webhookApi.retryDelivery(deliveryId);
+      if (selectedBotId) await loadSelectedBot(selectedBotId);
+      toast.success('Доставка повторена');
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось повторить доставку');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const installBot = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedBotId || !installChatId) return;
+    setBusy(true);
+    try {
+      await botApi.installToChat(selectedBotId, installChatId);
+      setInstallChatId('');
+      await loadSelectedBot(selectedBotId);
+      toast.success('Бот подключён к чату');
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось подключить бота');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const uninstallBot = async (chatId: string) => {
+    if (!selectedBotId) return;
+    setBusy(true);
+    try {
+      await botApi.uninstallFromChat(selectedBotId, chatId);
+      await loadSelectedBot(selectedBotId);
+    } catch (error) {
+      console.error(error);
+      toast.error('Не удалось отключить бота');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const availableChats = chats.filter((chat) => !installations.some((item) => item.chatId === chat.id));
+
+  if (loading) {
+    return <div className="flex h-64 items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#3390ec]" /></div>;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Bot className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Управление ботами</h1>
+    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[280px_1fr]">
+      <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900 dark:text-white">Боты</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Telegram-подобный runtime</p>
+          </div>
+          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-[#3390ec] p-2 text-white"><Plus className="h-4 w-4" /></button>
         </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          Создать бота
-        </button>
+        <div className="space-y-2">
+          {bots.map((bot) => (
+            <button key={bot.id} type="button" onClick={() => setSelectedBotId(bot.id)} className={`w-full rounded-2xl border px-3 py-3 text-left ${selectedBotId === bot.id ? 'border-[#3390ec]/40 bg-[#3390ec]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60'}`}>
+              <div className="font-medium text-slate-900 dark:text-white">{bot.displayName}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">@{bot.username}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              Создать нового бота
-            </h2>
-            <form onSubmit={handleCreateBot}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Имя пользователя
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="mybot"
-                    required
-                  />
+      <div className="space-y-6">
+        {selectedBot ? (
+          <>
+            <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#3390ec]/10 text-[#3390ec]"><Bot className="h-6 w-6" /></div>
+                  <div>
+                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{selectedBot.displayName}</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">@{selectedBot.username}</p>
+                    {selectedBot.description && <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedBot.description}</p>}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Отображаемое имя
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.displayName}
-                    onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="My Bot"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Описание
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    rows={3}
-                    placeholder="Описание бота..."
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isInline"
-                    checked={formData.isInline}
-                    onChange={(e) => setFormData({ ...formData, isInline: e.target.checked })}
-                    className="rounded"
-                  />
-                  <label htmlFor="isInline" className="text-sm text-gray-700 dark:text-gray-300">
-                    Inline бот
-                  </label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => handleRegenerateToken(selectedBot.id)} disabled={busy} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700"><RefreshCw className="mr-2 inline h-4 w-4" />Токен</button>
+                  <button type="button" onClick={() => handleDeleteBot(selectedBot.id)} disabled={busy} className="rounded-2xl border border-red-200 px-4 py-2 text-sm text-red-600 dark:border-red-500/30"><Trash2 className="mr-2 inline h-4 w-4" />Удалить</button>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Создать
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-                >
-                  Отмена
-                </button>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Команды</h3>
+                <form onSubmit={handleAddCommand} className="mb-4 grid gap-3">
+                  <input value={commandForm.command} onChange={(event) => setCommandForm((current) => ({ ...current, command: event.target.value }))} placeholder="/start" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                  <input value={commandForm.description} onChange={(event) => setCommandForm((current) => ({ ...current, description: event.target.value }))} placeholder="Описание команды" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                  <button type="submit" disabled={busy || !commandForm.command || !commandForm.description} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Добавить команду</button>
+                </form>
+                <div className="space-y-2">
+                  {selectedBot.commands.map((command) => (
+                    <div key={command.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
+                      <div>
+                        <div className="font-medium text-slate-900 dark:text-white">{command.command}</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">{command.description}</div>
+                      </div>
+                      <button type="button" onClick={() => handleDeleteCommand(command.id)} className="rounded-xl p-2 text-red-500"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Webhook</h3>
+                <form onSubmit={handleCreateWebhook} className="mb-4 grid gap-3">
+                  <input value={webhookForm.url} onChange={(event) => setWebhookForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://example.com/webhook" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                  <input value={webhookForm.events} onChange={(event) => setWebhookForm((current) => ({ ...current, events: event.target.value }))} placeholder={DEFAULT_EVENTS} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                  <input value={webhookForm.secret} onChange={(event) => setWebhookForm((current) => ({ ...current, secret: event.target.value }))} placeholder="secret (optional)" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+                  <button type="submit" disabled={busy || !webhookForm.url} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Добавить webhook</button>
+                </form>
+                <div className="space-y-3">
+                  {selectedBot.webhooks.map((webhook) => (
+                    <div key={webhook.id} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                      <div className="truncate font-medium text-slate-900 dark:text-white">{webhook.url}</div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{webhook.events}</div>
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => testWebhook(webhook.id)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Тест</button>
+                        <button type="button" onClick={() => toggleWebhook(webhook.id, webhook.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">{webhook.isActive ? 'Пауза' : 'Включить'}</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+                <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Установки в чатах</h3>
+                <form onSubmit={installBot} className="mb-4 grid gap-3">
+                  <select value={installChatId} onChange={(event) => setInstallChatId(event.target.value)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                    <option value="">Выбрать чат</option>
+                    {availableChats.map((chat) => <option key={chat.id} value={chat.id}>{chat.name || chat.type}</option>)}
+                  </select>
+                  <button type="submit" disabled={busy || !installChatId} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Подключить к чату</button>
+                </form>
+                <div className="space-y-2">
+                  {installations.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
+                      <div>
+                        <div className="font-medium text-slate-900 dark:text-white">{item.chat.name || item.chat.type}</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">{item.chat.type}</div>
+                      </div>
+                      <button type="button" onClick={() => uninstallBot(item.chatId)} className="rounded-xl border border-red-200 px-3 py-2 text-xs text-red-600 dark:border-red-500/30">Отключить</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Доставки webhook</h3>
+                  <button type="button" onClick={reloadAll} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Обновить</button>
+                </div>
+                <div className="space-y-2">
+                  {deliveries.map((delivery) => (
+                    <div key={delivery.id} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                      <div className="font-medium text-slate-900 dark:text-white">{delivery.event}</div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">status {delivery.status || 0} • attempts {delivery.attempts} • {new Date(delivery.deliveredAt).toLocaleString()}</div>
+                      {delivery.status < 200 || delivery.status >= 300 ? (
+                        <button type="button" onClick={() => retryDelivery(delivery.id)} className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Повторить</button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
+            <Bot className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">Создай первого бота</h3>
+            <button type="button" onClick={() => setShowCreate(true)} className="mt-4 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white">Создать</button>
+          </div>
+        )}
+      </div>
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 dark:bg-slate-900">
+            <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Создать бота</h3>
+            <form onSubmit={handleCreate} className="space-y-3">
+              <input value={createForm.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} placeholder="username" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+              <input value={createForm.displayName} onChange={(event) => setCreateForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Отображаемое имя" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+              <textarea value={createForm.description} onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))} placeholder="Описание" rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" checked={createForm.isInline} onChange={(event) => setCreateForm((current) => ({ ...current, isInline: event.target.checked }))} />Inline-бот</label>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700">Отмена</button>
+                <button type="submit" disabled={busy || !createForm.username || !createForm.displayName} className="flex-1 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Создать</button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
-      ) : bots.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <Bot className="w-16 h-16 mx-auto mb-4 opacity-50" />
-          <p>У вас пока нет ботов</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {bots.map(bot => (
-            <div key={bot.id} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-200 dark:border-gray-700">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white">
-                    <Bot className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                      {bot.displayName}
-                    </h3>
-                    <p className="text-sm text-gray-500">@{bot.username}</p>
-                  </div>
-                  {bot.isInline && (
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded">
-                      Inline
-                    </span>
-                  )}
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    bot.isActive 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
-                  }`}>
-                    {bot.isActive ? 'Активен' : 'Неактивен'}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRegenerateToken(bot.id)}
-                    className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded"
-                    title="Регенерировать токен"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBot(bot.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                    title="Удалить бота"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {bot.description && (
-                <p className="text-gray-600 dark:text-gray-400 mb-4">{bot.description}</p>
-              )}
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-                  <span className="text-gray-600 dark:text-gray-400">Команды:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {bot.commands.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-                  <span className="text-gray-600 dark:text-gray-400">Вебхуки:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {bot.webhooks.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
-};
-
-export default BotManager;
+}

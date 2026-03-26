@@ -52,11 +52,13 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
       take: Number(limit),
       orderBy: { createdAt: 'desc' },
       include: {
+        bot: true,
         sender: {
           select: basicUserSelect,
         },
         replyTo: {
           include: {
+            bot: true,
             sender: {
               select: basicUserSelect,
             },
@@ -204,11 +206,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
         linkPreview: undefined, // Will be updated asynchronously
       },
       include: {
+        bot: true,
         sender: {
           select: basicUserSelect,
         },
         replyTo: {
           include: {
+            bot: true,
             sender: {
               select: basicUserSelect,
             },
@@ -253,8 +257,8 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       if (chat) {
         const otherMembers = chat.members.filter((m: { userId: string }) => m.userId !== userId);
         const sender = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { displayName: true, username: true },
+        where: { id: userId },
+        select: { displayName: true, username: true },
         });
 
         if (sender) {
@@ -299,6 +303,7 @@ export const forwardMessage = async (req: AuthRequest, res: Response) => {
     const originalMessage = await prisma.message.findUnique({
       where: { id: messageId },
       include: {
+        bot: true,
         sender: {
           select: basicUserSelect,
         },
@@ -353,6 +358,7 @@ export const forwardMessage = async (req: AuthRequest, res: Response) => {
           isSent: true,
         },
         include: {
+          bot: true,
           sender: {
             select: basicUserSelect,
           },
@@ -451,6 +457,7 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
       where: { id: messageId },
       data: { content, isEdited: true },
       include: {
+        bot: true,
         sender: {
           select: basicUserSelect,
         },

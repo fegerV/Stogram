@@ -39,27 +39,24 @@ export const sendBotMessage = async (
   const { chatId, content, type = 'TEXT', fileUrl, fileName, fileSize, thumbnailUrl } = options;
   const { linkPreview } = options;
 
-  // Verify the chat exists and bot owner is a member
-  const chat = await prisma.chat.findFirst({
+  const installation = await prisma.botChatInstallation.findFirst({
     where: {
-      id: chatId,
-      members: {
-        some: { userId: bot.ownerId }
-      }
-    }
+      botId: bot.id,
+      chatId,
+      isActive: true,
+    },
   });
 
-  if (!chat) {
-    throw new Error('Chat not found or bot owner is not a member');
+  if (!installation) {
+    throw new Error('Bot is not installed in this chat');
   }
 
-  // Create the message from the bot owner's account
-  // In the future, we could add a botId field to Message model to track bot messages
   const message = await prisma.message.create({
     data: {
       content: content || '',
       type,
       senderId: bot.ownerId,
+      botId: bot.id,
       chatId,
       fileUrl,
       fileName,
@@ -76,7 +73,8 @@ export const sendBotMessage = async (
           displayName: true,
           avatar: true,
         }
-      }
+      },
+      bot: true,
     }
   });
 
@@ -101,4 +99,149 @@ export const validateBotChatAccess = async (botOwnerId: string, chatId: string):
   });
   
   return !!membership;
+};
+
+export const installBotInChat = async (botId: string, userId: string, chatId: string) => {
+  const bot = await prisma.bot.findUnique({
+    where: { id: botId },
+    select: {
+      id: true,
+      ownerId: true,
+      isActive: true,
+    },
+  });
+
+  if (!bot) {
+    throw new Error('Bot not found');
+  }
+
+  if (bot.ownerId !== userId) {
+    throw new Error('You can only install your own bots');
+  }
+
+  if (!bot.isActive) {
+    throw new Error('Bot is not active');
+  }
+
+  const membership = await prisma.chatMember.findFirst({
+    where: {
+      chatId,
+      userId,
+    },
+  });
+
+  if (!membership) {
+    throw new Error('You are not a member of this chat');
+  }
+
+  return prisma.botChatInstallation.upsert({
+    where: {
+      botId_chatId: {
+        botId,
+        chatId,
+      },
+    },
+    update: {
+      isActive: true,
+      installedBy: userId,
+    },
+    create: {
+      botId,
+      chatId,
+      installedBy: userId,
+      isActive: true,
+    },
+    include: {
+      chat: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+};
+
+export const uninstallBotFromChat = async (botId: string, userId: string, chatId: string) => {
+  const bot = await prisma.bot.findUnique({
+    where: { id: botId },
+    select: {
+      id: true,
+      ownerId: true,
+    },
+  });
+
+  if (!bot) {
+    throw new Error('Bot not found');
+  }
+
+  if (bot.ownerId !== userId) {
+    throw new Error('You can only manage your own bots');
+  }
+
+  const installation = await prisma.botChatInstallation.findUnique({
+    where: {
+      botId_chatId: {
+        botId,
+        chatId,
+      },
+    },
+  });
+
+  if (!installation) {
+    throw new Error('Bot is not installed in this chat');
+  }
+
+  return prisma.botChatInstallation.update({
+    where: {
+      botId_chatId: {
+        botId,
+        chatId,
+      },
+    },
+    data: {
+      isActive: false,
+    },
+  });
+};
+
+export const getBotInstallations = async (botId: string, userId: string) => {
+  const bot = await prisma.bot.findUnique({
+    where: { id: botId },
+    select: {
+      id: true,
+      ownerId: true,
+    },
+  });
+
+  if (!bot) {
+    throw new Error('Bot not found');
+  }
+
+  if (bot.ownerId !== userId) {
+    throw new Error('You can only view your own bots');
+  }
+
+  return prisma.botChatInstallation.findMany({
+    where: {
+      botId,
+      isActive: true,
+    },
+    include: {
+      chat: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          avatar: true,
+          updatedAt: true,
+        },
+      },
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  });
 };

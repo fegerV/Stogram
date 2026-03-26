@@ -103,6 +103,7 @@ model Chat {
   calls           Call[]
   encryptionKeys  ChatEncryptionKey[]
   members         ChatMember[]
+  botInstallations BotChatInstallation[]
   chatSettings    ChatSettings[]
   messages        Message[]
   pinnedMessages  PinnedMessage[]
@@ -131,6 +132,7 @@ model Message {
   content             String?
   type                MessageType     @default(TEXT)
   senderId            String
+  botId               String?
   chatId              String
   replyToId           String?
   forwardedFromId     String?
@@ -164,6 +166,7 @@ model Message {
   replyTo             Message?        @relation("MessageReply", fields: [replyToId], references: [id])
   replies             Message[]       @relation("MessageReply")
   chat                Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  bot                 Bot?            @relation(fields: [botId], references: [id], onDelete: SetNull)
   sender              User            @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   pinnedBy            PinnedMessage[]
   reactions           Reaction[]
@@ -172,6 +175,7 @@ model Message {
 
   @@index([chatId])
   @@index([senderId])
+  @@index([botId])
   @@index([createdAt])
   @@index([scheduledFor])
   @@index([expiresAt])
@@ -376,14 +380,34 @@ model Bot {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   analytics        BotAnalytics[]
+  installations    BotChatInstallation[]
   commands         BotCommand[]
   inlineKeyboards  BotInlineKeyboard[]
   apiUpdates       BotApiUpdate[]
+  messages         Message[]
   webhooks         Webhook[]
 
   @@index([token])
   @@index([username])
   @@index([ownerId])
+  @@index([isActive])
+}
+
+model BotChatInstallation {
+  id          String   @id @default(uuid())
+  botId       String
+  chatId      String
+  installedBy String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bot         Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@unique([botId, chatId])
+  @@index([botId])
+  @@index([chatId])
+  @@index([installedBy])
   @@index([isActive])
 }
 
