@@ -2,12 +2,10 @@ import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { DevPerformanceMonitor } from './components/DevPerformanceMonitor';
 import { performanceMonitor } from './utils/performance';
 import {
   initializePrefetchStrategies,
   preloadByRoute,
-  preloadCriticalComponents,
 } from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
@@ -32,8 +30,12 @@ const PerformanceWidget = lazy(() =>
   import('./components/PerformanceWidget').then((module) => ({ default: module.PerformanceWidget })),
 );
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard'));
+const DevPerformanceMonitor = lazy(() =>
+  import('./components/DevPerformanceMonitor').then((module) => ({ default: module.DevPerformanceMonitor })),
+);
 
 const ENABLE_PERFORMANCE_WIDGET = import.meta.env.VITE_ENABLE_PERFORMANCE_WIDGET === 'true';
+const ENABLE_DEV_MONITOR = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_MONITOR === 'true';
 
 function RoutePreloader() {
   const location = useLocation();
@@ -64,15 +66,8 @@ function App() {
   useEffect(() => {
     performanceMonitor.trackInteraction('app_init', 'App');
     initializePrefetchStrategies();
-
-    const timer = setTimeout(() => {
-      preloadCriticalComponents();
-    }, 1000);
-
     loadUser();
     initializeTheme();
-
-    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,9 +118,13 @@ function App() {
       >
         <RoutePreloader />
         <Toaster position="top-right" />
-        <div className="hidden md:block">
-          <DevPerformanceMonitor />
-        </div>
+        {ENABLE_DEV_MONITOR && (
+          <Suspense fallback={null}>
+            <div className="hidden md:block">
+              <DevPerformanceMonitor />
+            </div>
+          </Suspense>
+        )}
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route

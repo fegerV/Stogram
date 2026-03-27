@@ -23,7 +23,6 @@ const componentPrefetchers: Record<string, () => Promise<any>> = {
 
 const idlePrefetchQueue: Array<() => Promise<any>> = [
   componentPrefetchers.analytics,
-  componentPrefetchers.performance,
   componentPrefetchers.bot,
   componentPrefetchers.telegramSettings,
   componentPrefetchers.miniApp,
@@ -84,16 +83,14 @@ const resolvePrefetchKey = (element: Element | null): string | null => {
 };
 
 const handlePrefetchEvent = (event: Event, attribute: string) => {
-  // Проверяем, что event.target является HTMLElement
   const eventTarget = event.target;
   if (!eventTarget || !(eventTarget instanceof HTMLElement)) {
     return;
   }
-  
-  // Используем closest только если это HTMLElement
+
   const target = eventTarget.closest(attribute);
   if (!target) return;
-  
+
   prefetchByKey(resolvePrefetchKey(target));
   if (target instanceof HTMLElement) {
     target.setAttribute('data-prefetched', 'true');
@@ -105,20 +102,20 @@ const setupPrefetchHandlers = () => {
 
   document.addEventListener(
     'pointerenter',
-    event => handlePrefetchEvent(event, '[data-prefetch-on-hover], [data-settings-trigger], [data-analytics-trigger]'),
-    true
+    (event) => handlePrefetchEvent(event, '[data-prefetch-on-hover], [data-settings-trigger], [data-analytics-trigger]'),
+    true,
   );
 
   document.addEventListener(
     'focusin',
-    event => handlePrefetchEvent(event, '[data-prefetch-on-focus], [data-prefetch-on-interaction]'),
-    true
+    (event) => handlePrefetchEvent(event, '[data-prefetch-on-focus], [data-prefetch-on-interaction]'),
+    true,
   );
 
   document.addEventListener(
     'click',
-    event => handlePrefetchEvent(event, '[data-prefetch-on-interaction]'),
-    true
+    (event) => handlePrefetchEvent(event, '[data-prefetch-on-interaction]'),
+    true,
   );
 };
 
@@ -126,8 +123,8 @@ const setupIntersectionPrefetch = () => {
   if (!isBrowser || !(window as any).IntersectionObserver) return;
 
   const observer = new IntersectionObserver(
-    entries => {
-      entries.forEach(entry => {
+    (entries) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const element = entry.target as HTMLElement;
           prefetchByKey(resolvePrefetchKey(element));
@@ -135,18 +132,18 @@ const setupIntersectionPrefetch = () => {
         }
       });
     },
-    { rootMargin: '200px', threshold: 0.1 }
+    { rootMargin: '200px', threshold: 0.1 },
   );
 
   const observeElements = (root: ParentNode = document) => {
-    root.querySelectorAll('[data-prefetch-on-view]').forEach(el => observer.observe(el));
+    root.querySelectorAll('[data-prefetch-on-view]').forEach((el) => observer.observe(el));
   };
 
   observeElements();
 
-  const mutationObserver = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      mutation.addedNodes.forEach(node => {
+  const mutationObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) {
           if (node.matches('[data-prefetch-on-view]')) {
             observer.observe(node);
@@ -174,105 +171,95 @@ export const initializePrefetchStrategies = () => {
   scheduleIdlePrefetch();
 };
 
-// Lazy load heavy components
 export const LazyUserSettings = createLazyComponent(
   () => import('./UserSettings'),
-  { fallback: <div className="p-8 text-center">Loading Settings...</div> }
+  { fallback: <div className="p-8 text-center">Loading Settings...</div> },
 );
 
 export const LazyBotManager = createLazyComponent(
   () => import('./BotManager'),
-  { fallback: <div className="p-8 text-center">Loading Bot Manager...</div> }
+  { fallback: <div className="p-8 text-center">Loading Bot Manager...</div> },
 );
 
 export const LazyAnalyticsDashboard = createLazyComponent(
   () => import('./AnalyticsDashboard'),
-  { fallback: <div className="p-8 text-center">Loading Analytics...</div> }
+  { fallback: <div className="p-8 text-center">Loading Analytics...</div> },
 );
 
 export const LazyPerformanceDashboard = createLazyComponent(
-  () => import('./PerformanceDashboard').then(module => ({ default: module.PerformanceDashboard })),
-  { fallback: <div className="p-8 text-center">Loading Performance Data...</div> }
+  () => import('./PerformanceDashboard').then((module) => ({ default: module.PerformanceDashboard })),
+  { fallback: <div className="p-8 text-center">Loading Performance Data...</div> },
 );
 
 export const LazyChatFolders = createLazyComponent(
   () => import('./ChatFolders'),
-  { fallback: <div className="p-8 text-center">Loading Chat Folders...</div> }
+  { fallback: <div className="p-8 text-center">Loading Chat Folders...</div> },
 );
 
 export const LazyThemeCustomizer = createLazyComponent(
   () => import('./ThemeCustomizer'),
-  { fallback: <div className="p-8 text-center">Loading Theme Customizer...</div> }
+  { fallback: <div className="p-8 text-center">Loading Theme Customizer...</div> },
 );
 
 export const LazyTwoFactorAuth = createLazyComponent(
   () => import('./TwoFactorAuth'),
-  { fallback: <div className="p-8 text-center">Loading Two-Factor Auth...</div> }
+  { fallback: <div className="p-8 text-center">Loading Two-Factor Auth...</div> },
 );
 
 export const LazyPrivacySettings = createLazyComponent(
   () => import('./PrivacySettings'),
-  { fallback: <div className="p-8 text-center">Loading Privacy Settings...</div> }
+  { fallback: <div className="p-8 text-center">Loading Privacy Settings...</div> },
 );
 
 export const LazyArchivedChats = createLazyComponent(
   () => import('./ArchivedChats'),
-  { fallback: <div className="p-8 text-center">Loading Archived Chats...</div> }
+  { fallback: <div className="p-8 text-center">Loading Archived Chats...</div> },
 );
 
 export const LazyBlockedUsers = createLazyComponent(
   () => import('./BlockedUsers'),
-  { fallback: <div className="p-8 text-center">Loading Blocked Users...</div> }
+  { fallback: <div className="p-8 text-center">Loading Blocked Users...</div> },
 );
 
 export const LazyCallModal = createLazyComponent(
   () => import('./CallModal'),
-  { fallback: <div className="p-8 text-center">Loading Call...</div> }
+  { fallback: <div className="p-8 text-center">Loading Call...</div> },
 );
 
 export const LazyMediaViewer = createLazyComponent(
   () => import('./MediaViewer'),
-  { fallback: <div className="p-8 text-center">Loading Media...</div> }
+  { fallback: <div className="p-8 text-center">Loading Media...</div> },
 );
 
 export const LazyVoiceRecorder = createLazyComponent(
   () => import('./VoiceRecorder'),
-  { fallback: <div className="p-8 text-center">Loading Voice Recorder...</div> }
+  { fallback: <div className="p-8 text-center">Loading Voice Recorder...</div> },
 );
 
 export const LazyVirtualizedList = createLazyComponent(
   () => import('./VirtualizedList'),
-  { fallback: <div className="p-8 text-center">Loading List...</div> }
+  { fallback: <div className="p-8 text-center">Loading List...</div> },
 );
 
 export const LazyTelegramSettingsPage = createLazyComponent(
-  () => import('../pages/TelegramSettingsPage').then(module => ({ default: module.TelegramSettingsPage })),
-  { fallback: <div className="p-8 text-center">Loading Telegram Settings...</div> }
+  () => import('../pages/TelegramSettingsPage').then((module) => ({ default: module.TelegramSettingsPage })),
+  { fallback: <div className="p-8 text-center">Loading Telegram Settings...</div> },
 );
 
 export const LazyTelegramMiniApp = createLazyComponent(
-  () => import('../pages/TelegramMiniApp').then(module => ({ default: module.TelegramMiniApp })),
-  { fallback: <div className="p-8 text-center">Loading Telegram Mini App...</div> }
+  () => import('../pages/TelegramMiniApp').then((module) => ({ default: module.TelegramMiniApp })),
+  { fallback: <div className="p-8 text-center">Loading Telegram Mini App...</div> },
 );
 
-// Preload functions for critical components
 export const preloadCriticalComponents = () => {
-  import('./UserSettings');
-  import('./ChatWindow');
   import('./ChatList');
-  import('./PerformanceDashboard');
 };
 
-// Preload authenticated user components
 export const preloadAuthenticatedComponents = () => {
   import('../pages/ChatPage');
   import('./ChatList');
-  import('./ChatWindow');
-  import('./UserSettings');
-  import('./AnalyticsDashboard');
 };
 
-// Preload page components for faster navigation
 export const preloadPages = {
   chat: () => import('../pages/ChatPage'),
   login: () => import('../pages/LoginPage'),
@@ -282,12 +269,10 @@ export const preloadPages = {
   telegramMiniApp: () => import('../pages/TelegramMiniApp'),
 };
 
-// Backwards compatible interaction preload helper
 export const preloadOnInteraction = () => {
   initializePrefetchStrategies();
 };
 
-// Intelligent preloading based on route
 export const preloadByRoute = (currentRoute: string) => {
   const route = currentRoute.split('?')[0];
 

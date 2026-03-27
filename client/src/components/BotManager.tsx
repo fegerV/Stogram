@@ -412,7 +412,7 @@ export default function BotManager() {
                   <input
                     value={webhookForm.secret}
                     onChange={(event) => setWebhookForm((current) => ({ ...current, secret: event.target.value }))}
-                    placeholder="secret (optional)"
+                    placeholder="Секретный ключ (необязательно)"
                     className={inputClass}
                   />
                   <button type="submit" disabled={busy || !webhookForm.url} className={primaryButtonClass}>
@@ -500,7 +500,11 @@ export default function BotManager() {
                         {new Date(delivery.deliveredAt).toLocaleString()}
                       </div>
                       {delivery.status < 200 || delivery.status >= 300 ? (
-                        <button type="button" onClick={() => retryDelivery(delivery.id)} className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">
+                        <button
+                          type="button"
+                          onClick={() => retryDelivery(delivery.id)}
+                          className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700"
+                        >
                           Повторить
                         </button>
                       ) : null}
@@ -557,7 +561,11 @@ export default function BotManager() {
                 <button type="button" onClick={() => setShowCreate(false)} className={`flex-1 ${secondaryButtonClass}`}>
                   Отмена
                 </button>
-                <button type="submit" disabled={busy || !createForm.username || !createForm.displayName} className={`flex-1 ${primaryButtonClass}`}>
+                <button
+                  type="submit"
+                  disabled={busy || !createForm.username || !createForm.displayName}
+                  className={`flex-1 ${primaryButtonClass}`}
+                >
                   Создать
                 </button>
               </div>

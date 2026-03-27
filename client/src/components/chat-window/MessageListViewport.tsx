@@ -100,6 +100,7 @@ export function MessageListViewport({
   }, [messages]);
 
   const visibleMessages = useMemo(() => messages.slice(visibleStartIndex), [messages, visibleStartIndex]);
+  const typingEntries = useMemo(() => Array.from(typingUsers.entries()), [typingUsers]);
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
@@ -119,7 +120,7 @@ export function MessageListViewport({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto space-y-1 bg-[#0f1822] px-4 py-4 scrollbar-thin md:px-7"
+      className="flex-1 space-y-1 overflow-y-auto bg-[#0f1822] px-4 py-4 scrollbar-thin md:px-7"
       style={{
         backgroundImage: 'radial-gradient(circle at center, rgba(108,130,147,0.16) 1px, transparent 1px)',
         backgroundSize: '36px 36px',
@@ -159,7 +160,7 @@ export function MessageListViewport({
         />
       ))}
 
-      {Array.from(typingUsers.entries()).map(([userId, userInfo]) => (
+      {typingEntries.map(([userId, userInfo]) => (
         <div key={userId} className="mb-1 flex justify-start">
           <TypingIndicator username={userInfo.displayName || userInfo.username} />
         </div>

@@ -92,8 +92,8 @@ export const PerformanceDashboard: React.FC = () => {
   }
 
   const tips: string[] = [];
-  if (summary.slowComponentsCount > 0) tips.push('Есть медленные рендеры компонентов. Стоит проверить части UI с временем больше 16 мс.');
-  if (summary.slowApiCallsCount > 0) tips.push('Некоторые API-запросы работают дольше секунды. Есть смысл посмотреть сетевой слой и кеширование.');
+  if (summary.slowComponentsCount > 0) tips.push('Есть медленные рендеры компонентов. Проверьте части UI со временем больше 16 мс.');
+  if (summary.slowApiCallsCount > 0) tips.push('Некоторые API-запросы работают дольше секунды. Имеет смысл посмотреть сетевой слой и кэширование.');
   if (summary.apiSuccessRate < 95) tips.push('Надёжность API можно улучшить: часть запросов завершается ошибкой.');
   if (summary.webVitals?.LCP && summary.webVitals.LCP.value > 2500) {
     tips.push('LCP выше комфортного порога. Оптимизируйте первый экран и критические ассеты.');
@@ -208,7 +208,10 @@ export const PerformanceDashboard: React.FC = () => {
           title="Взаимодействия"
           accent="text-orange-500"
           value={summary.totalInteractions}
-          lines={[<div key="label">Отслеживаемые действия пользователя</div>, <div key="ok" className="text-emerald-500">Мониторинг активен</div>]}
+          lines={[
+            <div key="label">Отслеживаемые действия пользователя</div>,
+            <div key="ok" className="text-emerald-500">Мониторинг активен</div>,
+          ]}
         />
       </div>
 
@@ -229,8 +232,8 @@ export const PerformanceDashboard: React.FC = () => {
                       vital.rating === 'good'
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                         : vital.rating === 'needs-improvement'
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-                        : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+                          : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     }`}
                   >
                     {vital.rating === 'good' ? 'Норма' : vital.rating === 'needs-improvement' ? 'Улучшить' : 'Плохо'}

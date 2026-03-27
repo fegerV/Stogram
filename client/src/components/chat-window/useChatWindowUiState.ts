@@ -36,17 +36,6 @@ export function useChatWindowUiState({ chatId }: UseChatWindowUiStateParams) {
         detail: { messageId: message.id },
       }),
     );
-
-    const messageElement = document.getElementById(`message-${message.id}`);
-    if (!messageElement) {
-      return;
-    }
-
-    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    messageElement.classList.add('highlight');
-    setTimeout(() => {
-      messageElement.classList.remove('highlight');
-    }, 2000);
   };
 
   return {

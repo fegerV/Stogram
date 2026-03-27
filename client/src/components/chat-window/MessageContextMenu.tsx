@@ -36,7 +36,7 @@ export function MessageContextMenu({
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 min-w-[160px] max-w-[calc(100vw-16px)] rounded-lg bg-white py-1 shadow-xl dark:bg-[#202c33]"
+        className="fixed z-50 min-w-[160px] max-w-[calc(100vw-16px)] rounded-2xl bg-white py-1 shadow-xl dark:bg-[#202c33]"
         style={{
           left: Math.min(contextMenu.x, window.innerWidth - 180),
           top: Math.min(contextMenu.y, window.innerHeight - 200),

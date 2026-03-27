@@ -24,7 +24,7 @@ export default function LinkPreview({ preview, messageId }: LinkPreviewProps) {
     const handleCallbackClick = async (button: BotKeyboardButton) => {
       const callbackData = normalizeButtonData(button);
       if (!preview.botId || !messageId || !callbackData) {
-        toast.error('Button action is not configured');
+        toast.error('Действие кнопки не настроено');
         return;
       }
 
@@ -45,11 +45,9 @@ export default function LinkPreview({ preview, messageId }: LinkPreviewProps) {
     };
 
     return (
-      <div className="mt-2 rounded-lg border border-gray-200 dark:border-[#2a3942] p-3 bg-white/80 dark:bg-[#1f2c33]">
+      <div className="mt-2 rounded-2xl border border-slate-200 bg-white/90 p-3 dark:border-slate-700 dark:bg-[#1f2c33]">
         {preview.keyboardName && (
-          <div className="text-xs text-[#667781] dark:text-[#8696a0] mb-2">
-            {preview.keyboardName}
-          </div>
+          <div className="mb-2 text-xs text-slate-500 dark:text-[#8696a0]">{preview.keyboardName}</div>
         )}
         <div className="space-y-2">
           {buttonRows.map((row, rowIndex) => (
@@ -65,7 +63,7 @@ export default function LinkPreview({ preview, messageId }: LinkPreviewProps) {
                       href={button.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium bg-[#e7f3ff] text-[#0b6bcb] hover:bg-[#d8ebff] dark:bg-[#183247] dark:text-[#84c7ff] dark:hover:bg-[#21425b] transition"
+                      className="inline-flex items-center justify-center rounded-xl bg-[#e7f3ff] px-3 py-2 text-sm font-medium text-[#0b6bcb] transition hover:bg-[#d8ebff] dark:bg-[#183247] dark:text-[#84c7ff] dark:hover:bg-[#21425b]"
                     >
                       {button.text}
                     </a>
@@ -78,7 +76,7 @@ export default function LinkPreview({ preview, messageId }: LinkPreviewProps) {
                     type="button"
                     onClick={() => handleCallbackClick(button)}
                     disabled={isPending || !callbackData}
-                    className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium bg-[#f0f2f5] text-[#111b21] hover:bg-[#e4e7ea] dark:bg-[#233138] dark:text-[#e9edef] dark:hover:bg-[#2c3d45] transition disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-200 disabled:opacity-60 dark:bg-[#233138] dark:text-[#e9edef] dark:hover:bg-[#2c3d45]"
                   >
                     {isPending ? '...' : button.text}
                   </button>
@@ -96,40 +94,30 @@ export default function LinkPreview({ preview, messageId }: LinkPreviewProps) {
       href={preview.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block mt-2 rounded-lg border border-gray-200 dark:border-[#2a3942] overflow-hidden hover:bg-gray-50 dark:hover:bg-[#2a3942] transition"
+      className="mt-2 block overflow-hidden rounded-2xl border border-slate-200 transition hover:bg-slate-50 dark:border-[#2a3942] dark:hover:bg-[#2a3942]"
     >
       {preview.image && (
-        <div className="w-full h-48 bg-gray-100 dark:bg-[#2a3942] relative overflow-hidden">
+        <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-[#2a3942]">
           <img
             src={preview.image}
-            alt={preview.title || 'Preview'}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
+            alt={preview.title || 'Превью'}
+            className="h-full w-full object-cover"
+            onError={(event) => {
+              (event.target as HTMLImageElement).style.display = 'none';
             }}
           />
         </div>
       )}
       <div className="p-3">
         {preview.siteName && (
-          <div className="text-xs text-[#667781] dark:text-[#8696a0] mb-1 flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" />
+          <div className="mb-1 flex items-center gap-1 text-xs text-slate-500 dark:text-[#8696a0]">
+            <ExternalLink className="h-3 w-3" />
             {preview.siteName}
           </div>
         )}
-        {preview.title && (
-          <h4 className="font-semibold text-[#111b21] dark:text-[#e9edef] text-sm mb-1 line-clamp-2">
-            {preview.title}
-          </h4>
-        )}
-        {preview.description && (
-          <p className="text-xs text-[#667781] dark:text-[#8696a0] line-clamp-2">
-            {preview.description}
-          </p>
-        )}
-        <div className="text-xs text-[#00a884] dark:text-[#00a884] mt-1 truncate">
-          {preview.url}
-        </div>
+        {preview.title && <h4 className="mb-1 line-clamp-2 text-sm font-semibold text-slate-900 dark:text-[#e9edef]">{preview.title}</h4>}
+        {preview.description && <p className="line-clamp-2 text-xs text-slate-500 dark:text-[#8696a0]">{preview.description}</p>}
+        <div className="mt-1 truncate text-xs text-[#00a884]">{preview.url}</div>
       </div>
     </a>
   );
