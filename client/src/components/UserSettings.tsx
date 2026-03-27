@@ -639,6 +639,8 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     return item.label.toLowerCase().includes(query) || item.subtitle?.toLowerCase().includes(query);
   });
 
+  const isRootSettingsView = section === 'main';
+
   /* ── RENDER ── */
   return (
     <ErrorBoundary
@@ -652,10 +654,12 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         onClick={onClose}
       >
         <div
-          className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:max-w-[1120px] sm:rounded-[28px] sm:shadow-2xl lg:flex-row"
+          className={`flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:rounded-[28px] sm:shadow-2xl ${
+            isRootSettingsView ? 'sm:max-w-[420px]' : 'sm:max-w-[1120px] lg:flex-row'
+          }`}
           onClick={(event) => event.stopPropagation()}
         >
-        <aside className="hidden lg:flex lg:w-[318px] lg:flex-col lg:border-r lg:border-[#202c33] lg:bg-[#17212b]">
+        <aside className={`${isRootSettingsView ? 'hidden' : 'hidden lg:flex'} lg:w-[318px] lg:flex-col lg:border-r lg:border-[#202c33] lg:bg-[#17212b]`}>
           <div className="flex items-center gap-2 px-4 py-3 text-white">
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition" aria-label="Закрыть настройки">
               <ArrowLeft className="w-[22px] h-[22px]" />
@@ -730,34 +734,57 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
         {section === 'main' && (
           <div className="flex flex-col h-full overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#517da2] dark:bg-[#17212b] text-white lg:hidden">
+            <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#17212b] text-white border-b border-white/5">
               <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition">
                 <ArrowLeft className="w-[22px] h-[22px]" />
               </button>
-              <span className="flex-1" />
+              <h2 className="ml-2 flex-1 text-[18px] font-semibold">Настройки</h2>
+              <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition">
+                <X className="w-[20px] h-[20px]" />
+              </button>
+            </div>
+
+            <div className="px-4 py-3 bg-[#17212b]">
+              <div className="flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-2.5 text-white/80 ring-1 ring-white/5">
+                <Search className="w-[15px] h-[15px]" />
+                <input
+                  value={settingsSearch}
+                  onChange={(e) => setSettingsSearch(e.target.value)}
+                  placeholder="Поиск"
+                  className="w-full bg-transparent text-[13px] placeholder:text-white/35 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Avatar + Name */}
-            <div className="flex flex-col items-center py-6 bg-white dark:bg-[#17212b] lg:items-start lg:px-8 lg:py-7">
-              <div className="relative">
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt={displayName} className="w-[110px] h-[110px] rounded-full object-cover lg:w-[88px] lg:h-[88px]" />
-                ) : (
-                  <div className="w-[110px] h-[110px] rounded-full bg-[#3390ec] flex items-center justify-center text-white text-4xl font-bold lg:w-[88px] lg:h-[88px] lg:text-3xl">
-                    {displayName.charAt(0) || 'U'}
+            <div className="px-4 pb-3 bg-[#17212b]">
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="w-full rounded-[20px] bg-white/10 px-4 py-3 text-left shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {avatarSrc ? (
+                      <img src={avatarSrc} alt={displayName} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-[#3390ec] flex items-center justify-center text-white text-lg font-bold">
+                        {displayName.charAt(0) || 'U'}
+                      </div>
+                    )}
+                    <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                )}
-                <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 w-10 h-10 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#2b7fd4] transition lg:w-8 lg:h-8"
-                  aria-label="Изменить фото"
-                >
-                  <Camera className="w-5 h-5 lg:w-4 lg:h-4" />
-                </button>
-              </div>
-              <h2 className="mt-4 text-[22px] font-semibold text-[#222] dark:text-white lg:mt-3 lg:text-[20px]">{displayName}</h2>
-              <p className="text-[14px] text-[#4fae4e] mt-0.5">в сети</p>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-[16px] font-semibold text-white">{displayName}</h2>
+                    <p className="truncate text-[13px] text-white/50">@{user?.username || 'user'}</p>
+                  </div>
+                  <div className="text-[#3390ec]">
+                    <User className="w-4 h-4" />
+                  </div>
+                </div>
+              </button>
             </div>
 
             <Divider />
@@ -1305,3 +1332,4 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
 };
 
 export default UserSettings;
+

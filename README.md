@@ -111,6 +111,7 @@ Stogram currently has three integration directions:
 Helpful docs:
 
 - [`BOTS_USAGE_GUIDE.md`](/c:/Project/Stogram/BOTS_USAGE_GUIDE.md)
+- [`docs/api/BOT_API.md`](/c:/Project/Stogram/docs/api/BOT_API.md)
 - [`docs/api/TELEGRAM.md`](/c:/Project/Stogram/docs/api/TELEGRAM.md)
 - [`docs/deployment/VERCEL_SETUP.md`](/c:/Project/Stogram/docs/deployment/VERCEL_SETUP.md)
 

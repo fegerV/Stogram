@@ -31,6 +31,7 @@ Development:
 
 API and integrations:
 
+- [`api/BOT_API.md`](/c:/Project/Stogram/docs/api/BOT_API.md)
 - [`api/TELEGRAM.md`](/c:/Project/Stogram/docs/api/TELEGRAM.md)
 - [`api/TELEGRAM_SETUP.md`](/c:/Project/Stogram/docs/api/TELEGRAM_SETUP.md)
 - [`api/TELEGRAM_EXAMPLES.md`](/c:/Project/Stogram/docs/api/TELEGRAM_EXAMPLES.md)

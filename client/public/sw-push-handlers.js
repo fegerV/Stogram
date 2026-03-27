@@ -1,6 +1,11 @@
 /* eslint-disable no-restricted-globals */
 // Push notification handlers to be injected into Workbox service worker
 
+const broadcastToClients = async (message) => {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clients.forEach((client) => client.postMessage(message));
+};
+
 // Listen for push events
 self.addEventListener('push', (event) => {
   console.log('Push notification received', event);
@@ -72,18 +77,23 @@ self.addEventListener('notificationclick', (event) => {
 // Handle push subscription changes
 self.addEventListener('pushsubscriptionchange', (event) => {
   console.log('Push subscription changed', event);
-  
+
   event.waitUntil(
-    self.registration.pushManager.subscribe(event.oldSubscription.options)
-      .then((subscription) => {
-        // Send new subscription to server
-        return fetch('/api/users/push-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ subscription }),
+    (async () => {
+      if (!event.oldSubscription?.options) {
+        await broadcastToClients({ type: 'PWA_PUSH_SUBSCRIPTION_EXPIRED' });
+        return;
+      }
+
+      try {
+        const subscription = await self.registration.pushManager.subscribe(event.oldSubscription.options);
+        await broadcastToClients({
+          type: 'PWA_PUSH_SUBSCRIPTION_CHANGED',
+          subscription: subscription.toJSON(),
         });
-      })
+      } catch (error) {
+        console.error('Failed to renew push subscription', error);
+      }
+    })()
   );
 });

@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_WS_URL: string
+  readonly VITE_VAPID_PUBLIC_KEY?: string
   readonly VITE_ENABLE_PERFORMANCE_WIDGET?: string
   readonly VITE_WEBRTC_ICE_SERVERS?: string
   readonly VITE_STUN_URLS?: string

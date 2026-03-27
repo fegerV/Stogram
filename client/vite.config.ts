@@ -11,18 +11,21 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      injectRegister: null,
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'sw-push-handlers.js', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['sw-push-handlers.js', 'icon-192.png', 'icon-512.png', 'health.html', 'robots.txt'],
       manifest: {
         name: 'Stogram - Modern Messenger',
         short_name: 'Stogram',
         description: 'Modern PWA messenger with video/audio calls, private and group chats',
-        theme_color: '#0088cc',
-        background_color: '#ffffff',
+        theme_color: '#182533',
+        background_color: '#0f1720',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        lang: 'ru',
+        categories: ['social', 'communication'],
         icons: [
           {
             src: '/icon-192.png',
@@ -61,13 +64,17 @@ export default defineConfig({
         importScripts: ['/sw-push-handlers.js'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\..*/i,
+            urlPattern: /^https?:\/\/[^/]+\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24,
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },
