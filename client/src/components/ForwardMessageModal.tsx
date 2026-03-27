@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { X, Search } from 'lucide-react';
-import { useChatStore } from '../store/chatStore';
+import { useState } from 'react';
+import { Search, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { messageApi } from '../services/api';
+import { useChatStore } from '../store/chatStore';
 import { getChatName } from '../utils/helpers';
 
 interface ForwardMessageModalProps {
@@ -23,13 +24,10 @@ export default function ForwardMessageModal({ messageId, onClose, onSuccess }: F
 
   const toggleChat = (chatId: string) => {
     setSelectedChatIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(chatId)) {
-        newSet.delete(chatId);
-      } else {
-        newSet.add(chatId);
-      }
-      return newSet;
+      const next = new Set(prev);
+      if (next.has(chatId)) next.delete(chatId);
+      else next.add(chatId);
+      return next;
     });
   };
 
@@ -39,40 +37,40 @@ export default function ForwardMessageModal({ messageId, onClose, onSuccess }: F
     setIsForwarding(true);
     try {
       await messageApi.forward(messageId, Array.from(selectedChatIds));
+      toast.success('Сообщение переслано');
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Failed to forward message:', error);
-      alert('Ошибка при пересылке сообщения');
+      toast.error('Не удалось переслать сообщение');
     } finally {
       setIsForwarding(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#202c33] rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33] flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#111b21] dark:text-[#e9edef]">
-            Переслать сообщение
-          </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-[30px] border border-slate-200/70 bg-white/95 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Переслать сообщение</h2>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a3942] rounded-full transition"
+            className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
           >
-            <X className="w-5 h-5 text-[#667781] dark:text-[#8696a0]" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33]">
+        <div className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-700">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#667781] dark:text-[#8696a0]" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск чатов..."
-              className="w-full pl-10 pr-4 py-2 bg-[#f0f2f5] dark:bg-[#2a3942] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00a884] text-[#111b21] dark:text-[#e9edef] text-sm"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Поиск чатов"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
         </div>
@@ -81,55 +79,56 @@ export default function ForwardMessageModal({ messageId, onClose, onSuccess }: F
           {filteredChats.map((chat) => {
             const chatName = getChatName(chat, '');
             const isSelected = selectedChatIds.has(chat.id);
+            const chatType =
+              chat.type === 'PRIVATE' ? 'Личный чат' : chat.type === 'GROUP' ? 'Группа' : 'Канал';
 
             return (
-              <div
+              <button
                 key={chat.id}
+                type="button"
                 onClick={() => toggleChat(chat.id)}
-                className={`p-3 rounded-lg cursor-pointer transition ${
+                className={`mb-2 w-full rounded-2xl p-3 text-left transition ${
                   isSelected
-                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b]'
-                    : 'hover:bg-gray-50 dark:hover:bg-[#2a3942]'
+                    ? 'bg-[#3390ec]/10 ring-1 ring-[#3390ec]/25'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm`}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3390ec] text-sm font-medium text-white">
                     {chatName[0]?.toUpperCase() || 'C'}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-[#111b21] dark:text-[#e9edef]">{chatName}</h3>
-                    <p className="text-xs text-[#667781] dark:text-[#8696a0]">
-                      {chat.type === 'PRIVATE' ? 'Приватный чат' : chat.type === 'GROUP' ? 'Группа' : 'Канал'}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-medium text-slate-900 dark:text-white">{chatName}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{chatType}</p>
                   </div>
                   {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-[#00a884] flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3390ec] text-[10px] text-white">
+                      ✓
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-[#202c33] flex items-center justify-between gap-3">
-          <span className="text-sm text-[#667781] dark:text-[#8696a0]">
-            Выбрано: {selectedChatIds.size}
-          </span>
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200/70 px-4 py-3 dark:border-slate-700">
+          <span className="text-sm text-slate-500 dark:text-slate-400">Выбрано: {selectedChatIds.size}</span>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-[#2a3942] text-[#111b21] dark:text-[#e9edef] rounded-lg hover:bg-gray-300 dark:hover:bg-[#3a4a52] transition"
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Отмена
             </button>
             <button
+              type="button"
               onClick={handleForward}
               disabled={selectedChatIds.size === 0 || isForwarding}
-              className="px-4 py-2 bg-[#00a884] text-white rounded-lg hover:bg-[#008069] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-2xl bg-[#3390ec] px-4 py-2 text-sm text-white transition hover:bg-[#2c83d9] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isForwarding ? 'Пересылка...' : 'Переслать'}
+              {isForwarding ? 'Пересылаем...' : 'Переслать'}
             </button>
           </div>
         </div>

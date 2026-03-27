@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Search, X, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MessageCircle, Search, X } from 'lucide-react';
 import { searchApi } from '../services/api';
 import { Message } from '../types';
-import { formatMessageTime, getChatName } from '../utils/helpers';
 import { useChatStore } from '../store/chatStore';
+import { formatMessageTime, getChatName } from '../utils/helpers';
 
 interface MessageSearchProps {
   chatId?: string;
@@ -19,9 +19,7 @@ export default function MessageSearch({ chatId, onSelectMessage, onClose }: Mess
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
+    if (debounceTimer) clearTimeout(debounceTimer);
 
     if (query.trim().length < 2) {
       setResults([]);
@@ -44,7 +42,7 @@ export default function MessageSearch({ chatId, onSelectMessage, onClose }: Mess
     setDebounceTimer(timer);
 
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (timer) clearTimeout(timer);
     };
   }, [query, chatId]);
 
@@ -53,30 +51,31 @@ export default function MessageSearch({ chatId, onSelectMessage, onClose }: Mess
     onClose?.();
   };
 
-  const getChatNameById = (chatId: string) => {
-    const chat = chats.find((c) => c.id === chatId);
-    return chat ? getChatName(chat, '') : 'Unknown Chat';
+  const getChatNameById = (currentChatId: string) => {
+    const chat = chats.find((item) => item.id === currentChatId);
+    return chat ? getChatName(chat, '') : 'Неизвестный чат';
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#202c33] rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-[#202c33] flex items-center gap-3">
-          <Search className="w-5 h-5 text-[#667781] dark:text-[#8696a0]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-[30px] border border-slate-200/70 bg-white/95 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="flex items-center gap-3 border-b border-slate-200/70 px-4 py-3 dark:border-slate-700">
+          <Search className="h-5 w-5 text-slate-400" />
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по сообщениям..."
-            className="flex-1 bg-transparent outline-none text-[#111b21] dark:text-[#e9edef] placeholder-[#667781] dark:placeholder-[#8696a0]"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Поиск по сообщениям"
+            className="flex-1 bg-transparent text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
             autoFocus
           />
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-[#2a3942] rounded-full transition"
+              className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
             >
-              <X className="w-5 h-5 text-[#667781] dark:text-[#8696a0]" />
+              <X className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -84,51 +83,59 @@ export default function MessageSearch({ chatId, onSelectMessage, onClose }: Mess
         <div className="flex-1 overflow-y-auto p-4">
           {isSearching ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00a884]"></div>
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#3390ec]" />
             </div>
           ) : results.length === 0 && query.trim().length >= 2 ? (
-            <div className="text-center py-8 text-[#667781] dark:text-[#8696a0]">
-              <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+              <MessageCircle className="mx-auto mb-2 h-12 w-12 opacity-50" />
               <p>Сообщения не найдены</p>
             </div>
           ) : results.length === 0 ? (
-            <div className="text-center py-8 text-[#667781] dark:text-[#8696a0]">
+            <div className="py-8 text-center text-slate-500 dark:text-slate-400">
               <p>Введите минимум 2 символа для поиска</p>
             </div>
           ) : (
             <div className="space-y-2">
               {results.map((message) => (
-                <div
+                <button
                   key={message.id}
+                  type="button"
                   onClick={() => handleSelectMessage(message)}
-                  className="p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a3942] cursor-pointer transition"
+                  className="w-full rounded-2xl p-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#3390ec] flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#3390ec] text-sm font-medium text-white">
                       {message.sender.displayName?.[0] || message.sender.username[0]?.toUpperCase() || 'U'}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-[#111b21] dark:text-[#e9edef]">
+                          <span className="font-medium text-slate-900 dark:text-white">
                             {message.sender.displayName || message.sender.username}
                           </span>
                           {!chatId && (
-                            <span className="text-xs text-[#667781] dark:text-[#8696a0]">
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
                               {getChatNameById(message.chatId)}
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-[#667781] dark:text-[#8696a0]">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {formatMessageTime(message.createdAt)}
                         </span>
                       </div>
-                      <p className="text-sm text-[#111b21] dark:text-[#e9edef] line-clamp-2">
-                        {message.content || (message.type === 'IMAGE' ? '📷 Фото' : message.type === 'VIDEO' ? '🎥 Видео' : message.type === 'FILE' ? '📎 Файл' : '')}
+                      <p className="line-clamp-2 text-sm text-slate-700 dark:text-slate-200">
+                        {message.content ||
+                          (message.type === 'IMAGE'
+                            ? 'Фото'
+                            : message.type === 'VIDEO'
+                            ? 'Видео'
+                            : message.type === 'FILE'
+                            ? 'Файл'
+                            : '')}
                       </p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}

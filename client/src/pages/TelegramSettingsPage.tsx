@@ -29,7 +29,7 @@ export const TelegramSettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    void loadSettings();
   }, []);
 
   const loadSettings = async () => {
@@ -69,7 +69,7 @@ export const TelegramSettingsPage: React.FC = () => {
       await telegramService.updateSettings({
         notifications,
         syncMessages,
-        syncProfile
+        syncProfile,
       });
       alert('Настройки сохранены');
     } catch (error) {
@@ -83,7 +83,7 @@ export const TelegramSettingsPage: React.FC = () => {
   const handleTestNotification = async () => {
     try {
       await telegramService.sendTestNotification();
-      alert('Тестовое уведомление отправлено! Проверьте Telegram.');
+      alert('Тестовое уведомление отправлено. Проверьте Telegram.');
     } catch (error) {
       console.error('Failed to send test notification:', error);
       alert('Не удалось отправить тестовое уведомление');
@@ -92,212 +92,214 @@ export const TelegramSettingsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="flex h-screen items-center justify-center bg-[#f4f7fb] dark:bg-[#0b141a]">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#3390ec]" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Настройки Telegram</h1>
+    <div className="min-h-screen bg-[#f4f7fb] px-4 py-8 text-[#1f2937] dark:bg-[#0b141a] dark:text-[#e6edf3]">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Настройки Telegram</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Управление связкой аккаунта, уведомлениями и синхронизацией.
+          </p>
+        </div>
 
-      {/* Статус подключения */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Статус подключения</h2>
-        
-        {settings?.linked ? (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              {settings.telegram?.photoUrl && (
-                <img 
-                  src={settings.telegram.photoUrl} 
-                  alt="Avatar" 
-                  className="w-16 h-16 rounded-full"
-                />
-              )}
-              <div>
-                <p className="font-semibold">
-                  {settings.telegram?.firstName} {settings.telegram?.lastName}
-                </p>
-                {settings.telegram?.username && (
-                  <p className="text-gray-600">@{settings.telegram.username}</p>
-                )}
-                <p className="text-sm text-green-600 mt-1">✓ Аккаунт связан</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={handleUnlink}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-            >
-              Отвязать аккаунт
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Свяжите свой Telegram аккаунт для получения уведомлений и доступа к дополнительным функциям.
-            </p>
-            
-            {settings?.botInfo.username && (
-              <div
-                id="telegram-login-container"
-                className="flex justify-start"
-              />
-            )}
-            
-            <p className="text-sm text-gray-500">
-              После авторизации вы будете автоматически перенаправлены обратно.
-            </p>
-          </div>
-        )}
-      </div>
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#202c33] dark:bg-[#17212b]">
+          <h2 className="mb-4 text-xl font-semibold">Статус подключения</h2>
 
-      {/* Настройки (только если аккаунт связан) */}
-      {settings?.linked && (
-        <>
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Настройки интеграции</h2>
-            
+          {settings?.linked ? (
             <div className="space-y-4">
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={notifications}
-                  onChange={(e) => setNotifications(e.target.checked)}
-                  className="w-5 h-5 text-blue-600"
-                />
+              <div className="flex items-center gap-4">
+                {settings.telegram?.photoUrl && (
+                  <img
+                    src={settings.telegram.photoUrl}
+                    alt="Telegram avatar"
+                    className="h-16 w-16 rounded-full border border-slate-200 object-cover dark:border-[#24323d]"
+                  />
+                )}
                 <div>
-                  <p className="font-medium">Уведомления в Telegram</p>
-                  <p className="text-sm text-gray-600">
-                    Получать уведомления о новых сообщениях через Telegram бота
+                  <p className="font-semibold">
+                    {settings.telegram?.firstName} {settings.telegram?.lastName}
+                  </p>
+                  {settings.telegram?.username && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">@{settings.telegram.username}</p>
+                  )}
+                  <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">
+                    Аккаунт успешно связан
                   </p>
                 </div>
-              </label>
+              </div>
 
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={syncMessages}
-                  onChange={(e) => setSyncMessages(e.target.checked)}
-                  className="w-5 h-5 text-blue-600"
-                />
-                <div>
-                  <p className="font-medium">Синхронизация сообщений</p>
-                  <p className="text-sm text-gray-600">
-                    Синхронизировать сообщения между Stogram и Telegram
-                  </p>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={syncProfile}
-                  onChange={(e) => setSyncProfile(e.target.checked)}
-                  className="w-5 h-5 text-blue-600"
-                />
-                <div>
-                  <p className="font-medium">Синхронизация профиля</p>
-                  <p className="text-sm text-gray-600">
-                    Автоматически обновлять фото и имя из Telegram
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
               <button
-                onClick={handleSaveSettings}
-                disabled={saving}
-                className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition disabled:opacity-50"
+                onClick={handleUnlink}
+                className="rounded-xl bg-red-500 px-4 py-2 text-white transition hover:bg-red-600"
               >
-                {saving ? 'Сохранение...' : 'Сохранить настройки'}
+                Отвязать аккаунт
               </button>
-
-              {notifications && (
-                <button
-                  onClick={handleTestNotification}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
-                >
-                  Тестовое уведомление
-                </button>
-              )}
             </div>
-          </div>
-
-          {/* Мосты для чатов */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Мосты для чатов</h2>
-            
-            {settings.telegram?.bridges && settings.telegram.bridges.length > 0 ? (
-              <div className="space-y-3">
-                {settings.telegram.bridges.map((bridge: any) => (
-                  <div 
-                    key={bridge.id}
-                    className="p-4 border rounded-lg flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-medium">Чат синхронизирован</p>
-                      <p className="text-sm text-gray-600">
-                        Направление: {bridge.syncDirection}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Последняя синхронизация: {new Date(bridge.lastSyncAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {/* TODO: implement delete bridge */}}
-                      className="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">
-                  У вас пока нет активных мостов для чатов
-                </p>
-                <p className="text-sm text-gray-500">
-                  Мосты позволяют автоматически синхронизировать сообщения между Telegram и Stogram
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Информация о боте */}
-          {settings.botInfo.username && (
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-2">Telegram Bot</h2>
-              <p className="text-gray-700 mb-4">
-                Для управления настройками через Telegram, напишите боту:
+          ) : (
+            <div className="space-y-4">
+              <p className="text-slate-600 dark:text-slate-300">
+                Свяжите свой Telegram аккаунт, чтобы получать уведомления и использовать интеграцию с ботом.
               </p>
-              <a
-                href={`https://t.me/${settings.botInfo.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-              >
-                Открыть @{settings.botInfo.username}
-              </a>
-              
-              <div className="mt-4 text-sm text-gray-600">
-                <p className="font-medium mb-2">Доступные команды:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>/start - Начать работу с ботом</li>
-                  <li>/status - Проверить статус аккаунта</li>
-                  <li>/notifications on|off - Управление уведомлениями</li>
-                  <li>/bridge - Информация о мостах для чатов</li>
-                  <li>/help - Показать справку</li>
-                </ul>
-              </div>
+
+              {settings?.botInfo.username && <div id="telegram-login-container" className="flex justify-start" />}
+
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                После авторизации вы автоматически вернётесь обратно в приложение.
+              </p>
             </div>
           )}
-        </>
-      )}
+        </section>
+
+        {settings?.linked && (
+          <>
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#202c33] dark:bg-[#17212b]">
+              <h2 className="mb-4 text-xl font-semibold">Настройки интеграции</h2>
+
+              <div className="space-y-5">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={notifications}
+                    onChange={(event) => setNotifications(event.target.checked)}
+                    className="mt-1 h-5 w-5 rounded text-[#3390ec]"
+                  />
+                  <div>
+                    <p className="font-medium">Уведомления в Telegram</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Получать уведомления о новых сообщениях через Telegram бота.
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={syncMessages}
+                    onChange={(event) => setSyncMessages(event.target.checked)}
+                    className="mt-1 h-5 w-5 rounded text-[#3390ec]"
+                  />
+                  <div>
+                    <p className="font-medium">Синхронизация сообщений</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Синхронизировать сообщения между Stogram и Telegram.
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={syncProfile}
+                    onChange={(event) => setSyncProfile(event.target.checked)}
+                    className="mt-1 h-5 w-5 rounded text-[#3390ec]"
+                  />
+                  <div>
+                    <p className="font-medium">Синхронизация профиля</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Автоматически обновлять имя и фото профиля из Telegram.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="rounded-xl bg-[#3390ec] px-6 py-2 text-white transition hover:bg-[#2b7fd1] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? 'Сохранение...' : 'Сохранить настройки'}
+                </button>
+
+                {notifications && (
+                  <button
+                    onClick={handleTestNotification}
+                    className="rounded-xl bg-slate-200 px-6 py-2 text-slate-700 transition hover:bg-slate-300 dark:bg-[#202b36] dark:text-slate-200 dark:hover:bg-[#293744]"
+                  >
+                    Тестовое уведомление
+                  </button>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#202c33] dark:bg-[#17212b]">
+              <h2 className="mb-4 text-xl font-semibold">Мосты для чатов</h2>
+
+              {settings.telegram?.bridges && settings.telegram.bridges.length > 0 ? (
+                <div className="space-y-3">
+                  {settings.telegram.bridges.map((bridge: any) => (
+                    <div
+                      key={bridge.id}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 dark:border-[#24323d] dark:bg-[#111922]"
+                    >
+                      <div>
+                        <p className="font-medium">Чат синхронизирован</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Направление: {bridge.syncDirection}
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          Последняя синхронизация: {new Date(bridge.lastSyncAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          /* TODO */
+                        }}
+                        className="rounded-xl bg-red-50 px-4 py-2 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 px-5 py-6 text-center dark:bg-[#111922]">
+                  <p className="mb-2 text-slate-600 dark:text-slate-300">
+                    У вас пока нет активных мостов для чатов.
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Мосты позволяют автоматически синхронизировать сообщения между Telegram и Stogram.
+                  </p>
+                </div>
+              )}
+            </section>
+
+            {settings.botInfo.username && (
+              <section className="rounded-3xl border border-[#3390ec]/20 bg-[#3390ec]/5 p-6 dark:border-[#3390ec]/30 dark:bg-[#17263a]">
+                <h2 className="mb-2 text-xl font-semibold">Telegram Bot</h2>
+                <p className="mb-4 text-slate-700 dark:text-slate-300">
+                  Для управления интеграцией через Telegram откройте бота:
+                </p>
+                <a
+                  href={`https://t.me/${settings.botInfo.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-xl bg-[#3390ec] px-6 py-3 font-medium text-white transition hover:bg-[#2b7fd1]"
+                >
+                  Открыть @{settings.botInfo.username}
+                </a>
+
+                <div className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mb-2 font-medium">Доступные команды:</p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    <li>/start - начать работу с ботом</li>
+                    <li>/status - проверить статус аккаунта</li>
+                    <li>/notifications on|off - управление уведомлениями</li>
+                    <li>/bridge - информация о мостах для чатов</li>
+                    <li>/help - показать справку</li>
+                  </ul>
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,42 +1,40 @@
-import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  Bell,
+  Bot,
+  Database,
+  FolderOpen,
+  Languages,
+  MessageCircle,
+  Monitor,
+  Palette,
+  Shield,
+  X,
+} from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { usePerformanceMonitor } from '../utils/performance';
-import { monitoredApi } from '../utils/monitoredApi';
-import { userApi } from '../services/api';
 import { getMediaUrl } from '../utils/helpers';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
-import {
-  ArrowLeft,
-  Camera,
-  MessageCircle,
-  Shield,
-  Bell,
-  Database,
-  Zap,
-  FolderOpen,
-  Palette,
-  Bot,
-  Monitor,
-  HardDrive,
-  Download,
-  Upload,
-  Trash2,
-  X,
-  ChevronRight,
-  User,
-  Archive,
-  UserX,
-  Plus,
-  Edit2,
-  Search,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../utils/pushNotifications';
-import { useNotificationStore } from '../store/notificationStore';
-import { notificationSound } from '../utils/notificationSound';
 import { LazyBotManager } from './LazyComponents';
+import { SettingsSidebar } from './user-settings/SettingsSidebar';
+import { SettingsMainHeader } from './user-settings/SettingsMainHeader';
+import { Divider, MenuRow, SectionLabel } from './user-settings/SettingsPrimitives';
+import { getSettingsNavItems } from './user-settings/settingsNavigation';
+import { Folder, SettingsSection } from './user-settings/types';
+import { useUserSettingsData } from './user-settings/useUserSettingsData';
+import { SettingsI18nProvider, useSettingsI18n } from './user-settings/i18n';
 
+const LazyPrivacySection = lazy(() => import('./user-settings/PrivacySection').then((module) => ({ default: module.PrivacySection })));
+const LazyNotificationsSection = lazy(() => import('./user-settings/NotificationsSection').then((module) => ({ default: module.NotificationsSection })));
+const LazyAppearanceSection = lazy(() => import('./user-settings/AppearanceSection').then((module) => ({ default: module.AppearanceSection })));
+const LazySecuritySection = lazy(() => import('./user-settings/SecuritySection').then((module) => ({ default: module.SecuritySection })));
+const LazySessionsSection = lazy(() => import('./user-settings/SessionsSection').then((module) => ({ default: module.SessionsSection })));
+const LazyDataSection = lazy(() => import('./user-settings/DataSection').then((module) => ({ default: module.DataSection })));
+const LazyFoldersSection = lazy(() => import('./user-settings/FoldersSection').then((module) => ({ default: module.FoldersSection })));
+const LazyChatSettingsSection = lazy(() => import('./user-settings/ChatSettingsSection').then((module) => ({ default: module.ChatSettingsSection })));
+const LazyLanguageSection = lazy(() => import('./user-settings/LanguageSection').then((module) => ({ default: module.LanguageSection })));
 const LazyTwoFactorAuth = lazy(() => import('./TwoFactorAuth'));
 const LazyArchivedChats = lazy(() => import('./ArchivedChats').then((module) => ({ default: module.ArchivedChats })));
 const LazyBlockedUsers = lazy(() => import('./BlockedUsers'));
@@ -47,70 +45,13 @@ interface UserSettingsProps {
   onClose: () => void;
 }
 
-interface Session {
-  id: string;
-  device: string;
-  ipAddress: string;
-  userAgent: string;
-  lastActive: string;
-  createdAt: string;
-  isCurrent: boolean;
-}
-
-interface StorageInfo {
-  messages: { count: number; estimatedBytes: number };
-  media: { count: number; totalBytes: number };
-  contacts: { count: number; estimatedBytes: number };
-  chats: { count: number; estimatedBytes: number };
-  cache: { entriesCount: number; estimatedBytes: number };
-  total: { estimatedBytes: number; formatted: string };
-}
-
-interface Folder {
-  id: string;
-  name: string;
-  color?: string;
-  icon?: string;
-  order: number;
-  chatSettings?: Array<{
-    chat?: {
-      id: string;
-      name?: string;
-      type?: string;
-    };
-  }>;
-}
-
-type SettingsSection = 'main' | 'chat-settings' | 'privacy' | 'notifications' | 'data' | 'appearance' | 'security' | 'sessions' | 'bots' | 'folders';
-
-/**
- * Responsive Telegram-style settings panel with profile header and grouped settings.
- */
-const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
+function UserSettingsContent({ onClose }: UserSettingsProps) {
   const { startRender, trackInteraction } = usePerformanceMonitor('UserSettings');
   const { setUser: setAuthUser } = useAuthStore();
   const { setTheme } = useThemeStore();
+  const { t, locale } = useSettingsI18n();
 
   const [section, setSection] = useState<SettingsSection>('main');
-  const [user, setUser] = useState<any>(null);
-  const [privacy, setPrivacy] = useState({
-    showOnlineStatus: true,
-    showProfilePhoto: true,
-    showLastSeen: true,
-  });
-  const [notifications, setNotifications] = useState({
-    notificationsPush: true,
-    notificationsEmail: true,
-    notificationsSound: true,
-    notificationsVibration: true,
-  });
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(false);
-  const [loadingStorage, setLoadingStorage] = useState(false);
-  const [loadingFolders, setLoadingFolders] = useState(false);
-  const [securityStatus, setSecurityStatus] = useState<any>(null);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
@@ -120,357 +61,70 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
   const [folderColor, setFolderColor] = useState('#3390ec');
   const [integrationTab, setIntegrationTab] = useState<'internal' | 'telegram' | 'n8n'>('internal');
   const [settingsSearch, setSettingsSearch] = useState('');
-  const [changePasswordData, setChangePasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const updateNotificationsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [profileFormData, setProfileFormData] = useState({
-    displayName: '',
-    bio: '',
-    status: '',
-  });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [savingProfile, setSavingProfile] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    user,
+    privacy,
+    notifications,
+    sessions,
+    storageInfo,
+    folders,
+    loadingSessions,
+    loadingStorage,
+    loadingFolders,
+    securityStatus,
+    changePasswordData,
+    profileFormData,
+    avatarFile,
+    avatarPreview,
+    savingProfile,
+    setChangePasswordData,
+    setProfileFormData,
+    loadSecurityStatus,
+    handlePrivacyChange,
+    handleNotificationChange,
+    handleAvatarChange,
+    handleProfileSave,
+    handleChangePassword,
+    handleDisable2FA,
+    handleRevokeSession,
+    handleRevokeAllSessions,
+    handleClearCache,
+    handleExportData,
+    handleImportData,
+    resetFolderForm,
+    handleSaveFolder,
+    handleDeleteFolder,
+  } = useUserSettingsData({ section, setAuthUser });
 
   useEffect(() => {
     startRender();
     trackInteraction('settings_open', 'UserSettings');
-    loadUserData();
-    loadPrivacySettings();
-    loadNotificationPreferences();
-  }, []);
+  }, [startRender, trackInteraction]);
 
-  /* ── Data Loading ── */
-  const loadUserData = async () => {
-    try {
-      const response = await monitoredApi.get('/users/me');
-      setUser(response.data);
-      setProfileFormData({
-        displayName: response.data.displayName || '',
-        bio: response.data.bio || '',
-        status: response.data.status || '',
-      });
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-    }
-  };
+  const avatarSrc = avatarPreview || getMediaUrl(user?.avatar) || '';
+  const displayName = user?.displayName || user?.username || '';
+  const isRootSettingsView = section === 'main';
 
-  const loadPrivacySettings = async () => {
-    try {
-      const response = await monitoredApi.get('/users/privacy');
-      setPrivacy(response.data);
-    } catch (error) {
-      console.error('Failed to load privacy settings:', error);
+  const settingsNavItems = useMemo(() => getSettingsNavItems(t), [t]);
+  const filteredSettingsNavItems = settingsNavItems.filter((item) => {
+    if (!settingsSearch.trim()) {
+      return true;
     }
-  };
+    const query = settingsSearch.trim().toLowerCase();
+    return item.label.toLowerCase().includes(query) || item.subtitle?.toLowerCase().includes(query);
+  });
 
-  const loadNotificationPreferences = async () => {
-    try {
-      const response = await monitoredApi.get('/users/notifications');
-      setNotifications(response.data);
-      if (response.data.notificationsSound !== undefined) {
-        useNotificationStore.getState().setSoundEnabled(response.data.notificationsSound);
-      }
-      if (response.data.notificationsVibration !== undefined) {
-        useNotificationStore.getState().setVibrationEnabled(response.data.notificationsVibration);
-      }
-    } catch (error) {
-      console.error('Failed to load notification preferences:', error);
-    }
-  };
-
-  const loadSessions = async () => {
-    setLoadingSessions(true);
-    try {
-      const response = await monitoredApi.get('/users/sessions');
-      setSessions(response.data.sessions);
-    } catch (error) {
-      console.error('Failed to load sessions:', error);
-      toast.error('Не удалось загрузить сеансы');
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
-
-  const loadStorageInfo = async () => {
-    setLoadingStorage(true);
-    try {
-      const response = await monitoredApi.get('/users/storage');
-      setStorageInfo(response.data);
-    } catch (error) {
-      console.error('Failed to load storage info:', error);
-    } finally {
-      setLoadingStorage(false);
-    }
-  };
-
-  const loadSecurityStatus = async () => {
-    try {
-      const response = await monitoredApi.get('/security/status');
-      setSecurityStatus(response.data);
-    } catch (error) {
-      console.error('Failed to load security status:', error);
-    }
-  };
-
-  const loadFolders = async () => {
-    setLoadingFolders(true);
-    try {
-      const response = await monitoredApi.get('/folders');
-      setFolders(response.data.folders || []);
-    } catch (error) {
-      console.error('Failed to load folders:', error);
-      toast.error('Не удалось загрузить папки');
-    } finally {
-      setLoadingFolders(false);
-    }
-  };
-
-  /* ── Handlers ── */
-  const handlePrivacyChange = async (key: string, value: boolean) => {
-    try {
-      const response = await monitoredApi.patch('/users/privacy', { [key]: value });
-      // Update local state with server response
-      if (response.data?.settings) {
-        setPrivacy(response.data.settings);
-      } else {
-        setPrivacy({ ...privacy, [key]: value });
-      }
-      toast.success('Настройки обновлены');
-    } catch (error: any) {
-      console.error('Failed to update privacy:', error);
-      const errorMessage = error?.response?.data?.error || 'Ошибка обновления настроек приватности';
-      toast.error(errorMessage);
-      // Revert local state on error
-      setPrivacy({ ...privacy, [key]: !value });
-    }
-  };
-
-  const debouncedUpdateNotifications = useCallback(
-    (prefs: typeof notifications, onError?: () => void) => {
-      if (updateNotificationsTimeoutRef.current) clearTimeout(updateNotificationsTimeoutRef.current);
-      updateNotificationsTimeoutRef.current = setTimeout(async () => {
-        try {
-          const response = await monitoredApi.patch('/users/notifications', prefs);
-          // Update local state with server response
-          if (response.data?.preferences) {
-            setNotifications(response.data.preferences);
-          }
-        } catch (error: any) {
-          console.error('Failed to update notifications:', error);
-          const errorMessage = error?.response?.data?.error || 'Ошибка обновления уведомлений';
-          toast.error(errorMessage);
-          // Reload preferences from server to revert to correct state
-          if (onError) {
-            onError();
-          } else {
-            loadNotificationPreferences();
-          }
-        }
-      }, 500);
-    },
-    [],
-  );
-
-  const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
-    const previousState = { ...notifications };
-    const updated = { ...notifications, [key]: value };
-    setNotifications(updated);
-
-    if (key === 'notificationsPush') {
-      try {
-        const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-        if (value && vapidKey) {
-          await subscribeToPushNotifications(vapidKey);
-        } else if (!value) {
-          await unsubscribeFromPushNotifications();
-        }
-      } catch (error) {
-        console.error('Push notification error:', error);
-      }
-    }
-    if (key === 'notificationsSound') {
-      useNotificationStore.getState().setSoundEnabled(value);
-      if (value) notificationSound.playMessageSound();
-    }
-    if (key === 'notificationsVibration') {
-      useNotificationStore.getState().setVibrationEnabled(value);
-    }
-    debouncedUpdateNotifications(updated, () => {
-      // Revert to previous state on error
-      setNotifications(previousState);
-      loadNotificationPreferences();
-    });
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Размер файла не более 5 МБ');
-      return;
-    }
-    setAvatarFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setAvatarPreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleProfileSave = async () => {
-    setSavingProfile(true);
-    try {
-      const formData = new FormData();
-      
-      // Always send displayName, bio, status if they exist (even if unchanged)
-      // This ensures the form data is properly structured
-      if (profileFormData.displayName !== undefined) {
-        formData.append('displayName', profileFormData.displayName);
-      }
-      if (profileFormData.bio !== undefined) {
-        formData.append('bio', profileFormData.bio);
-      }
-      if (profileFormData.status !== undefined) {
-        formData.append('status', profileFormData.status);
-      }
-      
-      // Always send avatar file if selected
-      if (avatarFile) {
-        formData.append('avatar', avatarFile);
-      }
-
-      const response = await userApi.updateProfile(formData);
-      
-      // Update user state with response data
-      setUser(response.data);
-      setAuthUser(response.data);
-      
-      // Clear preview only after successful save
-      setAvatarFile(null);
-      setAvatarPreview(null);
-      
-      // Force re-render to show new avatar
-      // The avatarSrc will use the new user.avatar from response
-      
-      toast.success('Профиль обновлён');
-    } catch (error: any) {
-      console.error('Profile update error:', error);
-      toast.error(error.response?.data?.error || 'Ошибка обновления профиля');
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (changePasswordData.newPassword !== changePasswordData.confirmPassword) {
-      toast.error('Пароли не совпадают');
-      return;
-    }
-    if (changePasswordData.newPassword.length < 8) {
-      toast.error('Пароль должен быть не менее 8 символов');
-      return;
-    }
-    try {
-      await monitoredApi.post('/users/change-password', {
-        currentPassword: changePasswordData.currentPassword,
-        newPassword: changePasswordData.newPassword,
-      });
-      toast.success('Пароль изменён');
-      setChangePasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Ошибка смены пароля');
-    }
-  };
-
-  const handleDisable2FA = async () => {
-    if (!confirm('Отключить двухфакторную аутентификацию?')) return;
-    const code = prompt('Введите код 2FA:');
-    if (!code) return;
-    try {
-      await monitoredApi.post('/security/2fa/disable', { code });
-      toast.success('2FA отключена');
-      await loadSecurityStatus();
-    } catch {
-      toast.error('Ошибка отключения 2FA');
-    }
-  };
-
-  const handleRevokeSession = async (sessionId: string) => {
-    try {
-      await monitoredApi.delete(`/users/sessions/${sessionId}`);
-      setSessions((s) => s.filter((x) => x.id !== sessionId));
-      toast.success('Сеанс завершён');
-    } catch {
-      toast.error('Ошибка завершения сеанса');
-    }
-  };
-
-  const handleRevokeAllSessions = async () => {
-    if (!confirm('Завершить все другие сеансы?')) return;
-    try {
-      await monitoredApi.delete('/users/sessions');
-      await loadSessions();
-      toast.success('Все сеансы завершены');
-    } catch {
-      toast.error('Ошибка');
-    }
-  };
-
-  const handleClearCache = async () => {
-    if (!confirm('Очистить кэш?')) return;
-    try {
-      await monitoredApi.post('/users/storage/clear-cache');
-      await loadStorageInfo();
-      toast.success('Кэш очищен');
-    } catch {
-      toast.error('Ошибка очистки кэша');
-    }
-  };
-
-  const handleExportData = async () => {
-    try {
-      const response = await monitoredApi.get('/users/export', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `stogram-export-${Date.now()}.json`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('Данные экспортированы');
-    } catch {
-      toast.error('Ошибка экспорта');
-    }
-  };
-
-  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      await monitoredApi.post('/users/import', data);
-      toast.success('Данные импортированы');
-      await loadUserData();
-    } catch {
-      toast.error('Ошибка импорта');
-    }
-    event.target.value = '';
-  };
-
-  const resetFolderForm = () => {
-    setEditingFolder(null);
-    setFolderName('');
-    setFolderColor('#3390ec');
+  const applyFolderFormReset = () => {
+    const defaults = resetFolderForm();
+    setEditingFolder(defaults.editingFolder);
+    setFolderName(defaults.folderName);
+    setFolderColor(defaults.folderColor);
   };
 
   const handleOpenCreateFolder = () => {
-    resetFolderForm();
+    applyFolderFormReset();
     setShowFolderModal(true);
   };
 
@@ -481,167 +135,30 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
     setShowFolderModal(true);
   };
 
-  const handleSaveFolder = async () => {
-    const trimmedName = folderName.trim();
-    if (!trimmedName) {
-      toast.error('Введите название папки');
-      return;
-    }
-
-    try {
-      if (editingFolder) {
-        await monitoredApi.put(`/folders/${editingFolder.id}`, {
-          name: trimmedName,
-          color: folderColor,
-          icon: editingFolder.icon || 'Folder',
-        });
-        toast.success('Папка обновлена');
-      } else {
-        await monitoredApi.post('/folders', {
-          name: trimmedName,
-          color: folderColor,
-          icon: 'Folder',
-        });
-        toast.success('Папка создана');
-      }
-
+  const handlePersistFolder = async () => {
+    await handleSaveFolder(editingFolder, folderName, folderColor, () => {
       setShowFolderModal(false);
-      resetFolderForm();
-      await loadFolders();
-    } catch (error) {
-      console.error('Failed to save folder:', error);
-      toast.error('Не удалось сохранить папку');
-    }
+      applyFolderFormReset();
+    });
   };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('Удалить папку?')) return;
-
-    try {
-      await monitoredApi.delete(`/folders/${folderId}`);
-      setFolders((current) => current.filter((folder) => folder.id !== folderId));
-      toast.success('Папка удалена');
-    } catch (error) {
-      console.error('Failed to delete folder:', error);
-      toast.error('Не удалось удалить папку');
-    }
-  };
-
-  /** Load data when entering a sub-section */
-  useEffect(() => {
-    if (section === 'sessions') loadSessions();
-    else if (section === 'data') loadStorageInfo();
-    else if (section === 'security') loadSecurityStatus();
-    else if (section === 'folders') loadFolders();
-  }, [section]);
-
-  /* ── UI Helpers ── */
-  // Use preview if available (during selection), otherwise use saved avatar
-  const avatarSrc = avatarPreview || getMediaUrl(user?.avatar) || '';
-  const displayName = user?.displayName || user?.username || '';
 
   const goBack = () => {
     if (section === 'main') {
       onClose();
-    } else {
-      setSection('main');
+      return;
     }
+    setSection('main');
   };
 
-  /** Generic section header */
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#517da2] dark:bg-[#17212b] text-white">
-      <button onClick={goBack} className="p-2.5 hover:bg-white/10 rounded-full transition">
-        <ArrowLeft className="w-[22px] h-[22px]" />
+    <div className="sticky top-0 z-10 flex h-14 items-center bg-[#17212b] px-2 text-white">
+      <button onClick={goBack} className="rounded-full p-2.5 transition hover:bg-white/10">
+        <ArrowLeft className="h-[22px] w-[22px]" />
       </button>
       <h2 className="ml-3 text-[19px] font-semibold">{title}</h2>
     </div>
   );
 
-  /** Toggle switch row */
-  const ToggleRow = ({
-    label,
-    description,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    description?: string;
-    checked: boolean;
-    onChange: (v: boolean) => void;
-  }) => (
-    <div className="flex items-center justify-between px-5 py-3.5">
-      <div className="flex-1 mr-4">
-        <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{label}</p>
-        {description && <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883] mt-0.5">{description}</p>}
-      </div>
-      <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-        <div className="w-[42px] h-[24px] bg-gray-300 rounded-full peer dark:bg-gray-600 peer-checked:bg-[#3390ec] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-[20px] after:w-[20px] after:transition-transform peer-checked:after:translate-x-[18px] after:shadow-sm" />
-      </label>
-    </div>
-  );
-
-  /** Menu row with chevron */
-  const MenuRow = ({
-    icon: Icon,
-    label,
-    subtitle,
-    onClick,
-    color,
-  }: {
-    icon: React.ElementType;
-    label: string;
-    subtitle?: string;
-    onClick: () => void;
-    color?: string;
-  }) => (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-5 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-[#202b36] transition-colors active:bg-gray-100 dark:active:bg-[#2b3a47]"
-    >
-      <Icon className={`w-[22px] h-[22px] ${color || 'text-[#8e8e93] dark:text-[#6c7883]'}`} />
-      <div className="flex-1 text-left">
-        <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{label}</p>
-        {subtitle && <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">{subtitle}</p>}
-      </div>
-      <ChevronRight className="w-4 h-4 text-[#c7c7cc] dark:text-[#4e5b65]" />
-    </button>
-  );
-
-  const Divider = () => <div className="h-2 bg-[#efeff4] dark:bg-[#0e1621]" />;
-  const SectionLabel = ({ text }: { text: string }) => (
-    <p className="px-5 pt-5 pb-2 text-[13px] font-semibold text-[#3390ec] uppercase tracking-wide">{text}</p>
-  );
-
-  const settingsNavItems: Array<{
-    id: SettingsSection;
-    label: string;
-    icon: React.ElementType;
-    subtitle?: string;
-    color?: string;
-  }> = [
-    { id: 'main', label: 'Мой аккаунт', icon: User, subtitle: 'Профиль и основная информация', color: 'text-[#3390ec]' },
-    { id: 'notifications', label: 'Уведомления и звуки', icon: Bell, color: 'text-[#ef5350]' },
-    { id: 'privacy', label: 'Конфиденциальность', icon: Shield, color: 'text-[#8e8e93]' },
-    { id: 'chat-settings', label: 'Настройки чатов', icon: MessageCircle, color: 'text-[#3390ec]' },
-    { id: 'folders', label: 'Папки с чатами', icon: FolderOpen, color: 'text-[#3390ec]' },
-    { id: 'appearance', label: 'Внешний вид', icon: Palette, color: 'text-[#e67e22]' },
-    { id: 'security', label: 'Безопасность', icon: Shield, subtitle: '2FA, пароль', color: 'text-[#8e8e93]' },
-    { id: 'sessions', label: 'Активные сеансы', icon: Monitor, color: 'text-[#3390ec]' },
-    { id: 'data', label: 'Данные и память', icon: Database, color: 'text-[#4fae4e]' },
-    { id: 'bots', label: 'Боты и интеграции', icon: Bot, color: 'text-[#9c27b0]' },
-  ];
-
-  const filteredSettingsNavItems = settingsNavItems.filter((item) => {
-    if (!settingsSearch.trim()) return true;
-    const query = settingsSearch.trim().toLowerCase();
-    return item.label.toLowerCase().includes(query) || item.subtitle?.toLowerCase().includes(query);
-  });
-
-  const isRootSettingsView = section === 'main';
-
-  /* ── RENDER ── */
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
@@ -659,677 +176,290 @@ const UserSettings: React.FC<UserSettingsProps> = ({ onClose }) => {
           }`}
           onClick={(event) => event.stopPropagation()}
         >
-        <aside className={`${isRootSettingsView ? 'hidden' : 'hidden lg:flex'} lg:w-[318px] lg:flex-col lg:border-r lg:border-[#202c33] lg:bg-[#17212b]`}>
-          <div className="flex items-center gap-2 px-4 py-3 text-white">
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition" aria-label="Закрыть настройки">
-              <ArrowLeft className="w-[22px] h-[22px]" />
-            </button>
-            <h2 className="flex-1 text-[20px] font-semibold">Настройки</h2>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition" aria-label="Закрыть">
-              <X className="w-[20px] h-[20px]" />
-            </button>
-          </div>
+          {!isRootSettingsView && (
+            <SettingsSidebar
+              avatarSrc={avatarSrc}
+              displayName={displayName}
+              username={user?.username}
+              section={section}
+              settingsSearch={settingsSearch}
+              filteredSettingsNavItems={filteredSettingsNavItems}
+              onClose={onClose}
+              onSearchChange={setSettingsSearch}
+              onSectionChange={setSection}
+            />
+          )}
 
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-2.5 text-white/80 ring-1 ring-white/5">
-              <Search className="w-[15px] h-[15px]" />
-              <input
-                value={settingsSearch}
-                onChange={(e) => setSettingsSearch(e.target.value)}
-                placeholder="Поиск"
-                className="w-full bg-transparent text-[13px] placeholder:text-white/35 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="px-3 pb-3">
-            <button
-              onClick={() => setSection('main')}
-              className={`w-full rounded-[20px] px-4 py-3 text-left transition ${
-                section === 'main' ? 'bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' : 'hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt={displayName} className="w-12 h-12 rounded-full object-cover" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#3390ec] flex items-center justify-center text-white text-lg font-bold">
-                    {displayName.charAt(0) || 'U'}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-[16px] font-semibold text-white">{displayName}</p>
-                  <p className="truncate text-[13px] text-white/50">@{user?.username || 'user'}</p>
-                </div>
-              </div>
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-2.5 pb-4">
-            {filteredSettingsNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = section === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setSection(item.id)}
-                  className={`mb-1 flex w-full items-center gap-3 rounded-[18px] px-3.5 py-2.5 text-left transition ${
-                    isActive ? 'bg-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]' : 'hover:bg-white/5'
-                  }`}
-                >
-                  <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-white' : item.color || 'text-white/55'}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className={`truncate text-[14px] ${isActive ? 'text-white' : 'text-white/82'}`}>{item.label}</p>
-                    {item.subtitle && <p className="truncate text-[11px] text-white/35">{item.subtitle}</p>}
-                  </div>
-                  <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white/70' : 'text-white/25'}`} />
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-[#17212b]">
-        {/* ── MAIN Profile View ── */}
-        {section === 'main' && (
-          <div className="flex flex-col h-full overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center h-14 px-2 bg-[#17212b] text-white border-b border-white/5">
-              <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition">
-                <ArrowLeft className="w-[22px] h-[22px]" />
-              </button>
-              <h2 className="ml-2 flex-1 text-[18px] font-semibold">Настройки</h2>
-              <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition">
-                <X className="w-[20px] h-[20px]" />
-              </button>
-            </div>
-
-            <div className="px-4 py-3 bg-[#17212b]">
-              <div className="flex items-center gap-3 rounded-xl bg-white/5 px-3.5 py-2.5 text-white/80 ring-1 ring-white/5">
-                <Search className="w-[15px] h-[15px]" />
-                <input
-                  value={settingsSearch}
-                  onChange={(e) => setSettingsSearch(e.target.value)}
-                  placeholder="Поиск"
-                  className="w-full bg-transparent text-[13px] placeholder:text-white/35 focus:outline-none"
+          <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-[#17212b]">
+            {section === 'main' && (
+              <div className="flex h-full flex-col overflow-y-auto">
+                <SettingsMainHeader
+                  avatarSrc={avatarSrc}
+                  displayName={displayName}
+                  settingsSearch={settingsSearch}
+                  avatarInputRef={avatarInputRef}
+                  onClose={onClose}
+                  onSearchChange={setSettingsSearch}
+                  onAvatarChange={handleAvatarChange}
                 />
-              </div>
-            </div>
 
-            {/* Avatar + Name */}
-            <div className="px-4 pb-3 bg-[#17212b]">
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                className="w-full rounded-[20px] bg-white/10 px-4 py-3 text-left shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {avatarSrc ? (
-                      <img src={avatarSrc} alt={displayName} className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-[#3390ec] flex items-center justify-center text-white text-lg font-bold">
-                        {displayName.charAt(0) || 'U'}
-                      </div>
-                    )}
-                    <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#3390ec] rounded-full flex items-center justify-center text-white shadow-md">
-                      <Camera className="w-3.5 h-3.5" />
-                    </div>
+                <Divider />
+
+                <div className="bg-white dark:bg-[#17212b]">
+                  <SectionLabel text={t('settings.account')} />
+
+                  <div className="px-5 py-3.5">
+                    <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.email || '—'}</p>
+                    <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">{t('settings.email')}</p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[16px] font-semibold text-white">{displayName}</h2>
-                    <p className="truncate text-[13px] text-white/50">@{user?.username || 'user'}</p>
+
+                  <div className="ml-5 h-px bg-gray-100 dark:bg-[#202c33]" />
+
+                  <div className="px-5 py-3.5">
+                    <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">@{user?.username || ''}</p>
+                    <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">{t('settings.username')}</p>
                   </div>
-                  <div className="text-[#3390ec]">
-                    <User className="w-4 h-4" />
+
+                  <div className="ml-5 h-px bg-gray-100 dark:bg-[#202c33]" />
+
+                  <div className="px-5 py-3.5">
+                    <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">
+                      {user?.bio || t('settings.aboutPlaceholder')}
+                    </p>
+                    <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">{t('settings.about')}</p>
                   </div>
-                </div>
-              </button>
-            </div>
 
-            <Divider />
-
-            {/* Account Info */}
-            <div className="bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Аккаунт" />
-
-              {/* Phone (placeholder) */}
-              <div className="px-5 py-3.5">
-                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.email || '—'}</p>
-                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">Email</p>
-              </div>
-
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-
-              {/* Username */}
-              <div className="px-5 py-3.5">
-                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">@{user?.username || ''}</p>
-                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">Имя пользователя</p>
-              </div>
-
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-
-              {/* Bio */}
-              <div className="px-5 py-3.5">
-                <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">{user?.bio || 'Напишите немного о себе'}</p>
-                <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">О себе</p>
-              </div>
-
-              {(avatarFile || profileFormData.displayName !== (user?.displayName || '') || profileFormData.bio !== (user?.bio || '')) && (
-                <div className="px-5 py-3">
-                  <button
-                    onClick={handleProfileSave}
-                    disabled={savingProfile}
-                    className="w-full py-2.5 bg-[#3390ec] text-white rounded-lg font-medium text-[15px] hover:bg-[#2b7fd4] transition disabled:opacity-50"
-                  >
-                    {savingProfile ? 'Сохранение...' : 'Сохранить'}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <Divider />
-
-            {/* Settings Menu */}
-            <div className="bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Настройки" />
-              <MenuRow icon={MessageCircle} label="Настройки чатов" onClick={() => setSection('chat-settings')} color="text-[#3390ec]" />
-              <MenuRow icon={Shield} label="Конфиденциальность" onClick={() => setSection('privacy')} color="text-[#8e8e93]" />
-              <MenuRow icon={Bell} label="Уведомления и звуки" onClick={() => setSection('notifications')} color="text-[#ef5350]" />
-              <MenuRow icon={Database} label="Данные и память" onClick={() => setSection('data')} color="text-[#4fae4e]" />
-              <MenuRow icon={Palette} label="Внешний вид" onClick={() => setSection('appearance')} color="text-[#e67e22]" />
-              <MenuRow icon={FolderOpen} label="Папки с чатами" onClick={() => setSection('folders')} color="text-[#3390ec]" />
-            </div>
-
-            <Divider />
-
-            <div className="bg-white dark:bg-[#17212b]">
-              <MenuRow icon={Shield} label="Безопасность" subtitle="2FA, пароль" onClick={() => setSection('security')} color="text-[#8e8e93]" />
-              <MenuRow icon={Monitor} label="Активные сеансы" onClick={() => setSection('sessions')} color="text-[#3390ec]" />
-              <MenuRow icon={Bot} label="Боты и интеграции" onClick={() => setSection('bots')} color="text-[#9c27b0]" />
-            </div>
-
-            <Divider />
-            <div className="h-8" />
-          </div>
-        )}
-
-        {/* ── PRIVACY ── */}
-        {section === 'privacy' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Конфиденциальность" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Приватность" />
-              <ToggleRow label="Показывать статус онлайн" description="Другие видят, когда вы в сети" checked={privacy.showOnlineStatus} onChange={(v) => handlePrivacyChange('showOnlineStatus', v)} />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Время последнего посещения" description="Когда вы были онлайн" checked={privacy.showLastSeen} onChange={(v) => handlePrivacyChange('showLastSeen', v)} />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Фото профиля" description="Видимость для других" checked={privacy.showProfilePhoto} onChange={(v) => handlePrivacyChange('showProfilePhoto', v)} />
-            </div>
-          </div>
-        )}
-
-        {/* ── NOTIFICATIONS ── */}
-        {section === 'notifications' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Уведомления и звуки" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Уведомления" />
-              <ToggleRow label="Push-уведомления" description="Получать уведомления о сообщениях" checked={notifications.notificationsPush} onChange={(v) => handleNotificationChange('notificationsPush', v)} />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Email-уведомления" checked={notifications.notificationsEmail} onChange={(v) => handleNotificationChange('notificationsEmail', v)} />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Звук" description="Звук при новом сообщении" checked={notifications.notificationsSound} onChange={(v) => handleNotificationChange('notificationsSound', v)} />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow label="Вибрация" checked={notifications.notificationsVibration} onChange={(v) => handleNotificationChange('notificationsVibration', v)} />
-            </div>
-          </div>
-        )}
-
-        {/* ── APPEARANCE ── */}
-        {section === 'appearance' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Внешний вид" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
-              <SectionLabel text="Тема" />
-              <div className="grid grid-cols-3 gap-3 mt-2">
-                {[
-                  { value: 'light' as const, label: 'Светлая', bg: 'bg-white border border-gray-200' },
-                  { value: 'dark' as const, label: 'Тёмная', bg: 'bg-[#0b141a]' },
-                  { value: 'system' as const, label: 'Авто', bg: 'bg-gradient-to-br from-white to-[#0b141a]' },
-                ].map((t) => (
-                  <button
-                    key={t.value}
-                    onClick={async () => {
-                      try {
-                        if (t.value !== 'system') await monitoredApi.patch('/users/theme', { theme: t.value });
-                        setTheme(t.value);
-                        toast.success('Тема изменена');
-                      } catch {
-                        toast.error('Ошибка');
-                      }
-                    }}
-                    className={`p-3 rounded-xl border-2 transition ${
-                      (user?.theme === t.value || (!user?.theme && t.value === 'system'))
-                        ? 'border-[#3390ec]'
-                        : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
-                    <div className={`w-full h-16 rounded-lg mb-2 ${t.bg}`} />
-                    <p className="text-[13px] font-medium text-[#222] dark:text-[#e1e1e1]">{t.label}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── SECURITY ── */}
-        {section === 'security' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Безопасность" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Двухфакторная аутентификация" />
-              <div className="px-5 py-3.5">
-                {securityStatus ? (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">
-                        Статус: {securityStatus.twoFactorEnabled ? (
-                          <span className="text-[#4fae4e] font-medium">Включена</span>
-                        ) : (
-                          <span className="text-[#ef5350] font-medium">Отключена</span>
-                        )}
-                      </p>
-                    </div>
-                    <button
-                      onClick={securityStatus.twoFactorEnabled ? handleDisable2FA : () => setShow2FAModal(true)}
-                      className={`px-4 py-2 rounded-lg text-white text-sm font-medium ${
-                        securityStatus.twoFactorEnabled ? 'bg-[#ef5350]' : 'bg-[#3390ec]'
-                      }`}
-                    >
-                      {securityStatus.twoFactorEnabled ? 'Отключить' : 'Включить'}
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[#8e8e93]">Загрузка...</p>
-                )}
-              </div>
-
-              <Divider />
-
-              <SectionLabel text="Изменить пароль" />
-              <form onSubmit={handleChangePassword} className="px-5 space-y-3 pb-5">
-                <input
-                  type="password"
-                  placeholder="Текущий пароль"
-                  value={changePasswordData.currentPassword}
-                  onChange={(e) => setChangePasswordData({ ...changePasswordData, currentPassword: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Новый пароль"
-                  value={changePasswordData.newPassword}
-                  onChange={(e) => setChangePasswordData({ ...changePasswordData, newPassword: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
-                  required
-                  minLength={8}
-                />
-                <input
-                  type="password"
-                  placeholder="Подтвердите пароль"
-                  value={changePasswordData.confirmPassword}
-                  onChange={(e) => setChangePasswordData({ ...changePasswordData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-lg text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
-                  required
-                />
-                <button type="submit" className="w-full py-3 bg-[#3390ec] text-white rounded-lg font-medium hover:bg-[#2b7fd4] transition">
-                  Изменить пароль
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ── SESSIONS ── */}
-        {section === 'sessions' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Активные сеансы" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              {loadingSessions ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3390ec]" />
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="text-center py-12 text-[#8e8e93]">
-                  <Monitor className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                  <p>Нет активных сеансов</p>
-                </div>
-              ) : (
-                <>
-                  {sessions.length > 1 && (
+                  {(avatarFile ||
+                    profileFormData.displayName !== (user?.displayName || '') ||
+                    profileFormData.bio !== (user?.bio || '')) && (
                     <div className="px-5 py-3">
-                      <button onClick={handleRevokeAllSessions} className="text-[#ef5350] text-[14px] font-medium">
-                        Завершить все другие сеансы
+                      <button
+                        onClick={handleProfileSave}
+                        disabled={savingProfile}
+                        className="w-full rounded-lg bg-[#3390ec] py-2.5 text-[15px] font-medium text-white transition hover:bg-[#2b7fd4] disabled:opacity-50"
+                      >
+                        {savingProfile ? t('settings.saving') : t('settings.save')}
                       </button>
                     </div>
                   )}
-                  {sessions.map((s) => (
-                    <div key={s.id} className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 dark:border-[#202c33]">
-                      <Monitor className="w-5 h-5 text-[#3390ec] flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[15px] text-[#222] dark:text-[#e1e1e1] truncate">{s.device || 'Устройство'}</p>
-                          {s.isCurrent && (
-                            <span className="px-2 py-0.5 text-[11px] bg-[#4fae4e]/20 text-[#4fae4e] rounded-full font-medium">Текущий</span>
-                          )}
-                        </div>
-                        <p className="text-[13px] text-[#8e8e93] truncate">{s.ipAddress}</p>
-                      </div>
-                      {!s.isCurrent && (
-                        <button onClick={() => handleRevokeSession(s.id)} className="p-1.5 text-[#ef5350] hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full">
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── DATA & STORAGE ── */}
-        {section === 'data' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Данные и память" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              {loadingStorage ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3390ec]" />
                 </div>
-              ) : storageInfo ? (
-                <>
-                  <div className="px-5 py-5">
-                    <div className="bg-gradient-to-br from-[#3390ec]/10 to-[#3390ec]/5 dark:from-[#3390ec]/20 dark:to-[#3390ec]/10 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-[13px] text-[#8e8e93] font-medium uppercase">Общее использование</p>
-                        <HardDrive className="w-5 h-5 text-[#3390ec]" />
-                      </div>
-                      <p className="text-[28px] font-bold text-[#222] dark:text-white">{storageInfo.total.formatted}</p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-3 px-5 pb-3">
+                <Divider />
+
+                <div className="bg-white dark:bg-[#17212b]">
+                  <SectionLabel text={t('settings.general')} />
+                  <MenuRow icon={MessageCircle} label={t('settings.section.chatSettings')} onClick={() => setSection('chat-settings')} color="text-[#3390ec]" />
+                  <MenuRow icon={Shield} label={t('settings.section.privacy')} onClick={() => setSection('privacy')} color="text-[#8e8e93]" />
+                  <MenuRow icon={Bell} label={t('settings.section.notifications')} onClick={() => setSection('notifications')} color="text-[#ef5350]" />
+                  <MenuRow icon={Database} label={t('settings.section.data')} onClick={() => setSection('data')} color="text-[#4fae4e]" />
+                  <MenuRow icon={Palette} label={t('settings.section.appearance')} onClick={() => setSection('appearance')} color="text-[#e67e22]" />
+                  <MenuRow icon={Languages} label={t('settings.section.language')} subtitle={locale === 'ru' ? t('settings.languageValueRu') : t('settings.languageValueEn')} onClick={() => setSection('language')} color="text-[#4fae4e]" />
+                  <MenuRow icon={FolderOpen} label={t('settings.section.folders')} onClick={() => setSection('folders')} color="text-[#3390ec]" />
+                </div>
+
+                <Divider />
+
+                <div className="bg-white dark:bg-[#17212b]">
+                  <MenuRow icon={Shield} label={t('settings.section.security')} subtitle={t('settings.securitySubtitle')} onClick={() => setSection('security')} color="text-[#8e8e93]" />
+                  <MenuRow icon={Monitor} label={t('settings.section.sessions')} onClick={() => setSection('sessions')} color="text-[#3390ec]" />
+                  <MenuRow icon={Bot} label={t('settings.section.bots')} onClick={() => setSection('bots')} color="text-[#9c27b0]" />
+                </div>
+
+                <Divider />
+                <div className="h-8" />
+              </div>
+            )}
+
+            {section === 'privacy' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyPrivacySection privacy={privacy} onPrivacyChange={handlePrivacyChange} renderHeader={(title) => <SectionHeader title={title} />} />
+              </Suspense>
+            )}
+            {section === 'notifications' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyNotificationsSection notifications={notifications} onNotificationChange={handleNotificationChange} renderHeader={(title) => <SectionHeader title={title} />} />
+              </Suspense>
+            )}
+            {section === 'appearance' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyAppearanceSection currentTheme={user?.theme} onThemeChange={setTheme} renderHeader={(title) => <SectionHeader title={title} />} />
+              </Suspense>
+            )}
+            {section === 'language' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyLanguageSection renderHeader={(title) => <SectionHeader title={title} />} />
+              </Suspense>
+            )}
+            {section === 'security' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazySecuritySection
+                  securityStatus={securityStatus}
+                  changePasswordData={changePasswordData}
+                  onDisable2FA={handleDisable2FA}
+                  onOpen2FA={() => setShow2FAModal(true)}
+                  onChangePassword={handleChangePassword}
+                  onPasswordDataChange={setChangePasswordData}
+                  renderHeader={(title) => <SectionHeader title={title} />}
+                />
+              </Suspense>
+            )}
+            {section === 'sessions' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazySessionsSection
+                  loadingSessions={loadingSessions}
+                  sessions={sessions}
+                  onRevokeAllSessions={handleRevokeAllSessions}
+                  onRevokeSession={handleRevokeSession}
+                  renderHeader={(title) => <SectionHeader title={title} />}
+                />
+              </Suspense>
+            )}
+            {section === 'data' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyDataSection
+                  loadingStorage={loadingStorage}
+                  storageInfo={storageInfo}
+                  onClearCache={handleClearCache}
+                  onExportData={handleExportData}
+                  onImportData={handleImportData}
+                  renderHeader={(title) => <SectionHeader title={title} />}
+                />
+              </Suspense>
+            )}
+            {section === 'chat-settings' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyChatSettingsSection
+                  notifications={notifications}
+                  onOpenFolders={() => setSection('folders')}
+                  onOpenArchivedChats={() => setShowArchivedChats(true)}
+                  onOpenBlockedUsers={() => setShowBlockedUsers(true)}
+                  onNotificationChange={handleNotificationChange}
+                  renderHeader={(title) => <SectionHeader title={title} />}
+                />
+              </Suspense>
+            )}
+            {section === 'folders' && (
+              <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                <LazyFoldersSection
+                  folders={folders}
+                  loadingFolders={loadingFolders}
+                  onCreateFolder={handleOpenCreateFolder}
+                  onEditFolder={handleOpenEditFolder}
+                  onDeleteFolder={handleDeleteFolder}
+                  renderHeader={(title) => <SectionHeader title={title} />}
+                />
+              </Suspense>
+            )}
+            {section === 'bots' && (
+              <div className="flex h-full flex-col">
+                <SectionHeader title={t('settings.section.bots')} />
+                <div className="flex-1 overflow-y-auto bg-white p-5 dark:bg-[#17212b]">
+                  <div className="mb-5 grid grid-cols-3 gap-2">
                     {[
-                      { label: 'Сообщения', value: storageInfo.messages.count },
-                      { label: 'Медиа', value: storageInfo.media.count },
-                      { label: 'Контакты', value: storageInfo.contacts.count },
-                      { label: 'Чаты', value: storageInfo.chats.count },
-                    ].map((item) => (
-                      <div key={item.label} className="bg-[#efeff4] dark:bg-[#202b36] rounded-lg p-3">
-                        <p className="text-[12px] text-[#8e8e93]">{item.label}</p>
-                        <p className="text-[18px] font-semibold text-[#222] dark:text-white">{item.value}</p>
-                      </div>
+                      { id: 'internal' as const, label: t('settings.internalBots') },
+                      { id: 'telegram' as const, label: 'Telegram' },
+                      { id: 'n8n' as const, label: 'n8n' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setIntegrationTab(tab.id)}
+                        className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
+                          integrationTab === tab.id
+                            ? 'bg-[#3390ec] text-white'
+                            : 'bg-[#efeff4] text-[#5b6470] dark:bg-[#202b36] dark:text-[#c3d0db]'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
                     ))}
                   </div>
 
-                  <Divider />
-
-                  <MenuRow icon={Trash2} label="Очистить кэш" onClick={handleClearCache} color="text-[#e67e22]" />
-                  <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-                  <MenuRow icon={Download} label="Экспорт данных" onClick={handleExportData} color="text-[#3390ec]" />
-                  <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-                  <div className="px-5 py-3.5">
-                    <label className="flex items-center gap-5 cursor-pointer">
-                      <Upload className="w-[22px] h-[22px] text-[#4fae4e]" />
-                      <div className="flex-1">
-                        <p className="text-[15px] text-[#222] dark:text-[#e1e1e1]">Импорт данных</p>
-                      </div>
-                      <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-                      <ChevronRight className="w-4 h-4 text-[#c7c7cc] dark:text-[#4e5b65]" />
-                    </label>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </div>
-        )}
-
-        {/* ── CHAT SETTINGS (placeholder) ── */}
-        {section === 'chat-settings' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Настройки чатов" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <SectionLabel text="Организация" />
-              <MenuRow icon={FolderOpen} label="Папки с чатами" subtitle="Создание, изменение и удаление папок" onClick={() => setSection('folders')} color="text-[#3390ec]" />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <MenuRow icon={Archive} label="Архивированные чаты" subtitle="Открыть архив и вернуть чаты обратно" onClick={() => setShowArchivedChats(true)} color="text-[#8e8e93]" />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <MenuRow icon={UserX} label="Заблокированные пользователи" subtitle="Просмотр и разблокировка" onClick={() => setShowBlockedUsers(true)} color="text-[#ef5350]" />
-
-              <Divider />
-
-              <SectionLabel text="Быстрые параметры" />
-              <ToggleRow
-                label="Звук уведомлений"
-                description="Проигрывать звук для новых сообщений"
-                checked={notifications.notificationsSound}
-                onChange={(value) => handleNotificationChange('notificationsSound', value)}
-              />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow
-                label="Вибрация"
-                description="Использовать вибрацию для уведомлений"
-                checked={notifications.notificationsVibration}
-                onChange={(value) => handleNotificationChange('notificationsVibration', value)}
-              />
-              <div className="h-px bg-gray-100 dark:bg-[#202c33] ml-5" />
-              <ToggleRow
-                label="Push-уведомления"
-                description="Получать уведомления о новых сообщениях"
-                checked={notifications.notificationsPush}
-                onChange={(value) => handleNotificationChange('notificationsPush', value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {section === 'folders' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Папки с чатами" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b]">
-              <div className="px-5 py-4">
-                <button
-                  onClick={handleOpenCreateFolder}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-[#3390ec] text-white rounded-xl font-medium hover:bg-[#2b7fd4] transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  Создать папку
-                </button>
+                  <Suspense fallback={<div className="py-8 text-center text-[#8e8e93]">{t('settings.loading')}</div>}>
+                    {integrationTab === 'internal' && <LazyBotManager />}
+                    {integrationTab === 'telegram' && <LazyBotSettings embedded />}
+                    {integrationTab === 'n8n' && <LazyN8nSettings embedded />}
+                  </Suspense>
+                </div>
               </div>
-
-              {loadingFolders ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3390ec]" />
-                </div>
-              ) : folders.length === 0 ? (
-                <div className="px-5 py-12 text-center text-[#8e8e93]">
-                  <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-[15px]">Папок пока нет</p>
-                  <p className="text-[13px] mt-1">Создайте первую папку, чтобы группировать чаты.</p>
-                </div>
-              ) : (
-                <div className="px-5 pb-5 space-y-3">
-                  {folders.map((folder) => (
-                    <div key={folder.id} className="rounded-2xl bg-[#efeff4] dark:bg-[#202b36] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white" style={{ backgroundColor: folder.color || '#3390ec' }}>
-                            <FolderOpen className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[15px] font-medium text-[#222] dark:text-[#e1e1e1] truncate">{folder.name}</p>
-                            <p className="text-[13px] text-[#8e8e93] dark:text-[#6c7883]">
-                              {(folder.chatSettings || []).length} чатов
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => handleOpenEditFolder(folder)} className="p-2 text-[#3390ec] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="Редактировать папку">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDeleteFolder(folder.id)} className="p-2 text-[#ef5350] hover:bg-white/60 dark:hover:bg-[#17212b] rounded-full transition" aria-label="Удалить папку">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      {(folder.chatSettings || []).length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {(folder.chatSettings || []).slice(0, 6).map((item, index) => (
-                            <span key={`${folder.id}-${item.chat?.id || index}`} className="px-2.5 py-1 rounded-full bg-white dark:bg-[#17212b] text-[12px] text-[#5b6470] dark:text-[#c3d0db]">
-                              {item.chat?.name || 'Без названия'}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </div>
-        )}
 
-        {section === 'bots' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Боты и интеграции" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
-              <div className="grid grid-cols-3 gap-2 mb-5">
-                {[
-                  { id: 'internal' as const, label: 'Встроенные' },
-                  { id: 'telegram' as const, label: 'Telegram' },
-                  { id: 'n8n' as const, label: 'n8n' },
-                ].map((tab) => (
+          {show2FAModal && (
+            <Suspense fallback={<div>{t('settings.loading')}</div>}>
+              <LazyTwoFactorAuth
+                onClose={() => {
+                  setShow2FAModal(false);
+                  loadSecurityStatus();
+                }}
+              />
+            </Suspense>
+          )}
+          {showArchivedChats && (
+            <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/30" />}>
+              <LazyArchivedChats onClose={() => setShowArchivedChats(false)} onSelectChat={() => setShowArchivedChats(false)} />
+            </Suspense>
+          )}
+          {showBlockedUsers && (
+            <Suspense fallback={<div className="fixed inset-0 z-50 bg-black/30" />}>
+              <LazyBlockedUsers onClose={() => setShowBlockedUsers(false)} />
+            </Suspense>
+          )}
+          {showFolderModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-[#17212b]">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-[#202c33]">
+                  <h3 className="text-[17px] font-semibold text-[#222] dark:text-white">
+                    {editingFolder ? t('settings.folderEdit') : t('settings.folderNew')}
+                  </h3>
                   <button
-                    key={tab.id}
-                    onClick={() => setIntegrationTab(tab.id)}
-                    className={`px-3 py-2 rounded-xl text-sm font-medium transition ${
-                      integrationTab === tab.id
-                        ? 'bg-[#3390ec] text-white'
-                        : 'bg-[#efeff4] dark:bg-[#202b36] text-[#5b6470] dark:text-[#c3d0db]'
-                    }`}
+                    onClick={() => {
+                      setShowFolderModal(false);
+                      applyFolderFormReset();
+                    }}
+                    className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-[#202b36]"
                   >
-                    {tab.label}
+                    <X className="h-4 w-4 text-[#8e8e93]" />
                   </button>
-                ))}
-              </div>
-
-              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Загрузка...</div>}>
-                {integrationTab === 'internal' && <LazyBotManager />}
-                {integrationTab === 'telegram' && <LazyBotSettings embedded />}
-                {integrationTab === 'n8n' && <LazyN8nSettings embedded />}
-              </Suspense>
-            </div>
-          </div>
-        )}
-
-        {false && section === 'chat-settings' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Настройки чатов" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] flex items-center justify-center text-[#8e8e93]">
-              <p>Скоро...</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── BOTS ── */}
-        {false && section === 'bots' && (
-          <div className="flex flex-col h-full">
-            <SectionHeader title="Боты" />
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-[#17212b] p-5">
-              <Suspense fallback={<div className="text-center py-8 text-[#8e8e93]">Загрузка...</div>}>
-                <LazyBotManager />
-              </Suspense>
-            </div>
-          </div>
-        )}
-
-        {/* ── 2FA Modal ── */}
-        </div>
-        {show2FAModal && (
-          <Suspense fallback={<div>Загрузка...</div>}>
-            <LazyTwoFactorAuth
-              onClose={() => {
-                setShow2FAModal(false);
-                loadSecurityStatus();
-              }}
-            />
-          </Suspense>
-        )}
-        {showArchivedChats && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/30 z-50" />}>
-            <LazyArchivedChats onClose={() => setShowArchivedChats(false)} onSelectChat={() => setShowArchivedChats(false)} />
-          </Suspense>
-        )}
-        {showBlockedUsers && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/30 z-50" />}>
-            <LazyBlockedUsers onClose={() => setShowBlockedUsers(false)} />
-          </Suspense>
-        )}
-        {showFolderModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#17212b] shadow-xl">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#202c33]">
-                <h3 className="text-[17px] font-semibold text-[#222] dark:text-white">
-                  {editingFolder ? 'Edit Folder' : 'New Folder'}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowFolderModal(false);
-                    resetFolderForm();
-                  }}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#202b36]"
-                >
-                  <X className="w-4 h-4 text-[#8e8e93]" />
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-[13px] font-medium text-[#8e8e93] mb-2">Name</label>
-                  <input
-                    value={folderName}
-                    onChange={(e) => setFolderName(e.target.value)}
-                    placeholder="For example, Work"
-                    className="w-full px-4 py-3 bg-[#efeff4] dark:bg-[#202b36] rounded-xl text-[15px] text-[#222] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
-                  />
                 </div>
-                <div>
-                  <label className="block text-[13px] font-medium text-[#8e8e93] mb-2">Color</label>
-                  <input
-                    type="color"
-                    value={folderColor}
-                    onChange={(e) => setFolderColor(e.target.value)}
-                    className="w-full h-12 p-1 bg-[#efeff4] dark:bg-[#202b36] rounded-xl cursor-pointer"
-                  />
+                <div className="space-y-4 p-5">
+                  <div>
+                    <label className="mb-2 block text-[13px] font-medium text-[#8e8e93]">{t('settings.folderName')}</label>
+                    <input
+                      value={folderName}
+                      onChange={(event) => setFolderName(event.target.value)}
+                      placeholder={t('settings.folderNamePlaceholder')}
+                      className="w-full rounded-xl bg-[#efeff4] px-4 py-3 text-[15px] text-[#222] focus:outline-none focus:ring-2 focus:ring-[#3390ec] dark:bg-[#202b36] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-medium text-[#8e8e93]">{t('settings.folderColor')}</label>
+                    <input
+                      type="color"
+                      value={folderColor}
+                      onChange={(event) => setFolderColor(event.target.value)}
+                      className="h-12 w-full cursor-pointer rounded-xl bg-[#efeff4] p-1 dark:bg-[#202b36]"
+                    />
+                  </div>
+                  <button
+                    onClick={handlePersistFolder}
+                    className="w-full rounded-xl bg-[#3390ec] py-3 font-medium text-white transition hover:bg-[#2b7fd4]"
+                  >
+                    {t('settings.folderSave')}
+                  </button>
                 </div>
-                <button
-                  onClick={handleSaveFolder}
-                  className="w-full py-3 bg-[#3390ec] text-white rounded-xl font-medium hover:bg-[#2b7fd4] transition"
-                >
-                  Save
-                </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
     </ErrorBoundary>
   );
-};
+}
+
+const UserSettings: React.FC<UserSettingsProps> = (props) => (
+  <SettingsI18nProvider>
+    <UserSettingsContent {...props} />
+  </SettingsI18nProvider>
+);
 
 export default UserSettings;
-

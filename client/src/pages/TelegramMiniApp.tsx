@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { telegramService } from '../services/telegramService';
 import { getMediaUrl } from '../utils/helpers';
+import { useThemeStore } from '../store/themeStore';
 
 declare global {
   interface Window {
@@ -15,9 +16,9 @@ export const TelegramMiniApp: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { effectiveTheme } = useThemeStore();
 
   useEffect(() => {
-    // Проверить, что приложение запущено внутри Telegram
     if (!window.Telegram?.WebApp) {
       setError('Это приложение должно быть запущено внутри Telegram');
       setLoading(false);
@@ -27,17 +28,13 @@ export const TelegramMiniApp: React.FC = () => {
     const telegram = window.Telegram.WebApp;
     setTg(telegram);
 
-    // Инициализировать приложение
     telegram.ready();
     telegram.expand();
+    telegram.setHeaderColor(effectiveTheme === 'dark' ? '#17212b' : '#1e40af');
+    telegram.setBackgroundColor(effectiveTheme === 'dark' ? '#0b141a' : '#f8fafc');
 
-    // Установить цвета темы
-    telegram.setHeaderColor('#1e40af');
-    telegram.setBackgroundColor('#ffffff');
-
-    // Получить данные пользователя
-    initUser(telegram);
-  }, []);
+    void initUser(telegram);
+  }, [effectiveTheme]);
 
   const initUser = async (telegram: any) => {
     try {
@@ -48,19 +45,14 @@ export const TelegramMiniApp: React.FC = () => {
         throw new Error('Не удалось получить данные пользователя');
       }
 
-      // Аутентифицировать пользователя через API
       const response = await telegramService.initMiniApp(initData, initDataUnsafe);
-      
       setUser(response.user);
-      
-      // Показать главную кнопку
+
       telegram.MainButton.text = 'Открыть чаты';
       telegram.MainButton.show();
       telegram.MainButton.onClick(() => {
-        // Перейти к чатам
         window.location.hash = '/chats';
       });
-
     } catch (err: any) {
       console.error('Init error:', err);
       setError(err.message || 'Ошибка инициализации');
@@ -70,35 +62,42 @@ export const TelegramMiniApp: React.FC = () => {
   };
 
   const handleOpenChat = (chatId: string) => {
-    if (tg) {
-      tg.sendData(JSON.stringify({ action: 'open_chat', chatId }));
-      tg.close();
+    if (!tg) {
+      return;
     }
+
+    tg.sendData(JSON.stringify({ action: 'open_chat', chatId }));
+    tg.close();
   };
 
   const handleShowSettings = () => {
-    if (tg) {
-      tg.showPopup({
+    if (!tg) {
+      return;
+    }
+
+    tg.showPopup(
+      {
         title: 'Настройки',
         message: 'Откройте веб-версию для полного доступа к настройкам',
         buttons: [
           { id: 'open', type: 'default', text: 'Открыть' },
-          { id: 'cancel', type: 'cancel' }
-        ]
-      }, (buttonId: string) => {
+          { id: 'cancel', type: 'cancel' },
+        ],
+      },
+      (buttonId: string) => {
         if (buttonId === 'open') {
           tg.openLink(window.location.origin);
         }
-      });
-    }
+      },
+    );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0b141a]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#3390ec]" />
+          <p className="text-slate-600 dark:text-slate-300">Загрузка...</p>
         </div>
       </div>
     );
@@ -106,117 +105,108 @@ export const TelegramMiniApp: React.FC = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center max-w-md px-4">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold mb-2">Ошибка</h2>
-          <p className="text-gray-600">{error}</p>
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0b141a]">
+        <div className="max-w-md px-4 text-center">
+          <div className="mb-4 text-5xl text-red-500">!</div>
+          <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">Ошибка</h2>
+          <p className="text-slate-600 dark:text-slate-300">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Заголовок */}
-      <div className="bg-blue-700 text-white p-6 shadow-lg">
-        <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-900 dark:bg-[#0b141a] dark:text-white">
+      <div className="bg-gradient-to-r from-[#1e40af] to-[#3390ec] p-6 text-white shadow-lg dark:from-[#17212b] dark:to-[#203647]">
+        <div className="flex items-center gap-4">
           {user?.avatar && (
-            <img 
-              src={getMediaUrl(user.avatar) || ''} 
-              alt="Avatar" 
-              className="w-16 h-16 rounded-full border-2 border-white"
+            <img
+              src={getMediaUrl(user.avatar) || ''}
+              alt="Avatar"
+              className="h-16 w-16 rounded-full border-2 border-white object-cover"
             />
           )}
           <div>
             <h1 className="text-2xl font-bold">Stogram</h1>
-            <p className="text-blue-100">
-              Привет, {user?.displayName || user?.username}!
-            </p>
+            <p className="text-blue-100">Привет, {user?.displayName || user?.username}!</p>
           </div>
         </div>
       </div>
 
-      {/* Основной контент */}
-      <div className="p-4 space-y-4">
-        {/* Быстрые действия */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Быстрые действия</h2>
+      <div className="space-y-4 p-4">
+        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#17212b] dark:shadow-none">
+          <h2 className="mb-3 text-lg font-semibold">Быстрые действия</h2>
           <div className="grid grid-cols-2 gap-3">
-            <button 
+            <button
               onClick={() => handleOpenChat('new')}
-              className="p-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              className="rounded-xl bg-[#3390ec] p-4 text-white transition hover:bg-[#2b7fd1]"
             >
-              <div className="text-2xl mb-1">💬</div>
+              <div className="mb-1 text-2xl">+</div>
               <div className="text-sm">Новый чат</div>
             </button>
-            
-            <button 
+
+            <button
               onClick={handleShowSettings}
-              className="p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              className="rounded-xl bg-slate-200 p-4 text-slate-700 transition hover:bg-slate-300 dark:bg-[#202b36] dark:text-slate-200 dark:hover:bg-[#2a3947]"
             >
-              <div className="text-2xl mb-1">⚙️</div>
+              <div className="mb-1 text-2xl">⚙</div>
               <div className="text-sm">Настройки</div>
             </button>
           </div>
         </div>
 
-        {/* Статистика */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Ваша активность</h2>
+        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#17212b] dark:shadow-none">
+          <h2 className="mb-3 text-lg font-semibold">Ваша активность</h2>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-blue-600">0</div>
-              <div className="text-xs text-gray-600">Чаты</div>
+              <div className="text-2xl font-bold text-[#3390ec]">0</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Чаты</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">0</div>
-              <div className="text-xs text-gray-600">Сообщения</div>
+              <div className="text-2xl font-bold text-emerald-500">0</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Сообщения</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-purple-600">0</div>
-              <div className="text-xs text-gray-600">Контакты</div>
+              <div className="text-2xl font-bold text-violet-500">0</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Контакты</div>
             </div>
           </div>
         </div>
 
-        {/* Информация о интеграции */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">
-            🔗 Telegram интеграция активна
+        <div className="rounded-2xl border border-[#3390ec]/20 bg-[#3390ec]/5 p-4 dark:border-[#3390ec]/30 dark:bg-[#17263a]">
+          <h3 className="mb-2 font-semibold text-[#1d4ed8] dark:text-[#7dc1ff]">
+            Telegram интеграция активна
           </h3>
-          <p className="text-sm text-blue-700">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
             Все уведомления и сообщения синхронизируются автоматически.
           </p>
         </div>
 
-        {/* Функции Mini App */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <h2 className="text-lg font-semibold mb-3">Доступные функции</h2>
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-[#17212b] dark:shadow-none">
+          <h2 className="mb-3 text-lg font-semibold">Доступные функции</h2>
+          <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+            <li className="flex items-center gap-2">
+              <span className="text-emerald-500">✓</span>
               <span>Отправка и получение сообщений</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <span className="text-emerald-500">✓</span>
               <span>Push-уведомления</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <span className="text-emerald-500">✓</span>
               <span>Синхронизация чатов</span>
             </li>
-            <li className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
+            <li className="flex items-center gap-2">
+              <span className="text-emerald-500">✓</span>
               <span>Обмен файлами</span>
             </li>
           </ul>
         </div>
 
-        {/* Кнопка открытия полной версии */}
         <button
           onClick={() => tg?.openLink(window.location.origin)}
-          className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition"
+          className="w-full rounded-xl bg-gradient-to-r from-[#3390ec] to-violet-600 py-3 font-semibold text-white transition hover:from-[#2b7fd1] hover:to-violet-700"
         >
           Открыть полную версию
         </button>

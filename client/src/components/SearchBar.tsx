@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Hash, AtSign, X } from 'lucide-react';
+import { AtSign, Hash, Search, X } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string, type: 'all' | 'hashtag' | 'mention') => void;
@@ -10,80 +10,80 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onClose }) => {
   const [query, setQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'hashtag' | 'mention'>('all');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      onSearch(query, searchType);
-    }
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (query.trim()) onSearch(query, searchType);
   };
 
+  const placeholder =
+    searchType === 'hashtag'
+      ? 'Поиск по хэштегу'
+      : searchType === 'mention'
+      ? 'Поиск упоминаний'
+      : 'Поиск сообщений';
+
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 border-b dark:border-gray-700">
+    <div className="border-b border-slate-200/70 bg-white/95 p-4 dark:border-slate-700 dark:bg-slate-900/95">
       <div className="flex items-center gap-2">
-        <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <form onSubmit={handleSubmit} className="flex flex-1 gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={
-                searchType === 'hashtag'
-                  ? 'Поиск по хэштегу...'
-                  : searchType === 'mention'
-                  ? 'Поиск упоминаний...'
-                  : 'Поиск сообщений...'
-              }
-              className="w-full pl-10 pr-4 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={placeholder}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-slate-900 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </div>
-          
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+
+          <div className="flex gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800">
             <button
               type="button"
               onClick={() => setSearchType('all')}
-              className={`p-2 rounded transition-colors ${
+              className={`rounded-xl p-2 transition-colors ${
                 searchType === 'all'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-[#3390ec] text-white'
+                  : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700'
               }`}
               title="Все сообщения"
             >
-              <Search className="w-4 h-4" />
+              <Search className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setSearchType('hashtag')}
-              className={`p-2 rounded transition-colors ${
+              className={`rounded-xl p-2 transition-colors ${
                 searchType === 'hashtag'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-[#3390ec] text-white'
+                  : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700'
               }`}
               title="Хэштеги"
             >
-              <Hash className="w-4 h-4" />
+              <Hash className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setSearchType('mention')}
-              className={`p-2 rounded transition-colors ${
+              className={`rounded-xl p-2 transition-colors ${
                 searchType === 'mention'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-[#3390ec] text-white'
+                  : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700'
               }`}
               title="Упоминания"
             >
-              <AtSign className="w-4 h-4" />
+              <AtSign className="h-4 w-4" />
             </button>
           </div>
         </form>
-        
+
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
           >
-            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>

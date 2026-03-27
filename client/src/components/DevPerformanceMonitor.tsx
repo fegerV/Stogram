@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { performanceMonitor } from '../utils/performance';
 
 interface DevPerformanceMonitorProps {
@@ -8,7 +8,7 @@ interface DevPerformanceMonitorProps {
 
 export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
   enabled = import.meta.env.DEV,
-  position = 'top-right'
+  position = 'top-right',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [summary, setSummary] = useState<any>(null);
@@ -18,29 +18,27 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
   useEffect(() => {
     if (!enabled) return;
 
-    // Update metrics every second
     const interval = setInterval(() => {
       setSummary(performanceMonitor.getPerformanceSummary());
       setWebVitals(performanceMonitor.getWebVitals());
     }, 1000);
 
-    // FPS monitoring
     let lastTime = performance.now();
     let frameCount = 0;
-    
+
     const measureFps = () => {
       frameCount++;
       const currentTime = performance.now();
-      
+
       if (currentTime - lastTime >= 1000) {
         setFps(Math.round((frameCount * 1000) / (currentTime - lastTime)));
         frameCount = 0;
         lastTime = currentTime;
       }
-      
+
       requestAnimationFrame(measureFps);
     };
-    
+
     const animationId = requestAnimationFrame(measureFps);
 
     return () => {
@@ -58,218 +56,177 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
     'bottom-left': 'bottom-4 left-4',
   };
 
-  const getFpsColor = (fps: number) => {
-    if (fps >= 55) return 'text-green-500';
-    if (fps >= 30) return 'text-yellow-500';
-    return 'text-red-500';
+  const getFpsColor = (value: number) => {
+    if (value >= 55) return 'text-emerald-400';
+    if (value >= 30) return 'text-amber-400';
+    return 'text-rose-400';
   };
 
-  const getRenderTimeColor = (time: number) => {
-    if (time <= 16) return 'text-green-500';
-    if (time <= 33) return 'text-yellow-500';
-    return 'text-red-500';
+  const getRenderTimeColor = (value: number) => {
+    if (value <= 16) return 'text-emerald-400';
+    if (value <= 33) return 'text-amber-400';
+    return 'text-rose-400';
   };
 
   const getWebVitalColor = (name: string, value: number) => {
-    if (!value) return 'text-gray-500';
-    
+    if (!value) return 'text-slate-400';
+
     switch (name) {
       case 'LCP':
-        return value <= 2500 ? 'text-green-500' : value <= 4000 ? 'text-yellow-500' : 'text-red-500';
+        return value <= 2500 ? 'text-emerald-400' : value <= 4000 ? 'text-amber-400' : 'text-rose-400';
       case 'FID':
-        return value <= 100 ? 'text-green-500' : value <= 300 ? 'text-yellow-500' : 'text-red-500';
+        return value <= 100 ? 'text-emerald-400' : value <= 300 ? 'text-amber-400' : 'text-rose-400';
       case 'CLS':
-        return value <= 0.1 ? 'text-green-500' : value <= 0.25 ? 'text-yellow-500' : 'text-red-500';
+        return value <= 0.1 ? 'text-emerald-400' : value <= 0.25 ? 'text-amber-400' : 'text-rose-400';
       case 'INP':
-        return value <= 200 ? 'text-green-500' : value <= 500 ? 'text-yellow-500' : 'text-red-500';
+        return value <= 200 ? 'text-emerald-400' : value <= 500 ? 'text-amber-400' : 'text-rose-400';
       case 'TTFB':
-        return value <= 800 ? 'text-green-500' : value <= 1800 ? 'text-yellow-500' : 'text-red-500';
+        return value <= 800 ? 'text-emerald-400' : value <= 1800 ? 'text-amber-400' : 'text-rose-400';
       default:
-        return 'text-gray-400';
+        return 'text-slate-400';
     }
   };
 
   return (
     <>
-      {/* Toggle Button */}
       <button
-        onClick={() => setIsVisible(!isVisible)}
-        className={`fixed ${positionClasses[position]} z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors`}
-        style={{ fontSize: '12px' }}
+        type="button"
+        onClick={() => setIsVisible((current) => !current)}
+        className={`fixed ${positionClasses[position]} z-50 rounded-2xl border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs font-medium text-white shadow-xl backdrop-blur`}
       >
-        {isVisible ? '✕' : '⚡'}
+        {isVisible ? 'Закрыть' : 'Perf'}
       </button>
 
-      {/* Performance Panel */}
       {isVisible && (
-        <div className={`fixed ${positionClasses[position]} z-40 w-80 bg-gray-900 text-white rounded-lg shadow-xl p-4 mt-10 max-h-[80vh] overflow-y-auto`}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-sm">Performance Monitor</h3>
-            <button
-              onClick={() => setIsVisible(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              ✕
+        <div
+          className={`fixed ${positionClasses[position]} z-40 mt-12 max-h-[80vh] w-80 overflow-y-auto rounded-[26px] border border-slate-700 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur`}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Dev Performance</h3>
+            <button type="button" onClick={() => setIsVisible(false)} className="text-slate-400 hover:text-white">
+              ×
             </button>
           </div>
 
           {summary ? (
             <div className="space-y-3 text-xs">
-              {/* Web Vitals Section */}
               {Object.keys(webVitals).length > 0 && (
-                <>
-                  <div className="pt-2 border-t border-gray-700">
-                    <h4 className="font-semibold text-blue-400 mb-2">Web Vitals</h4>
-                    {Object.entries(webVitals).map(([name, vital]: [string, any]) => (
-                      <div key={name} className="flex justify-between items-center mb-1">
-                        <span className="text-gray-400">{name}:</span>
-                        <span className={`font-mono ${getWebVitalColor(name, vital.value)}`}>
-                          {name === 'CLS' ? vital.value.toFixed(3) : `${vital.value.toFixed(0)}ms`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                <div className="border-t border-slate-800 pt-2">
+                  <h4 className="mb-2 font-semibold text-cyan-400">Web Vitals</h4>
+                  {Object.entries(webVitals).map(([name, vital]: [string, any]) => (
+                    <div key={name} className="mb-1 flex items-center justify-between">
+                      <span className="text-slate-400">{name}:</span>
+                      <span className={`font-mono ${getWebVitalColor(name, vital.value)}`}>
+                        {name === 'CLS' ? vital.value.toFixed(3) : `${vital.value.toFixed(0)}ms`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
 
-              {/* Performance Metrics */}
-              <div className="pt-2 border-t border-gray-700">
-                <h4 className="font-semibold text-blue-400 mb-2">Performance</h4>
-                
-                {/* FPS */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">FPS:</span>
-                  <span className={`font-mono font-bold ${getFpsColor(fps)}`}>
-                    {fps}
-                  </span>
+              <div className="border-t border-slate-800 pt-2">
+                <h4 className="mb-2 font-semibold text-cyan-400">UI</h4>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">FPS:</span>
+                  <span className={`font-mono font-bold ${getFpsColor(fps)}`}>{fps}</span>
                 </div>
-
-                {/* Component Renders */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Components:</span>
-                  <span className="font-mono">
-                    {summary.totalComponentRenders}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Renders:</span>
+                  <span className="font-mono">{summary.totalComponentRenders}</span>
                 </div>
-
-                {/* Avg Render Time */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Avg Render:</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Avg render:</span>
                   <span className={`font-mono ${getRenderTimeColor(summary.averageComponentRenderTime)}`}>
                     {summary.averageComponentRenderTime.toFixed(2)}ms
                   </span>
                 </div>
-
-                {/* Slow Components */}
                 {summary.slowComponentsCount > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Slow Renders:</span>
-                    <span className="font-mono text-red-500">
-                      {summary.slowComponentsCount}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Slow:</span>
+                    <span className="font-mono text-rose-400">{summary.slowComponentsCount}</span>
                   </div>
                 )}
               </div>
 
-              {/* API Metrics */}
-              <div className="pt-2 border-t border-gray-700">
-                <h4 className="font-semibold text-blue-400 mb-2">API</h4>
-                
-                {/* API Calls */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Total Calls:</span>
-                  <span className="font-mono">
-                    {summary.totalApiCalls}
-                  </span>
+              <div className="border-t border-slate-800 pt-2">
+                <h4 className="mb-2 font-semibold text-cyan-400">API</h4>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Calls:</span>
+                  <span className="font-mono">{summary.totalApiCalls}</span>
                 </div>
-
-                {/* Avg API Time */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Avg Time:</span>
-                  <span className="font-mono">
-                    {summary.averageApiCallTime.toFixed(2)}ms
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Avg time:</span>
+                  <span className="font-mono">{summary.averageApiCallTime.toFixed(2)}ms</span>
                 </div>
-
-                {/* Success Rate */}
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Success Rate:</span>
-                  <span className={`font-mono ${summary.apiSuccessRate >= 95 ? 'text-green-500' : 'text-yellow-500'}`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Success:</span>
+                  <span className={`font-mono ${summary.apiSuccessRate >= 95 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {summary.apiSuccessRate.toFixed(1)}%
                   </span>
                 </div>
               </div>
 
-              {/* Resources */}
               {summary.totalResourcesLoaded > 0 && (
-                <div className="pt-2 border-t border-gray-700">
-                  <h4 className="font-semibold text-blue-400 mb-2">Resources</h4>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Loaded:</span>
-                    <span className="font-mono">
-                      {summary.totalResourcesLoaded}
-                    </span>
+                <div className="border-t border-slate-800 pt-2">
+                  <h4 className="mb-2 font-semibold text-cyan-400">Resources</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Loaded:</span>
+                    <span className="font-mono">{summary.totalResourcesLoaded}</span>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Size:</span>
-                    <span className="font-mono">
-                      {(summary.totalResourceSize / 1024 / 1024).toFixed(2)}MB
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Size:</span>
+                    <span className="font-mono">{(summary.totalResourceSize / 1024 / 1024).toFixed(2)}MB</span>
                   </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Avg Load:</span>
-                    <span className="font-mono">
-                      {summary.averageResourceLoadTime.toFixed(2)}ms
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Avg load:</span>
+                    <span className="font-mono">{summary.averageResourceLoadTime.toFixed(2)}ms</span>
                   </div>
                 </div>
               )}
 
-              {/* Memory Usage */}
-              <div className="pt-2 border-t border-gray-700">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Memory:</span>
+              <div className="border-t border-slate-800 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Memory:</span>
                   <span className="font-mono">
-                    {((performance as any).memory ? 
-                      `${((performance as any).memory.usedJSHeapSize / 1048576).toFixed(1)}MB` : 
-                      'N/A')}
+                    {(performance as any).memory
+                      ? `${((performance as any).memory.usedJSHeapSize / 1048576).toFixed(1)}MB`
+                      : 'N/A'}
                   </span>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2 border-t border-gray-700">
+              <div className="flex gap-2 border-t border-slate-800 pt-2">
                 <button
+                  type="button"
                   onClick={() => performanceMonitor.clearMetrics()}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                  className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
                   Clear
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     const metrics = performanceMonitor.exportMetrics();
                     console.log('Performance Metrics:', metrics);
                   }}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                  className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
                   Log
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     const bundleAnalysis = performanceMonitor.getBundleAnalysis();
                     console.log('Bundle Analysis:', bundleAnalysis);
                   }}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                  className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
                   Bundle
                 </button>
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-400">Loading metrics...</div>
+            <div className="text-xs text-slate-400">Загружаем метрики...</div>
           )}
         </div>
       )}

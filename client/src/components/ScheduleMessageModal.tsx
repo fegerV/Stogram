@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Calendar, Clock } from 'lucide-react';
-import { format, addMinutes, addHours } from 'date-fns';
+import { Calendar, Clock, X } from 'lucide-react';
+import { addHours, addMinutes, format } from 'date-fns';
 
 interface ScheduleMessageModalProps {
   isOpen: boolean;
@@ -20,25 +20,23 @@ export const ScheduleMessageModal = ({
   if (!isOpen) return null;
 
   const quickOptions = [
-    { label: '10 minutes', date: addMinutes(new Date(), 10) },
-    { label: '30 minutes', date: addMinutes(new Date(), 30) },
-    { label: '1 hour', date: addHours(new Date(), 1) },
-    { label: '2 hours', date: addHours(new Date(), 2) },
-    { label: 'Tomorrow 9 AM', date: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(9, 0, 0, 0) },
+    { label: 'Через 10 минут', date: addMinutes(new Date(), 10) },
+    { label: 'Через 30 минут', date: addMinutes(new Date(), 30) },
+    { label: 'Через 1 час', date: addHours(new Date(), 1) },
+    { label: 'Через 2 часа', date: addHours(new Date(), 2) },
+    { label: 'Завтра в 09:00', date: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(9, 0, 0, 0) },
   ];
 
   const handleQuickOption = (date: Date | number) => {
-    const scheduleDate = typeof date === 'number' ? new Date(date) : date;
-    setSelectedDate(scheduleDate);
+    setSelectedDate(typeof date === 'number' ? new Date(date) : date);
   };
 
-  const handleCustomDateTime = () => {
-    if (customDate && customTime) {
-      const [hours, minutes] = customTime.split(':');
-      const date = new Date(customDate);
-      date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      setSelectedDate(date);
-    }
+  const handleCustomDateTime = (nextDate: string, nextTime: string) => {
+    if (!nextDate || !nextTime) return;
+    const [hours, minutes] = nextTime.split(':');
+    const date = new Date(nextDate);
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    setSelectedDate(date);
   };
 
   const handleSchedule = () => {
@@ -49,100 +47,97 @@ export const ScheduleMessageModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold dark:text-white">Schedule Message</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[30px] border border-slate-200/70 bg-white/95 p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Отложенная отправка</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Выберите, когда сообщение должно уйти.</p>
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+            aria-label="Закрыть"
           >
-            <X size={24} />
+            <X size={22} />
           </button>
         </div>
 
-        <div className="space-y-4">
-          {/* Quick Options */}
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Quick Schedule
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Быстрые варианты</label>
             <div className="grid grid-cols-2 gap-2">
-              {quickOptions.map((option) => (
-                <button
-                  key={option.label}
-                  onClick={() => handleQuickOption(option.date)}
-                  className={`px-4 py-2 rounded-lg border transition ${
-                    selectedDate.getTime() === (typeof option.date === 'number' ? option.date : option.date.getTime())
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <Clock size={16} className="inline mr-1" />
-                  {option.label}
-                </button>
-              ))}
+              {quickOptions.map((option) => {
+                const optionTime = typeof option.date === 'number' ? option.date : option.date.getTime();
+                return (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => handleQuickOption(option.date)}
+                    className={`rounded-2xl border px-4 py-3 text-sm transition ${
+                      selectedDate.getTime() === optionTime
+                        ? 'border-[#3390ec] bg-[#3390ec] text-white'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <Clock size={16} className="mr-2 inline-block" />
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Custom Date/Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Custom Date & Time
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Своя дата и время</label>
             <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => {
-                    setCustomDate(e.target.value);
-                    handleCustomDateTime();
-                  }}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-              <div className="flex-1">
-                <input
-                  type="time"
-                  value={customTime}
-                  onChange={(e) => {
-                    setCustomTime(e.target.value);
-                    handleCustomDateTime();
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
-                />
-              </div>
+              <input
+                type="date"
+                value={customDate}
+                onChange={(event) => {
+                  const nextDate = event.target.value;
+                  setCustomDate(nextDate);
+                  handleCustomDateTime(nextDate, customTime);
+                }}
+                min={format(new Date(), 'yyyy-MM-dd')}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
+              <input
+                type="time"
+                value={customTime}
+                onChange={(event) => {
+                  const nextTime = event.target.value;
+                  setCustomTime(nextTime);
+                  handleCustomDateTime(customDate, nextTime);
+                }}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
             </div>
           </div>
 
-          {/* Selected Time Display */}
-          {selectedDate && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                <Calendar size={18} />
-                <span className="text-sm font-medium">
-                  Scheduled for: {format(selectedDate, 'PPP p')}
-                </span>
-              </div>
+          <div className="rounded-3xl border border-blue-200/80 bg-blue-50/90 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
+            <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+              <Calendar size={18} />
+              <span className="text-sm font-medium">Запланировано на {format(selectedDate, 'PPP p')}</span>
             </div>
-          )}
+          </div>
 
-          {/* Buttons */}
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
+              type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              Cancel
+              Отмена
             </button>
             <button
+              type="button"
               onClick={handleSchedule}
               disabled={!selectedDate || selectedDate <= new Date()}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="flex-1 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#2c83d9] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Schedule
+              Запланировать
             </button>
           </div>
         </div>

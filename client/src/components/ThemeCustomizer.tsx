@@ -48,7 +48,7 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
 
   const handleColorChange = (key: keyof ThemeColors, value: string) => {
-    setColors(prev => ({ ...prev, [key]: value }));
+    setColors((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleModeToggle = () => {
@@ -64,19 +64,10 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     };
 
     try {
-      // Save theme to backend
-      // const response = await fetch('/api/themes', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(theme),
-      // });
-      
-      // For now, save to localStorage
       const themes = JSON.parse(localStorage.getItem('customThemes') || '[]');
       themes.push({ ...theme, id: Date.now().toString() });
       localStorage.setItem('customThemes', JSON.stringify(themes));
       setSavedThemes(themes);
-      
       alert('Theme saved successfully!');
     } catch (error) {
       console.error('Failed to save theme:', error);
@@ -88,96 +79,82 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setColors(theme.colors);
     setIsDark(theme.isDark);
     setThemeName(theme.name);
-    
-    // Apply to document
+
     const root = document.documentElement;
     Object.entries(theme.colors).forEach(([key, value]) => {
       root.style.setProperty(`--color-${key}`, value);
     });
   };
 
-  const loadSavedThemes = () => {
+  React.useEffect(() => {
     const themes = JSON.parse(localStorage.getItem('customThemes') || '[]');
     setSavedThemes(themes);
-  };
-
-  React.useEffect(() => {
-    loadSavedThemes();
   }, []);
 
-  const previewStyle = {
-    '--preview-primary': colors.primary,
-    '--preview-background': colors.background,
-    '--preview-surface': colors.surface,
-    '--preview-text': colors.text,
-    '--preview-border': colors.border,
-  } as React.CSSProperties;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-[#24323d] dark:bg-[#17212b] dark:text-white">
+        <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-[#24323d]">
           <div className="flex items-center gap-3">
-            <Palette className="w-6 h-6 text-blue-500" />
+            <Palette className="h-6 w-6 text-[#3390ec]" />
             <h2 className="text-2xl font-bold">Theme Customizer</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            className="rounded-full p-2 transition hover:bg-slate-100 dark:hover:bg-[#202b36]"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Theme Name */}
+        <div className="space-y-6 p-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Theme Name</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Theme Name
+            </label>
             <input
               type="text"
               value={themeName}
-              onChange={(e) => setThemeName(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+              onChange={(event) => setThemeName(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-slate-900 dark:border-[#364450] dark:bg-[#202b36] dark:text-white"
               placeholder="Enter theme name"
             />
           </div>
 
-          {/* Dark Mode Toggle */}
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Dark Mode</label>
+          <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-[#111922]">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dark Mode</label>
             <button
               onClick={handleModeToggle}
-              className={`relative w-14 h-7 rounded-full transition-colors ${
-                isDark ? 'bg-blue-500' : 'bg-gray-300'
+              className={`relative h-7 w-14 rounded-full transition-colors ${
+                isDark ? 'bg-[#3390ec]' : 'bg-slate-300'
               }`}
             >
               <span
-                className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                  isDark ? 'transform translate-x-7' : ''
+                className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform ${
+                  isDark ? 'translate-x-7' : ''
                 }`}
               />
             </button>
           </div>
 
-          {/* Color Pickers */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {Object.entries(colors).map(([key, value]) => (
               <div key={key}>
-                <label className="block text-sm font-medium mb-2 capitalize">
+                <label className="mb-2 block text-sm font-medium capitalize text-slate-700 dark:text-slate-300">
                   {key.replace(/([A-Z])/g, ' $1').trim()}
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="color"
                     value={value}
-                    onChange={(e) => handleColorChange(key as keyof ThemeColors, e.target.value)}
-                    className="w-12 h-10 rounded border cursor-pointer"
+                    onChange={(event) => handleColorChange(key as keyof ThemeColors, event.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded border border-slate-200 bg-transparent dark:border-[#364450]"
                   />
                   <input
                     type="text"
                     value={value}
-                    onChange={(e) => handleColorChange(key as keyof ThemeColors, e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                    onChange={(event) => handleColorChange(key as keyof ThemeColors, event.target.value)}
+                    className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-slate-900 dark:border-[#364450] dark:bg-[#202b36] dark:text-white"
                     placeholder="#000000"
                   />
                 </div>
@@ -185,32 +162,28 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             ))}
           </div>
 
-          {/* Preview */}
-          <div className="border rounded-lg p-4" style={previewStyle}>
-            <h3 className="text-lg font-semibold mb-4">Preview</h3>
-            <div 
-              className="p-4 rounded-lg space-y-3"
-              style={{ 
+          <div className="rounded-2xl border border-slate-200 p-4 dark:border-[#24323d]">
+            <h3 className="mb-4 text-lg font-semibold">Preview</h3>
+            <div
+              className="space-y-3 rounded-2xl p-4"
+              style={{
                 backgroundColor: colors.background,
                 color: colors.text,
-                border: `1px solid ${colors.border}`
+                border: `1px solid ${colors.border}`,
               }}
             >
-              <div 
-                className="p-3 rounded"
-                style={{ backgroundColor: colors.surface }}
-              >
+              <div className="rounded-xl p-3" style={{ backgroundColor: colors.surface }}>
                 <p style={{ color: colors.text }}>Sample text</p>
                 <p style={{ color: colors.textSecondary }}>Secondary text</p>
               </div>
               <button
-                className="px-4 py-2 rounded font-medium"
+                className="rounded-xl px-4 py-2 font-medium"
                 style={{ backgroundColor: colors.primary, color: '#ffffff' }}
               >
                 Primary Button
               </button>
               <button
-                className="px-4 py-2 rounded font-medium ml-2"
+                className="ml-2 rounded-xl px-4 py-2 font-medium"
                 style={{ backgroundColor: colors.secondary, color: '#ffffff' }}
               >
                 Secondary Button
@@ -218,23 +191,22 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Saved Themes */}
           {savedThemes.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-3">Saved Themes</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <h3 className="mb-3 text-lg font-semibold">Saved Themes</h3>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {savedThemes.map((theme) => (
                   <button
                     key={theme.id}
                     onClick={() => applyTheme(theme)}
-                    className="p-3 border rounded-lg hover:border-blue-500 transition-colors text-left"
+                    className="rounded-2xl border border-slate-200 p-3 text-left transition-colors hover:border-[#3390ec] dark:border-[#24323d] dark:bg-[#111922]"
                   >
-                    <div className="font-medium mb-2">{theme.name}</div>
+                    <div className="mb-2 font-medium">{theme.name}</div>
                     <div className="flex gap-1">
-                      {Object.values(theme.colors).slice(0, 5).map((color, i) => (
+                      {Object.values(theme.colors).slice(0, 5).map((color, index) => (
                         <div
-                          key={i}
-                          className="w-6 h-6 rounded"
+                          key={index}
+                          className="h-6 w-6 rounded"
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -245,19 +217,18 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="rounded-xl border border-slate-200 px-6 py-2 transition hover:bg-slate-50 dark:border-[#364450] dark:hover:bg-[#202b36]"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
+              className="flex items-center gap-2 rounded-xl bg-[#3390ec] px-6 py-2 text-white transition hover:bg-[#2b7fd1]"
             >
-              <Save className="w-4 h-4" />
+              <Save className="h-4 w-4" />
               Save Theme
             </button>
           </div>

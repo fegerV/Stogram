@@ -117,14 +117,15 @@ const mockDefaultGets = () => {
   });
 };
 
-const getMenuButtons = () =>
-  screen
-    .getAllByRole('button')
-    .filter((button) => typeof button.className === 'string' && button.className.includes('w-full flex items-center gap-5'));
+const clickMenuItem = async (label: string | RegExp) => {
+  const button = await screen.findByRole('button', { name: label });
+  fireEvent.click(button);
+};
 
 describe('UserSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockDefaultGets();
   });
 
@@ -141,11 +142,7 @@ describe('UserSettings', () => {
   it('loads security data when the security menu item is opened', async () => {
     render(<UserSettings onClose={() => {}} />);
 
-    await waitFor(() => {
-      expect(getMenuButtons()).toHaveLength(9);
-    });
-
-    fireEvent.click(getMenuButtons()[6]);
+    await clickMenuItem(/Безопасность/i);
 
     await waitFor(() => {
       expect(monitoredApi.get).toHaveBeenCalledWith('/security/status');
@@ -158,11 +155,7 @@ describe('UserSettings', () => {
 
     render(<UserSettings onClose={() => {}} />);
 
-    await waitFor(() => {
-      expect(getMenuButtons()).toHaveLength(9);
-    });
-
-    fireEvent.click(getMenuButtons()[6]);
+    await clickMenuItem(/Безопасность/i);
 
     await waitFor(() => {
       expect(document.querySelectorAll('input[type="password"]')).toHaveLength(3);
@@ -173,12 +166,7 @@ describe('UserSettings', () => {
     fireEvent.change(passwordInputs[1], { target: { value: 'newpassword123' } });
     fireEvent.change(passwordInputs[2], { target: { value: 'newpassword123' } });
 
-    const submitButton = screen
-      .getAllByRole('button')
-      .find((button) => typeof button.className === 'string' && button.className.includes('w-full py-3 bg-[#3390ec] text-white rounded-lg'));
-
-    expect(submitButton).toBeTruthy();
-    fireEvent.click(submitButton!);
+    fireEvent.click(screen.getByRole('button', { name: /изменить пароль/i }));
 
     await waitFor(() => {
       expect(monitoredApi.post).toHaveBeenCalledWith('/users/change-password', {
@@ -191,11 +179,7 @@ describe('UserSettings', () => {
   it('opens the chat settings screen with notification toggles', async () => {
     render(<UserSettings onClose={() => {}} />);
 
-    await waitFor(() => {
-      expect(getMenuButtons()).toHaveLength(9);
-    });
-
-    fireEvent.click(getMenuButtons()[0]);
+    await clickMenuItem(/Настройки чатов/i);
 
     await waitFor(() => {
       expect(screen.getAllByRole('checkbox')).toHaveLength(3);
@@ -205,11 +189,7 @@ describe('UserSettings', () => {
   it('loads folders from the folders menu entry', async () => {
     render(<UserSettings onClose={() => {}} />);
 
-    await waitFor(() => {
-      expect(getMenuButtons()).toHaveLength(9);
-    });
-
-    fireEvent.click(getMenuButtons()[5]);
+    await clickMenuItem(/Папки с чатами/i);
 
     await waitFor(() => {
       expect(monitoredApi.get).toHaveBeenCalledWith('/folders');
@@ -221,11 +201,7 @@ describe('UserSettings', () => {
   it('shows bot integrations tabs and the embedded bot manager', async () => {
     render(<UserSettings onClose={() => {}} />);
 
-    await waitFor(() => {
-      expect(getMenuButtons()).toHaveLength(9);
-    });
-
-    fireEvent.click(getMenuButtons()[8]);
+    await clickMenuItem(/Боты и интеграции/i);
 
     await waitFor(() => {
       expect(screen.getByText('Bot manager')).toBeInTheDocument();
@@ -248,15 +224,22 @@ describe('UserSettings', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => {
-      const primaryButtons = screen
-        .getAllByRole('button')
-        .filter((button) => typeof button.className === 'string' && button.className.includes('w-full py-2.5 bg-[#3390ec]'));
-      expect(primaryButtons.length).toBeGreaterThan(0);
-      fireEvent.click(primaryButtons[0]);
+      fireEvent.click(screen.getByRole('button', { name: /сохранить/i }));
     });
 
     await waitFor(() => {
       expect(userApi.updateProfile).toHaveBeenCalled();
+    });
+  });
+
+  it('switches settings language to english', async () => {
+    render(<UserSettings onClose={() => {}} />);
+
+    await clickMenuItem(/Язык/i);
+    fireEvent.click(await screen.findByRole('button', { name: /English/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Settings panel interface language').length).toBeGreaterThan(0);
     });
   });
 });

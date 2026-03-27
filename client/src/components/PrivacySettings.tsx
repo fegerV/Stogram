@@ -1,14 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Eye, Clock, Image } from 'lucide-react';
-import { userApi } from '../utils/monitoredApi';
+import React, { useEffect, useState } from 'react';
+import { Clock, Eye, Image, Shield, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { userApi } from '../utils/monitoredApi';
 
 interface PrivacySettingsProps {
   onClose: () => void;
 }
 
+type PrivacyState = {
+  showOnlineStatus: boolean;
+  showProfilePhoto: boolean;
+  showLastSeen: boolean;
+};
+
+const ToggleSwitch = ({
+  enabled,
+  onChange,
+  disabled,
+}: {
+  enabled: boolean;
+  onChange: () => void;
+  disabled: boolean;
+}) => (
+  <button
+    type="button"
+    onClick={onChange}
+    disabled={disabled}
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+      enabled ? 'bg-[#3390ec]' : 'bg-slate-300 dark:bg-slate-600'
+    } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+  >
+    <span
+      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        enabled ? 'translate-x-6' : 'translate-x-1'
+      }`}
+    />
+  </button>
+);
+
+const PrivacyCard = ({
+  icon: Icon,
+  title,
+  description,
+  enabled,
+  onToggle,
+  disabled,
+}: {
+  icon: typeof Eye;
+  title: string;
+  description: string;
+  enabled: boolean;
+  onToggle: () => void;
+  disabled: boolean;
+}) => (
+  <div className="rounded-3xl border border-slate-200/80 bg-slate-50/90 p-4 dark:border-slate-700 dark:bg-slate-800/80">
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 rounded-2xl bg-white p-2 text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-300">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-medium text-slate-900 dark:text-white">{title}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+          </div>
+          <ToggleSwitch enabled={enabled} onChange={onToggle} disabled={disabled} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const PrivacySettings: React.FC<PrivacySettingsProps> = ({ onClose }) => {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<PrivacyState>({
     showOnlineStatus: true,
     showProfilePhoto: true,
     showLastSeen: true,
@@ -16,7 +80,7 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchSettings();
+    void fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
@@ -29,12 +93,12 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ onClose }) => {
     }
   };
 
-  const updateSettings = async (updates: Partial<typeof settings>) => {
+  const updateSettings = async (updates: Partial<PrivacyState>) => {
     setLoading(true);
     try {
       const response = await userApi.patch('/privacy', updates);
       setSettings(response.data.settings || response.data);
-      toast.success('Настройки обновлены');
+      toast.success('Настройки приватности обновлены');
     } catch (error) {
       console.error('Failed to update privacy settings:', error);
       toast.error('Не удалось обновить настройки');
@@ -43,107 +107,65 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ onClose }) => {
     }
   };
 
-  const ToggleSwitch = ({ enabled, onChange, disabled }: { enabled: boolean; onChange: () => void; disabled: boolean }) => (
-    <button
-      onClick={onChange}
-      disabled={disabled}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        enabled ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  );
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[32px] border border-slate-200/70 bg-white/95 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
+        <div className="border-b border-slate-200/70 px-6 py-5 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-500" />
-              <h2 className="text-xl font-semibold dark:text-white">Приватность</h2>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-[#3390ec]/10 p-2 text-[#3390ec]">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Приватность</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Управляйте тем, какие данные видят другие пользователи.
+                </p>
+              </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              className="rounded-2xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label="Закрыть"
             >
-              ✕
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Eye className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-medium dark:text-white">Показывать статус онлайн</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Другие пользователи смогут видеть, когда вы онлайн
-                    </p>
-                  </div>
-                  <ToggleSwitch
-                    enabled={settings.showOnlineStatus}
-                    onChange={() => updateSettings({ showOnlineStatus: !settings.showOnlineStatus })}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="space-y-4 p-6">
+          <PrivacyCard
+            icon={Eye}
+            title="Показывать статус онлайн"
+            description="Если отключить эту опцию, другие пользователи не будут видеть, когда вы в сети."
+            enabled={settings.showOnlineStatus}
+            onToggle={() => void updateSettings({ showOnlineStatus: !settings.showOnlineStatus })}
+            disabled={loading}
+          />
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Image className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-medium dark:text-white">Показывать фото профиля</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Ваше фото профиля будет видно всем пользователям
-                    </p>
-                  </div>
-                  <ToggleSwitch
-                    enabled={settings.showProfilePhoto}
-                    onChange={() => updateSettings({ showProfilePhoto: !settings.showProfilePhoto })}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <PrivacyCard
+            icon={Image}
+            title="Показывать фото профиля"
+            description="Разрешите другим видеть вашу фотографию и аватар в профиле."
+            enabled={settings.showProfilePhoto}
+            onToggle={() => void updateSettings({ showProfilePhoto: !settings.showProfilePhoto })}
+            disabled={loading}
+          />
 
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <div>
-                    <h3 className="font-medium dark:text-white">Показывать время последнего посещения</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Другие смогут видеть, когда вы были в сети последний раз
-                    </p>
-                  </div>
-                  <ToggleSwitch
-                    enabled={settings.showLastSeen}
-                    onChange={() => updateSettings({ showLastSeen: !settings.showLastSeen })}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <PrivacyCard
+            icon={Clock}
+            title="Показывать время последнего посещения"
+            description="Позволяет другим видеть, когда вы были в приложении в последний раз."
+            enabled={settings.showLastSeen}
+            onToggle={() => void updateSettings({ showLastSeen: !settings.showLastSeen })}
+            disabled={loading}
+          />
 
-          <div className="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg p-4">
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              💡 <strong>Совет:</strong> Если вы отключите показ статуса онлайн, вы также не сможете видеть статус других пользователей.
+          <div className="rounded-3xl border border-blue-200/80 bg-blue-50/90 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
+            <p className="text-sm leading-6 text-blue-900 dark:text-blue-200">
+              Если вы скрываете статус онлайн, приложение также может ограничить отображение статуса других
+              пользователей для вас.
             </p>
           </div>
         </div>

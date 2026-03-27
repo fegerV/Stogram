@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Video, VideoOff, X } from 'lucide-react';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { socketService } from '../services/socket';
 import { useChatStore } from '../store/chatStore';
@@ -19,11 +19,10 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const { currentChat } = useChatStore();
   const { user: currentUser } = useAuthStore();
-  
-  // Определяем remoteUserId - это другой участник чата
-  // Для приватного чата - другой участник, для группового - первый другой участник
-  const remoteUserId = currentChat?.members?.find((m: any) => m.userId !== currentUser?.id)?.userId || '';
-  
+
+  const remoteUserId =
+    currentChat?.members?.find((member: any) => member.userId !== currentUser?.id)?.userId || '';
+
   const {
     localStream,
     remoteStream,
@@ -36,8 +35,6 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
   } = useWebRTC(callId, isInitiator, remoteUserId);
 
   useEffect(() => {
-    // Only start call if we're the initiator
-    // For non-initiators, getUserMedia will be called when we receive the offer
     if (isInitiator) {
       startCall(callType === 'VIDEO').catch((error) => {
         console.error('Failed to start call:', error);
@@ -55,7 +52,6 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
-    // For audio calls, also set remote stream to audio element
     if (remoteAudioRef.current && remoteStream && callType === 'AUDIO') {
       remoteAudioRef.current.srcObject = remoteStream;
     }
@@ -70,91 +66,73 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-      <div className="relative w-full h-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm">
+      <div className="relative h-full w-full overflow-hidden">
         <button
+          type="button"
           onClick={handleEndCall}
-          className="absolute top-4 right-4 p-2 bg-gray-800 bg-opacity-50 rounded-full hover:bg-opacity-70 transition z-10"
+          className="absolute right-4 top-4 z-10 rounded-full bg-slate-900/60 p-2 text-white transition hover:bg-slate-900/90"
         >
-          <X className="w-6 h-6 text-white" />
+          <X className="h-6 w-6" />
         </button>
 
-        {callType === 'VIDEO' && (
+        {callType === 'VIDEO' ? (
           <>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover"
-            />
-
+            <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="absolute bottom-24 right-4 w-48 h-36 object-cover rounded-lg shadow-lg border-2 border-white"
+              className="absolute bottom-24 right-4 h-36 w-48 rounded-2xl border-2 border-white/80 object-cover shadow-2xl"
             />
           </>
-        )}
-
-        {callType === 'AUDIO' && (
-          <div className="flex flex-col items-center justify-center h-full text-white">
-            <div className="w-32 h-32 rounded-full bg-[#3390ec] dark:bg-[#3390ec] flex items-center justify-center mb-4">
-              <span className="text-4xl">👤</span>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center text-white">
+            <div className="mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-[#3390ec] text-4xl shadow-2xl">
+              👤
             </div>
-            <h2 className="text-2xl font-bold mb-2">Audio Call</h2>
-            <p className="text-gray-300">
-              {remoteStream ? 'Connected' : isInitiator ? 'Calling...' : 'Connecting...'}
+            <h2 className="mb-2 text-2xl font-bold">Аудиозвонок</h2>
+            <p className="text-slate-300">
+              {remoteStream ? 'Соединение установлено' : isInitiator ? 'Вызываем...' : 'Подключаемся...'}
             </p>
-            {/* Hidden audio element for remote stream */}
-            <audio
-              ref={remoteAudioRef}
-              autoPlay
-              playsInline
-              className="hidden"
-            />
+            <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
           </div>
         )}
 
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+        <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full border border-white/10 bg-slate-900/60 px-4 py-3 shadow-2xl backdrop-blur">
           <button
+            type="button"
             onClick={toggleAudio}
-            className={`p-4 rounded-full transition ${
-              isAudioEnabled
-                ? 'bg-gray-700 hover:bg-gray-600'
-                : 'bg-red-600 hover:bg-red-700'
+            className={`rounded-full p-4 transition ${
+              isAudioEnabled ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-700'
             }`}
           >
-            {isAudioEnabled ? (
-              <Mic className="w-6 h-6 text-white" />
-            ) : (
-              <MicOff className="w-6 h-6 text-white" />
-            )}
+            {isAudioEnabled ? <Mic className="h-6 w-6 text-white" /> : <MicOff className="h-6 w-6 text-white" />}
           </button>
 
           {callType === 'VIDEO' && (
             <button
+              type="button"
               onClick={toggleVideo}
-              className={`p-4 rounded-full transition ${
-                isVideoEnabled
-                  ? 'bg-gray-700 hover:bg-gray-600'
-                  : 'bg-red-600 hover:bg-red-700'
+              className={`rounded-full p-4 transition ${
+                isVideoEnabled ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-700'
               }`}
             >
               {isVideoEnabled ? (
-                <Video className="w-6 h-6 text-white" />
+                <Video className="h-6 w-6 text-white" />
               ) : (
-                <VideoOff className="w-6 h-6 text-white" />
+                <VideoOff className="h-6 w-6 text-white" />
               )}
             </button>
           )}
 
           <button
+            type="button"
             onClick={handleEndCall}
-            className="p-4 bg-red-600 rounded-full hover:bg-red-700 transition"
+            className="rounded-full bg-rose-600 p-4 transition hover:bg-rose-700"
           >
-            <PhoneOff className="w-6 h-6 text-white" />
+            <PhoneOff className="h-6 w-6 text-white" />
           </button>
         </div>
       </div>

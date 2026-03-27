@@ -6,7 +6,14 @@ import { Chat } from '../types';
 
 type BotCommand = { id: string; command: string; description: string };
 type WebhookItem = { id: string; url: string; events: string | null; isActive: boolean };
-type Delivery = { id: string; event: string; status: number; attempts: number; deliveredAt: string; webhook?: { url: string } };
+type Delivery = {
+  id: string;
+  event: string;
+  status: number;
+  attempts: number;
+  deliveredAt: string;
+  webhook?: { url: string };
+};
 type Installation = { id: string; chatId: string; chat: { id: string; name: string | null; type: string } };
 type ManagedBot = {
   id: string;
@@ -20,6 +27,15 @@ type ManagedBot = {
 };
 
 const DEFAULT_EVENTS = 'message.created, command.received, callback_query';
+
+const cardClass =
+  'rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80';
+const inputClass =
+  'w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white';
+const secondaryButtonClass =
+  'rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800';
+const primaryButtonClass =
+  'rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#2c83d9] disabled:opacity-60';
 
 export default function BotManager() {
   const [bots, setBots] = useState<ManagedBot[]>([]);
@@ -36,6 +52,7 @@ export default function BotManager() {
   const [installChatId, setInstallChatId] = useState('');
 
   const selectedBot = useMemo(() => bots.find((bot) => bot.id === selectedBotId) || null, [bots, selectedBotId]);
+  const availableChats = chats.filter((chat) => !installations.some((item) => item.chatId === chat.id));
 
   const loadBase = async () => {
     const [botsResponse, chatsResponse] = await Promise.all([botApi.getAll(), chatApi.getAll()]);
@@ -52,9 +69,14 @@ export default function BotManager() {
       webhookApi.getByBot(botId),
       botApi.getById(botId),
     ]);
+
     setInstallations(installationsResponse.data.installations || []);
     setDeliveries(deliveriesResponse.data.deliveries || []);
-    setBots((current) => current.map((bot) => bot.id === botId ? { ...(botResponse.data as ManagedBot), webhooks: webhooksResponse.data || [] } : bot));
+    setBots((current) =>
+      current.map((bot) =>
+        bot.id === botId ? { ...(botResponse.data as ManagedBot), webhooks: webhooksResponse.data || [] } : bot
+      )
+    );
   };
 
   useEffect(() => {
@@ -72,7 +94,7 @@ export default function BotManager() {
 
   useEffect(() => {
     if (!selectedBotId) return;
-    loadSelectedBot(selectedBotId).catch((error) => console.error(error));
+    void loadSelectedBot(selectedBotId);
   }, [selectedBotId]);
 
   const reloadAll = async () => {
@@ -169,7 +191,10 @@ export default function BotManager() {
         botId: selectedBotId,
         url: webhookForm.url,
         secret: webhookForm.secret || undefined,
-        events: webhookForm.events.split(',').map((value) => value.trim()).filter(Boolean),
+        events: webhookForm.events
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
       });
       setWebhookForm({ url: '', events: DEFAULT_EVENTS, secret: '' });
       await loadSelectedBot(selectedBotId);
@@ -254,10 +279,12 @@ export default function BotManager() {
     }
   };
 
-  const availableChats = chats.filter((chat) => !installations.some((item) => item.chatId === chat.id));
-
   if (loading) {
-    return <div className="flex h-64 items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#3390ec]" /></div>;
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#3390ec]" />
+      </div>
+    );
   }
 
   return (
@@ -266,13 +293,25 @@ export default function BotManager() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-slate-900 dark:text-white">Боты</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Telegram-подобный runtime</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Локальная bot-платформа Stogram</p>
           </div>
-          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-[#3390ec] p-2 text-white"><Plus className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-[#3390ec] p-2 text-white">
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
+
         <div className="space-y-2">
           {bots.map((bot) => (
-            <button key={bot.id} type="button" onClick={() => setSelectedBotId(bot.id)} className={`w-full rounded-2xl border px-3 py-3 text-left ${selectedBotId === bot.id ? 'border-[#3390ec]/40 bg-[#3390ec]/10' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60'}`}>
+            <button
+              key={bot.id}
+              type="button"
+              onClick={() => setSelectedBotId(bot.id)}
+              className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
+                selectedBotId === bot.id
+                  ? 'border-[#3390ec]/40 bg-[#3390ec]/10'
+                  : 'border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800'
+              }`}
+            >
               <div className="font-medium text-slate-900 dark:text-white">{bot.displayName}</div>
               <div className="text-xs text-slate-500 dark:text-slate-400">@{bot.username}</div>
             </button>
@@ -283,31 +322,63 @@ export default function BotManager() {
       <div className="space-y-6">
         {selectedBot ? (
           <>
-            <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+            <div className={cardClass}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#3390ec]/10 text-[#3390ec]"><Bot className="h-6 w-6" /></div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#3390ec]/10 text-[#3390ec]">
+                    <Bot className="h-6 w-6" />
+                  </div>
                   <div>
                     <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">{selectedBot.displayName}</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">@{selectedBot.username}</p>
-                    {selectedBot.description && <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedBot.description}</p>}
+                    {selectedBot.description && (
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{selectedBot.description}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => handleRegenerateToken(selectedBot.id)} disabled={busy} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700"><RefreshCw className="mr-2 inline h-4 w-4" />Токен</button>
-                  <button type="button" onClick={() => handleDeleteBot(selectedBot.id)} disabled={busy} className="rounded-2xl border border-red-200 px-4 py-2 text-sm text-red-600 dark:border-red-500/30"><Trash2 className="mr-2 inline h-4 w-4" />Удалить</button>
+                  <button type="button" onClick={() => handleRegenerateToken(selectedBot.id)} disabled={busy} className={secondaryButtonClass}>
+                    <RefreshCw className="mr-2 inline h-4 w-4" />
+                    Токен
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBot(selectedBot.id)}
+                    disabled={busy}
+                    className="rounded-2xl border border-red-200 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
+                  >
+                    <Trash2 className="mr-2 inline h-4 w-4" />
+                    Удалить
+                  </button>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-6 xl:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+              <div className={cardClass}>
                 <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Команды</h3>
                 <form onSubmit={handleAddCommand} className="mb-4 grid gap-3">
-                  <input value={commandForm.command} onChange={(event) => setCommandForm((current) => ({ ...current, command: event.target.value }))} placeholder="/start" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                  <input value={commandForm.description} onChange={(event) => setCommandForm((current) => ({ ...current, description: event.target.value }))} placeholder="Описание команды" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                  <button type="submit" disabled={busy || !commandForm.command || !commandForm.description} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Добавить команду</button>
+                  <input
+                    value={commandForm.command}
+                    onChange={(event) => setCommandForm((current) => ({ ...current, command: event.target.value }))}
+                    placeholder="/start"
+                    className={inputClass}
+                  />
+                  <input
+                    value={commandForm.description}
+                    onChange={(event) => setCommandForm((current) => ({ ...current, description: event.target.value }))}
+                    placeholder="Описание команды"
+                    className={inputClass}
+                  />
+                  <button
+                    type="submit"
+                    disabled={busy || !commandForm.command || !commandForm.description}
+                    className={primaryButtonClass}
+                  >
+                    Добавить команду
+                  </button>
                 </form>
+
                 <div className="space-y-2">
                   {selectedBot.commands.map((command) => (
                     <div key={command.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
@@ -315,28 +386,56 @@ export default function BotManager() {
                         <div className="font-medium text-slate-900 dark:text-white">{command.command}</div>
                         <div className="text-sm text-slate-500 dark:text-slate-400">{command.description}</div>
                       </div>
-                      <button type="button" onClick={() => handleDeleteCommand(command.id)} className="rounded-xl p-2 text-red-500"><Trash2 className="h-4 w-4" /></button>
+                      <button type="button" onClick={() => handleDeleteCommand(command.id)} className="rounded-xl p-2 text-red-500">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+              <div className={cardClass}>
                 <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Webhook</h3>
                 <form onSubmit={handleCreateWebhook} className="mb-4 grid gap-3">
-                  <input value={webhookForm.url} onChange={(event) => setWebhookForm((current) => ({ ...current, url: event.target.value }))} placeholder="https://example.com/webhook" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                  <input value={webhookForm.events} onChange={(event) => setWebhookForm((current) => ({ ...current, events: event.target.value }))} placeholder={DEFAULT_EVENTS} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                  <input value={webhookForm.secret} onChange={(event) => setWebhookForm((current) => ({ ...current, secret: event.target.value }))} placeholder="secret (optional)" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-                  <button type="submit" disabled={busy || !webhookForm.url} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Добавить webhook</button>
+                  <input
+                    value={webhookForm.url}
+                    onChange={(event) => setWebhookForm((current) => ({ ...current, url: event.target.value }))}
+                    placeholder="https://example.com/webhook"
+                    className={inputClass}
+                  />
+                  <input
+                    value={webhookForm.events}
+                    onChange={(event) => setWebhookForm((current) => ({ ...current, events: event.target.value }))}
+                    placeholder={DEFAULT_EVENTS}
+                    className={inputClass}
+                  />
+                  <input
+                    value={webhookForm.secret}
+                    onChange={(event) => setWebhookForm((current) => ({ ...current, secret: event.target.value }))}
+                    placeholder="secret (optional)"
+                    className={inputClass}
+                  />
+                  <button type="submit" disabled={busy || !webhookForm.url} className={primaryButtonClass}>
+                    Добавить webhook
+                  </button>
                 </form>
+
                 <div className="space-y-3">
                   {selectedBot.webhooks.map((webhook) => (
                     <div key={webhook.id} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
                       <div className="truncate font-medium text-slate-900 dark:text-white">{webhook.url}</div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{webhook.events}</div>
                       <div className="mt-3 flex gap-2">
-                        <button type="button" onClick={() => testWebhook(webhook.id)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Тест</button>
-                        <button type="button" onClick={() => toggleWebhook(webhook.id, webhook.isActive)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">{webhook.isActive ? 'Пауза' : 'Включить'}</button>
+                        <button type="button" onClick={() => testWebhook(webhook.id)} className={secondaryButtonClass}>
+                          Тест
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleWebhook(webhook.id, webhook.isActive)}
+                          className={secondaryButtonClass}
+                        >
+                          {webhook.isActive ? 'Пауза' : 'Включить'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -345,15 +444,26 @@ export default function BotManager() {
             </div>
 
             <div className="grid gap-6 xl:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+              <div className={cardClass}>
                 <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Установки в чатах</h3>
                 <form onSubmit={installBot} className="mb-4 grid gap-3">
-                  <select value={installChatId} onChange={(event) => setInstallChatId(event.target.value)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                  <select
+                    value={installChatId}
+                    onChange={(event) => setInstallChatId(event.target.value)}
+                    className={inputClass}
+                  >
                     <option value="">Выбрать чат</option>
-                    {availableChats.map((chat) => <option key={chat.id} value={chat.id}>{chat.name || chat.type}</option>)}
+                    {availableChats.map((chat) => (
+                      <option key={chat.id} value={chat.id}>
+                        {chat.name || chat.type}
+                      </option>
+                    ))}
                   </select>
-                  <button type="submit" disabled={busy || !installChatId} className="rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Подключить к чату</button>
+                  <button type="submit" disabled={busy || !installChatId} className={primaryButtonClass}>
+                    Подключить к чату
+                  </button>
                 </form>
+
                 <div className="space-y-2">
                   {installations.map((item) => (
                     <div key={item.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
@@ -361,24 +471,38 @@ export default function BotManager() {
                         <div className="font-medium text-slate-900 dark:text-white">{item.chat.name || item.chat.type}</div>
                         <div className="text-sm text-slate-500 dark:text-slate-400">{item.chat.type}</div>
                       </div>
-                      <button type="button" onClick={() => uninstallBot(item.chatId)} className="rounded-xl border border-red-200 px-3 py-2 text-xs text-red-600 dark:border-red-500/30">Отключить</button>
+                      <button
+                        type="button"
+                        onClick={() => uninstallBot(item.chatId)}
+                        className="rounded-xl border border-red-200 px-3 py-2 text-xs text-red-600 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
+                      >
+                        Отключить
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-slate-200/70 bg-white/90 p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+              <div className={cardClass}>
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Доставки webhook</h3>
-                  <button type="button" onClick={reloadAll} className="rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Обновить</button>
+                  <button type="button" onClick={reloadAll} className={secondaryButtonClass}>
+                    Обновить
+                  </button>
                 </div>
+
                 <div className="space-y-2">
                   {deliveries.map((delivery) => (
                     <div key={delivery.id} className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
                       <div className="font-medium text-slate-900 dark:text-white">{delivery.event}</div>
-                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">status {delivery.status || 0} • attempts {delivery.attempts} • {new Date(delivery.deliveredAt).toLocaleString()}</div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        status {delivery.status || 0} • attempts {delivery.attempts} •{' '}
+                        {new Date(delivery.deliveredAt).toLocaleString()}
+                      </div>
                       {delivery.status < 200 || delivery.status >= 300 ? (
-                        <button type="button" onClick={() => retryDelivery(delivery.id)} className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">Повторить</button>
+                        <button type="button" onClick={() => retryDelivery(delivery.id)} className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs dark:border-slate-700">
+                          Повторить
+                        </button>
                       ) : null}
                     </div>
                   ))}
@@ -389,8 +513,10 @@ export default function BotManager() {
         ) : (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
             <Bot className="mx-auto h-12 w-12 text-slate-400" />
-            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">Создай первого бота</h3>
-            <button type="button" onClick={() => setShowCreate(true)} className="mt-4 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white">Создать</button>
+            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">Создайте первого бота</h3>
+            <button type="button" onClick={() => setShowCreate(true)} className="mt-4 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white">
+              Создать
+            </button>
           </div>
         )}
       </div>
@@ -400,13 +526,40 @@ export default function BotManager() {
           <div className="w-full max-w-md rounded-3xl bg-white p-6 dark:bg-slate-900">
             <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Создать бота</h3>
             <form onSubmit={handleCreate} className="space-y-3">
-              <input value={createForm.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} placeholder="username" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-              <input value={createForm.displayName} onChange={(event) => setCreateForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="Отображаемое имя" className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-              <textarea value={createForm.description} onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))} placeholder="Описание" rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
-              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" checked={createForm.isInline} onChange={(event) => setCreateForm((current) => ({ ...current, isInline: event.target.checked }))} />Inline-бот</label>
+              <input
+                value={createForm.username}
+                onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))}
+                placeholder="username"
+                className={inputClass}
+              />
+              <input
+                value={createForm.displayName}
+                onChange={(event) => setCreateForm((current) => ({ ...current, displayName: event.target.value }))}
+                placeholder="Отображаемое имя"
+                className={inputClass}
+              />
+              <textarea
+                value={createForm.description}
+                onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Описание"
+                rows={3}
+                className={inputClass}
+              />
+              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={createForm.isInline}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, isInline: event.target.checked }))}
+                />
+                Inline-бот
+              </label>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm dark:border-slate-700">Отмена</button>
-                <button type="submit" disabled={busy || !createForm.username || !createForm.displayName} className="flex-1 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60">Создать</button>
+                <button type="button" onClick={() => setShowCreate(false)} className={`flex-1 ${secondaryButtonClass}`}>
+                  Отмена
+                </button>
+                <button type="submit" disabled={busy || !createForm.username || !createForm.displayName} className={`flex-1 ${primaryButtonClass}`}>
+                  Создать
+                </button>
               </div>
             </form>
           </div>

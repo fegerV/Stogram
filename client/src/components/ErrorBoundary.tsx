@@ -32,22 +32,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    this.setState({
-      error,
-      errorInfo,
-    });
+    this.setState({ error, errorInfo });
 
-    // Log error to console in development
     if (import.meta.env.DEV) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
-    // Call custom error handler if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
+    this.props.onError?.(error, errorInfo);
 
-    // Log to external monitoring service in production
     if (import.meta.env.PROD) {
       this.logErrorToService(error, errorInfo);
     }
@@ -55,7 +47,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
     try {
-      // Send error to monitoring service
       const errorData = {
         message: error.message,
         stack: error.stack,
@@ -65,8 +56,6 @@ export class ErrorBoundary extends Component<Props, State> {
         url: window.location.href,
       };
 
-      // You can integrate with services like Sentry, LogRocket, etc.
-      // For now, we'll just log to console
       console.error('Error logged:', errorData);
     } catch (loggingError) {
       console.error('Failed to log error:', loggingError);
@@ -87,40 +76,35 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Custom fallback UI if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="rounded-full bg-red-100 dark:bg-red-900 p-3">
-                <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+        <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4 dark:bg-slate-950">
+          <div className="w-full max-w-md rounded-[30px] border border-slate-200/80 bg-white/95 p-6 text-center shadow-2xl dark:border-slate-700 dark:bg-slate-900/95">
+            <div className="mb-4 flex justify-center">
+              <div className="rounded-full bg-rose-100 p-3 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
+                <AlertTriangle className="h-8 w-8" />
               </div>
             </div>
-            
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Something went wrong
-            </h2>
-            
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              We're sorry, but something unexpected happened. The error has been logged and our team will look into it.
+
+            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-white">Что-то пошло не так</h2>
+            <p className="mb-6 text-slate-500 dark:text-slate-400">
+              Произошла непредвиденная ошибка. Мы сохранили детали, чтобы быстрее разобраться в проблеме.
             </p>
 
             {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Error Details
+                <summary className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Детали ошибки
                 </summary>
-                <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-800 dark:text-gray-200 overflow-auto max-h-40">
-                  <div className="font-bold mb-2">Error:</div>
+                <div className="mt-3 max-h-40 overflow-auto rounded-2xl bg-slate-100 p-3 font-mono text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                  <div className="mb-2 font-bold">Error:</div>
                   <div className="mb-3">{this.state.error.message}</div>
                   {this.state.error.stack && (
                     <>
-                      <div className="font-bold mb-2">Stack Trace:</div>
+                      <div className="mb-2 font-bold">Stack Trace:</div>
                       <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
                     </>
                   )}
@@ -128,20 +112,21 @@ export class ErrorBoundary extends Component<Props, State> {
               </details>
             )}
 
-            <div className="flex gap-3 justify-center">
+            <div className="flex justify-center gap-3">
               <button
+                type="button"
                 onClick={this.handleRetry}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 rounded-2xl bg-[#3390ec] px-4 py-2 text-white transition hover:bg-[#2c83d9]"
               >
                 <RefreshCw className="h-4 w-4" />
-                Try Again
+                Попробовать снова
               </button>
-              
               <button
+                type="button"
                 onClick={this.handleReload}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg transition-colors"
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                Reload Page
+                Перезагрузить
               </button>
             </div>
           </div>
@@ -153,12 +138,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Hook for functional components to handle errors
 export const useErrorHandler = () => {
   return (error: Error, errorInfo?: ErrorInfo) => {
     console.error('Error caught by error handler:', error, errorInfo);
-    
-    // You can integrate with external monitoring services here
+
     if (import.meta.env.PROD) {
       const errorData = {
         message: error.message,
@@ -168,7 +151,7 @@ export const useErrorHandler = () => {
         userAgent: navigator.userAgent,
         url: window.location.href,
       };
-      
+
       console.error('Error logged:', errorData);
     }
   };
