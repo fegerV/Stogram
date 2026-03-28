@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { sendBotMessage as sendBotMessageService } from './botService';
+import { validateOutgoingWebhookUrl } from '../utils/webhookValidation';
 
 type Primitive = string | number | boolean | null;
 type JsonValue = Primitive | JsonObject | JsonValue[];
@@ -21,6 +22,42 @@ const BOT_MESSAGE_META = 'bot_meta';
 const BOT_KEYBOARD_META = 'bot_keyboard';
 
 class BotApiCompatibilityService {
+  private async markUpdateConsumed(botId: string, updateId: number) {
+    await prisma.botApiUpdate.updateMany({
+      where: {
+        botId,
+        updateId,
+        consumedAt: null,
+      },
+      data: {
+        consumedAt: new Date(),
+      },
+    });
+  }
+
+  private parseAllowedUpdates(rawAllowedUpdates: Prisma.JsonValue | null | undefined) {
+    if (!Array.isArray(rawAllowedUpdates)) {
+      return null;
+    }
+
+    const values = rawAllowedUpdates
+      .map((value) => (typeof value === 'string' ? value : null))
+      .filter((value): value is string => Boolean(value));
+
+    return values.length > 0 ? new Set(values) : null;
+  }
+
+  private isUpdateAllowed(
+    allowedUpdates: Set<string> | null,
+    updateType: 'message' | 'edited_message' | 'callback_query' | 'inline_query'
+  ) {
+    if (!allowedUpdates || allowedUpdates.has('*')) {
+      return true;
+    }
+
+    return allowedUpdates.has(updateType);
+  }
+
   private buildUser(user: {
     id: string;
     username?: string | null;
@@ -177,10 +214,15 @@ class BotApiCompatibilityService {
       },
     });
 
-    return update;
+    return { update, updateId };
   }
 
-  private async deliverWebhook(bot: { webhookUrl: string | null; apiWebhookSecret?: string | null }, update: PendingUpdate) {
+  private async deliverWebhook(
+    bot: { webhookUrl: string | null; apiWebhookSecret?: string | null },
+    botId: string,
+    updateId: number,
+    update: PendingUpdate
+  ) {
     if (!bot.webhookUrl) {
       return;
     }
@@ -192,6 +234,8 @@ class BotApiCompatibilityService {
       },
       timeout: 10000,
     });
+
+    await this.markUpdateConsumed(botId, updateId);
   }
 
   private async getHydratedMessage(messageId: string) {
@@ -299,6 +343,13 @@ class BotApiCompatibilityService {
       throw new Error('Invalid bot token');
     }
 
+    if (url) {
+      const urlValidation = validateOutgoingWebhookUrl(url);
+      if (!urlValidation.ok) {
+        throw new Error(urlValidation.error);
+      }
+    }
+
     await prisma.bot.update({
       where: { id: bot.id },
       data: {
@@ -371,6 +422,10 @@ class BotApiCompatibilityService {
     const bot = await this.findBotByToken(token);
     if (!bot) {
       throw new Error('Invalid bot token');
+    }
+
+    if (bot.webhookUrl) {
+      throw new Error('Cannot use getUpdates while webhook is active');
     }
 
     const offset = options?.offset ?? 0;
@@ -662,6 +717,7 @@ class BotApiCompatibilityService {
         select: {
           webhookUrl: true,
           apiWebhookSecret: true,
+          apiAllowedUpdates: true,
         },
       }),
       this.getHydratedMessage(messageId),
@@ -671,11 +727,16 @@ class BotApiCompatibilityService {
       return;
     }
 
-    const update = await this.persistUpdate(botId, updateField, {
+    const allowedUpdates = this.parseAllowedUpdates(bot.apiAllowedUpdates as Prisma.JsonValue | null);
+    if (!this.isUpdateAllowed(allowedUpdates, updateField)) {
+      return;
+    }
+
+    const { update, updateId } = await this.persistUpdate(botId, updateField, {
       [updateField]: this.buildMessagePayload(message),
     });
 
-    await this.deliverWebhook(bot, update);
+    await this.deliverWebhook(bot, botId, updateId, update);
   }
 
   async publishCallbackQueryUpdate(botId: string, queryId: string) {
@@ -685,6 +746,7 @@ class BotApiCompatibilityService {
         select: {
           webhookUrl: true,
           apiWebhookSecret: true,
+          apiAllowedUpdates: true,
         },
       }),
       prisma.botCallbackQuery.findUnique({
@@ -693,6 +755,11 @@ class BotApiCompatibilityService {
     ]);
 
     if (!bot || !query) {
+      return;
+    }
+
+    const allowedUpdates = this.parseAllowedUpdates(bot.apiAllowedUpdates as Prisma.JsonValue | null);
+    if (!this.isUpdateAllowed(allowedUpdates, 'callback_query')) {
       return;
     }
 
@@ -712,7 +779,7 @@ class BotApiCompatibilityService {
       return;
     }
 
-    const update = await this.persistUpdate(botId, 'callback_query', {
+    const { update, updateId } = await this.persistUpdate(botId, 'callback_query', {
       callback_query: {
         id: query.id,
         from: this.buildUser(user),
@@ -722,7 +789,7 @@ class BotApiCompatibilityService {
       },
     });
 
-    await this.deliverWebhook(bot, update);
+    await this.deliverWebhook(bot, botId, updateId, update);
   }
 
   async publishInlineQueryUpdate(botId: string, inlineQueryId: string) {
@@ -732,6 +799,7 @@ class BotApiCompatibilityService {
         select: {
           webhookUrl: true,
           apiWebhookSecret: true,
+          apiAllowedUpdates: true,
         },
       }),
       prisma.botInlineQuery.findUnique({
@@ -740,6 +808,11 @@ class BotApiCompatibilityService {
     ]);
 
     if (!bot || !query) {
+      return;
+    }
+
+    const allowedUpdates = this.parseAllowedUpdates(bot.apiAllowedUpdates as Prisma.JsonValue | null);
+    if (!this.isUpdateAllowed(allowedUpdates, 'inline_query')) {
       return;
     }
 
@@ -756,7 +829,7 @@ class BotApiCompatibilityService {
       return;
     }
 
-    const update = await this.persistUpdate(botId, 'inline_query', {
+    const { update, updateId } = await this.persistUpdate(botId, 'inline_query', {
       inline_query: {
         id: query.id,
         from: this.buildUser(user),
@@ -765,7 +838,7 @@ class BotApiCompatibilityService {
       },
     });
 
-    await this.deliverWebhook(bot, update);
+    await this.deliverWebhook(bot, botId, updateId, update);
   }
 }
 

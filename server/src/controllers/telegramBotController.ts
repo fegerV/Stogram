@@ -175,10 +175,9 @@ export const setBotCommands = async (req: Request, res: Response) => {
 export const testBotConnection = async (req: Request, res: Response) => {
   try {
     const { botToken } = req.body;
-    const savedConfig = await telegramBotService.getConfig();
     const tokenToTest = typeof botToken === 'string' && botToken.trim()
       ? botToken.trim()
-      : savedConfig?.botToken;
+      : undefined;
 
     if (!tokenToTest) {
       return res.status(400).json({ error: 'Bot token is required' });

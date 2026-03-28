@@ -76,6 +76,28 @@ const scheduleMissedCallTimeout = (io: Server, callId: string, chatId: string) =
   );
 };
 
+const ensureChatMembership = async (chatId: string, userId: string) =>
+  prisma.chatMember.findFirst({
+    where: { chatId, userId },
+    select: { chatId: true },
+  });
+
+const getAccessibleMessage = async (messageId: string, userId: string) =>
+  prisma.message.findFirst({
+    where: {
+      id: messageId,
+      chat: {
+        members: {
+          some: { userId },
+        },
+      },
+    },
+    select: {
+      id: true,
+      chatId: true,
+    },
+  });
+
 export const initSocketHandlers = (io: Server) => {
   io.use(async (socket: AuthSocket, next) => {
     try {
@@ -206,19 +228,26 @@ export const initSocketHandlers = (io: Server) => {
       }
     });
 
-    socket.on('message:typing', ({ chatId, isTyping }) => {
-      socket.to(`chat:${chatId}`).emit('user:typing', {
-        userId,
-        chatId,
-        isTyping,
-      });
+    socket.on('message:typing', async ({ chatId, isTyping }) => {
+      try {
+        const membership = await ensureChatMembership(chatId, userId);
+        if (!membership) {
+          return socket.emit('error', { message: 'Not a member of this chat' });
+        }
+
+        socket.to(`chat:${chatId}`).emit('user:typing', {
+          userId,
+          chatId,
+          isTyping,
+        });
+      } catch (error) {
+        console.error('Message typing error:', error);
+      }
     });
 
     socket.on('message:read', async ({ messageId }) => {
       try {
-        const message = await prisma.message.findUnique({
-          where: { id: messageId },
-        });
+        const message = await getAccessibleMessage(messageId, userId);
 
         if (message) {
           io.to(`chat:${message.chatId}`).emit('message:read', {
@@ -389,6 +418,10 @@ export const initSocketHandlers = (io: Server) => {
           return socket.emit('error', { message: 'Not allowed to reject this call' });
         }
 
+        if (!['CALLING', 'ACTIVE'].includes(call.status)) {
+          return socket.emit('error', { message: 'Call is no longer active' });
+        }
+
         await prisma.call.update({
           where: { id: callId },
           data: { status: 'DECLINED', endedAt: new Date() },
@@ -433,6 +466,10 @@ export const initSocketHandlers = (io: Server) => {
 
         if (!call.chat.members.some((member) => member.userId === userId)) {
           return socket.emit('error', { message: 'Not allowed to end this call' });
+        }
+
+        if (!['CALLING', 'ACTIVE'].includes(call.status)) {
+          return socket.emit('error', { message: 'Call is already ended' });
         }
 
         await prisma.call.update({

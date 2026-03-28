@@ -1,6 +1,9 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {}],
+  },
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/', 'setup.ts'],
@@ -20,9 +23,4 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    },
-  },
 };

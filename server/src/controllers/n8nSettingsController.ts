@@ -1,6 +1,27 @@
 import { Request, Response } from 'express';
 import n8nService from '../services/n8nService';
 import prisma from '../utils/prisma';
+import { io } from '../index';
+import { validateOutgoingWebhookUrl } from '../utils/webhookValidation';
+
+const getDistinctMemberIds = (memberIds: string[], ownerUserId: string) =>
+  Array.from(
+    new Set(
+      memberIds
+        .map((memberId) => String(memberId).trim())
+        .filter(Boolean)
+        .filter((memberId) => memberId !== ownerUserId)
+    )
+  );
+
+const ensureUsersExist = async (userIds: string[]) => {
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true },
+  });
+
+  return new Set(users.map((user) => user.id));
+};
 
 // Get n8n configuration
 export const getN8nConfig = async (req: Request, res: Response) => {
@@ -45,6 +66,11 @@ export const createWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Name, webhookUrl, and events array are required' });
     }
 
+    const urlValidation = validateOutgoingWebhookUrl(webhookUrl);
+    if (!urlValidation.ok) {
+      return res.status(400).json({ error: urlValidation.error });
+    }
+
     const webhook = await n8nService.createWebhook({ name, webhookUrl, events, secret });
     res.status(201).json(webhook);
   } catch (error) {
@@ -58,6 +84,13 @@ export const updateWebhook = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, webhookUrl, events, secret, enabled } = req.body;
+
+    if (webhookUrl !== undefined) {
+      const urlValidation = validateOutgoingWebhookUrl(webhookUrl);
+      if (!urlValidation.ok) {
+        return res.status(400).json({ error: urlValidation.error });
+      }
+    }
 
     const webhook = await n8nService.updateWebhook(id, { name, webhookUrl, events, secret, enabled });
     res.json(webhook);
@@ -91,10 +124,14 @@ export const testWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Webhook URL is required' });
     }
 
-    const savedConfig = await prisma.n8nConfig.findFirst();
+    const urlValidation = validateOutgoingWebhookUrl(webhookUrl);
+    if (!urlValidation.ok) {
+      return res.status(400).json({ error: urlValidation.error });
+    }
+
     const success = await n8nService.testWebhook(webhookUrl, {
       secret,
-      apiKey: typeof apiKey === 'string' && apiKey.trim() ? apiKey.trim() : savedConfig?.apiKey || undefined,
+      apiKey: typeof apiKey === 'string' && apiKey.trim() ? apiKey.trim() : undefined,
     });
     
     if (success) {
@@ -197,14 +234,27 @@ export const n8nWebhook = async (req: Request, res: Response) => {
         }
 
         {
-          const distinctMemberIds = Array.from(
-            new Set(
-              (data.memberIds as string[])
-                .map((memberId) => String(memberId).trim())
-                .filter(Boolean)
-                .filter((memberId) => memberId !== data.userId)
-            )
-          );
+          const distinctMemberIds = getDistinctMemberIds(data.memberIds as string[], data.userId);
+          const allParticipantIds = [data.userId, ...distinctMemberIds];
+          const existingUserIds = await ensureUsersExist(allParticipantIds);
+
+          if (!existingUserIds.has(data.userId)) {
+            return res.status(404).json({ error: 'Owner user not found' });
+          }
+
+          const missingMembers = distinctMemberIds.filter((memberId) => !existingUserIds.has(memberId));
+          if (missingMembers.length > 0) {
+            return res.status(404).json({
+              error: 'Some members were not found',
+              missingMemberIds: missingMembers,
+            });
+          }
+
+          if (data.type === 'PRIVATE' && distinctMemberIds.length !== 1) {
+            return res.status(400).json({
+              error: 'Private chats require exactly one additional member',
+            });
+          }
 
           const chat = await prisma.chat.create({
             data: {
@@ -275,6 +325,13 @@ export const n8nWebhook = async (req: Request, res: Response) => {
               },
             },
           });
+
+          await prisma.chat.update({
+            where: { id: data.chatId },
+            data: { updatedAt: new Date() },
+          });
+
+          io.to(`chat:${data.chatId}`).emit('message:new', message);
 
           return res.status(201).json({ status: 'processed', action: 'send_message', message });
         }

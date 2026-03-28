@@ -3,8 +3,26 @@ import crypto from 'crypto';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { deliverWebhook, retryWebhookDelivery } from '../services/webhookService';
+import { validateOutgoingWebhookUrl } from '../utils/webhookValidation';
 
 const buildDefaultSecret = () => crypto.randomBytes(32).toString('hex');
+const MAX_DELIVERY_PAGE_SIZE = 100;
+
+const normalizeWebhookEvents = (events: unknown) => {
+  if (!Array.isArray(events)) {
+    return null;
+  }
+
+  const normalized = Array.from(
+    new Set(
+      events
+        .map((event) => (typeof event === 'string' ? event.trim() : ''))
+        .filter(Boolean)
+    )
+  );
+
+  return normalized.length > 0 ? normalized : null;
+};
 
 const ensureBotOwnership = async (botId: string, userId: string) => {
   const bot = await prisma.bot.findUnique({
@@ -45,9 +63,15 @@ export const createWebhook = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { botId, url, events, secret } = req.body;
+    const normalizedEvents = normalizeWebhookEvents(events);
 
-    if (!botId || !url || !Array.isArray(events)) {
+    if (!botId || !url || !normalizedEvents) {
       return res.status(400).json({ error: 'botId, url and events are required' });
+    }
+
+    const urlValidation = validateOutgoingWebhookUrl(url);
+    if (!urlValidation.ok) {
+      return res.status(400).json({ error: urlValidation.error });
     }
 
     await ensureBotOwnership(botId, userId);
@@ -56,7 +80,7 @@ export const createWebhook = async (req: AuthRequest, res: Response) => {
       data: {
         botId,
         url,
-        events: JSON.stringify(events),
+        events: JSON.stringify(normalizedEvents),
         secret: secret || buildDefaultSecret(),
       },
     });
@@ -114,6 +138,18 @@ export const updateWebhook = async (req: AuthRequest, res: Response) => {
     const { webhookId } = req.params;
     const userId = req.userId!;
     const { url, events, isActive, secret } = req.body;
+    const normalizedEvents = events !== undefined ? normalizeWebhookEvents(events) : undefined;
+
+    if (url !== undefined) {
+      const urlValidation = validateOutgoingWebhookUrl(url);
+      if (!urlValidation.ok) {
+        return res.status(400).json({ error: urlValidation.error });
+      }
+    }
+
+    if (events !== undefined && !normalizedEvents) {
+      return res.status(400).json({ error: 'events must be a non-empty array of strings' });
+    }
 
     await ensureWebhookOwnership(webhookId, userId);
 
@@ -121,7 +157,7 @@ export const updateWebhook = async (req: AuthRequest, res: Response) => {
       where: { id: webhookId },
       data: {
         ...(url !== undefined ? { url } : {}),
-        ...(events !== undefined ? { events: JSON.stringify(events) } : {}),
+        ...(normalizedEvents !== undefined ? { events: JSON.stringify(normalizedEvents) } : {}),
         ...(isActive !== undefined ? { isActive } : {}),
         ...(secret !== undefined ? { secret } : {}),
       },
@@ -172,14 +208,16 @@ export const getWebhookDeliveries = async (req: AuthRequest, res: Response) => {
     const { webhookId } = req.params;
     const userId = req.userId!;
     const { limit = '50', offset = '0' } = req.query;
+    const parsedLimit = Math.min(Math.max(parseInt(limit as string, 10) || 50, 1), MAX_DELIVERY_PAGE_SIZE);
+    const parsedOffset = Math.max(parseInt(offset as string, 10) || 0, 0);
 
     await ensureWebhookOwnership(webhookId, userId);
 
     const deliveries = await prisma.webhookDelivery.findMany({
       where: { webhookId },
       orderBy: { deliveredAt: 'desc' },
-      take: parseInt(limit as string, 10),
-      skip: parseInt(offset as string, 10),
+      take: parsedLimit,
+      skip: parsedOffset,
     });
 
     res.json(deliveries);
@@ -202,6 +240,7 @@ export const getBotWebhookDeliveries = async (req: AuthRequest, res: Response) =
     const { botId } = req.params;
     const userId = req.userId!;
     const { limit = '30' } = req.query;
+    const parsedLimit = Math.min(Math.max(parseInt(limit as string, 10) || 30, 1), MAX_DELIVERY_PAGE_SIZE);
 
     await ensureBotOwnership(botId, userId);
 
@@ -221,7 +260,7 @@ export const getBotWebhookDeliveries = async (req: AuthRequest, res: Response) =
         },
       },
       orderBy: { deliveredAt: 'desc' },
-      take: parseInt(limit as string, 10),
+      take: parsedLimit,
     });
 
     res.json({ deliveries });

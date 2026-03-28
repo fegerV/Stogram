@@ -26,8 +26,8 @@ export const getMe = async (req: Request, res: Response) => {
 
 export const setWebhook = async (req: Request, res: Response) => {
   try {
-    const { url, secret_token: secretToken } = req.body;
-    res.json(await botApiCompatibilityService.setWebhook(getToken(req), url, secretToken));
+    const { url, secret_token: secretToken, allowed_updates: allowedUpdates } = req.body;
+    res.json(await botApiCompatibilityService.setWebhook(getToken(req), url, secretToken, allowedUpdates));
   } catch (error) {
     handleBotApiError(error, res);
   }

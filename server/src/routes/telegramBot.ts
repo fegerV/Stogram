@@ -17,12 +17,12 @@ const router = express.Router();
 // Public webhook endpoint for Telegram (no auth required)
 router.post('/webhook', botWebhook);
 
-// Test bot connection (no auth for initial setup)
-router.post('/test-connection', testBotConnection);
-
 // All other routes require authentication
 router.use(authenticate);
 router.use(requireAdmin);
+
+// Test bot connection
+router.post('/test-connection', testBotConnection);
 
 // Configuration
 router.get('/config', getBotConfig);

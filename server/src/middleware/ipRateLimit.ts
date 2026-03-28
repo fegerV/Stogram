@@ -16,8 +16,8 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
 // In-memory store for development
 const memoryStore = new Map<string, { count: number; expires: number }>();
 
-// Cleanup expired entries
-setInterval(() => {
+// Cleanup expired entries without blocking process exit in tests/dev
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of memoryStore.entries()) {
     if (now > value.expires) {
@@ -25,6 +25,8 @@ setInterval(() => {
     }
   }
 }, 60000); // Cleanup every minute
+
+cleanupInterval.unref?.();
 
 export interface IPRateLimitOptions {
   windowMs: number;      // Time window in milliseconds

@@ -8,6 +8,10 @@ import { deliverToBotWebhooks } from './webhookService';
 type JsonRecord = Record<string, unknown>;
 
 const BOT_DEFAULT_COMMANDS = new Set(['/start', '/help']);
+const DIRECT_WEBHOOK_MAX_ATTEMPTS = 3;
+const DIRECT_WEBHOOK_BASE_DELAY_MS = 500;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class InternalBotRuntimeService {
   private async deliverToDirectWebhook(
@@ -22,14 +26,28 @@ class InternalBotRuntimeService {
       return;
     }
 
-    await axios.post(bot.webhookUrl, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Bot-Event': event,
-        'X-Bot-Id': bot.id,
-      },
-      timeout: 10000,
-    });
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= DIRECT_WEBHOOK_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        await axios.post(bot.webhookUrl, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Bot-Event': event,
+            'X-Bot-Id': bot.id,
+          },
+          timeout: 10000,
+        });
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < DIRECT_WEBHOOK_MAX_ATTEMPTS) {
+          await sleep(DIRECT_WEBHOOK_BASE_DELAY_MS * attempt);
+        }
+      }
+    }
+
+    console.error(`Direct bot webhook delivery failed for bot ${bot.id} event ${event}:`, lastError);
   }
 
   private async sendDefaultCommandReply(
