@@ -71,7 +71,7 @@ export const usePwaLifecycle = (isAuthenticated: boolean) => {
           <div className="flex-1">
             <div className="text-sm font-semibold">Установить Stogram</div>
             <div className="text-xs text-slate-400">
-              Приложение будет запускаться как отдельное окно и лучше работать офлайн.
+              Приложение откроется как отдельное окно и будет удобнее работать даже без сети.
             </div>
           </div>
           <button

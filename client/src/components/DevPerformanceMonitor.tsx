@@ -94,7 +94,7 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
         onClick={() => setIsVisible((current) => !current)}
         className={`fixed ${positionClasses[position]} z-50 rounded-2xl border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs font-medium text-white shadow-xl backdrop-blur`}
       >
-        {isVisible ? 'Закрыть' : 'Perf'}
+        {isVisible ? 'Скрыть' : 'Perf'}
       </button>
 
       {isVisible && (
@@ -102,7 +102,7 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
           className={`fixed ${positionClasses[position]} z-40 mt-12 max-h-[80vh] w-80 overflow-y-auto rounded-[26px] border border-slate-700 bg-slate-950/95 p-4 text-white shadow-2xl backdrop-blur`}
         >
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Dev Performance</h3>
+            <h3 className="text-sm font-semibold">Монитор производительности</h3>
             <button type="button" onClick={() => setIsVisible(false)} className="text-slate-400 hover:text-white">
               ×
             </button>
@@ -125,24 +125,24 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
               )}
 
               <div className="border-t border-slate-800 pt-2">
-                <h4 className="mb-2 font-semibold text-cyan-400">UI</h4>
+                <h4 className="mb-2 font-semibold text-cyan-400">Интерфейс</h4>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">FPS:</span>
                   <span className={`font-mono font-bold ${getFpsColor(fps)}`}>{fps}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Renders:</span>
+                  <span className="text-slate-400">Рендеры:</span>
                   <span className="font-mono">{summary.totalComponentRenders}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Avg render:</span>
+                  <span className="text-slate-400">Средний рендер:</span>
                   <span className={`font-mono ${getRenderTimeColor(summary.averageComponentRenderTime)}`}>
                     {summary.averageComponentRenderTime.toFixed(2)}ms
                   </span>
                 </div>
                 {summary.slowComponentsCount > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Slow:</span>
+                    <span className="text-slate-400">Медленные компоненты:</span>
                     <span className="font-mono text-rose-400">{summary.slowComponentsCount}</span>
                   </div>
                 )}
@@ -151,15 +151,15 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
               <div className="border-t border-slate-800 pt-2">
                 <h4 className="mb-2 font-semibold text-cyan-400">API</h4>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Calls:</span>
+                  <span className="text-slate-400">Запросы:</span>
                   <span className="font-mono">{summary.totalApiCalls}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Avg time:</span>
+                  <span className="text-slate-400">Среднее время:</span>
                   <span className="font-mono">{summary.averageApiCallTime.toFixed(2)}ms</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Success:</span>
+                  <span className="text-slate-400">Успешность:</span>
                   <span className={`font-mono ${summary.apiSuccessRate >= 95 ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {summary.apiSuccessRate.toFixed(1)}%
                   </span>
@@ -168,17 +168,17 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
 
               {summary.totalResourcesLoaded > 0 && (
                 <div className="border-t border-slate-800 pt-2">
-                  <h4 className="mb-2 font-semibold text-cyan-400">Resources</h4>
+                  <h4 className="mb-2 font-semibold text-cyan-400">Ресурсы</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Loaded:</span>
+                    <span className="text-slate-400">Загружено:</span>
                     <span className="font-mono">{summary.totalResourcesLoaded}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Size:</span>
+                    <span className="text-slate-400">Размер:</span>
                     <span className="font-mono">{(summary.totalResourceSize / 1024 / 1024).toFixed(2)}MB</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Avg load:</span>
+                    <span className="text-slate-400">Средняя загрузка:</span>
                     <span className="font-mono">{summary.averageResourceLoadTime.toFixed(2)}ms</span>
                   </div>
                 </div>
@@ -186,11 +186,11 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
 
               <div className="border-t border-slate-800 pt-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Memory:</span>
+                  <span className="text-slate-400">Память:</span>
                   <span className="font-mono">
                     {(performance as any).memory
                       ? `${((performance as any).memory.usedJSHeapSize / 1048576).toFixed(1)}MB`
-                      : 'N/A'}
+                      : 'Недоступно'}
                   </span>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
                   onClick={() => performanceMonitor.clearMetrics()}
                   className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
-                  Clear
+                  Очистить
                 </button>
                 <button
                   type="button"
@@ -211,7 +211,7 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
                   }}
                   className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
-                  Log
+                  Лог
                 </button>
                 <button
                   type="button"
@@ -221,7 +221,7 @@ export const DevPerformanceMonitor: React.FC<DevPerformanceMonitorProps> = ({
                   }}
                   className="rounded-xl bg-slate-800 px-2 py-1 hover:bg-slate-700"
                 >
-                  Bundle
+                  Бандл
                 </button>
               </div>
             </div>

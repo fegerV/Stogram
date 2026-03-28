@@ -3,10 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { performanceMonitor } from './utils/performance';
-import {
-  initializePrefetchStrategies,
-  preloadByRoute,
-} from './components/LazyComponents';
+import { initializePrefetchStrategies, preloadByRoute } from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
 import { socketService } from './services/socket';
@@ -65,11 +62,18 @@ function App() {
 
   useEffect(() => {
     performanceMonitor.trackInteraction('app_init', 'App');
-    initializePrefetchStrategies();
     loadUser();
     initializeTheme();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    initializePrefetchStrategies();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (theme !== 'system' || typeof window === 'undefined') {

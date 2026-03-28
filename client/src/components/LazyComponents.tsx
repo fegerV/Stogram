@@ -3,7 +3,6 @@ import { createLazyComponent } from '../utils/lazyLoading';
 const isBrowser = typeof window !== 'undefined';
 const prefetchedComponents = new Set<string>();
 let prefetchStrategiesInitialized = false;
-let idlePrefetchScheduled = false;
 
 const componentPrefetchers: Record<string, () => Promise<any>> = {
   settings: () => import('./UserSettings'),
@@ -19,36 +18,6 @@ const componentPrefetchers: Record<string, () => Promise<any>> = {
   twoFactor: () => import('./TwoFactorAuth'),
   archived: () => import('./ArchivedChats'),
   blocked: () => import('./BlockedUsers'),
-};
-
-const idlePrefetchQueue: Array<() => Promise<any>> = [
-  componentPrefetchers.analytics,
-  componentPrefetchers.bot,
-  componentPrefetchers.telegramSettings,
-  componentPrefetchers.miniApp,
-];
-
-const runWhenIdle = (callback: () => void, timeout = 1500) => {
-  if (!isBrowser) return;
-  const idleCallback = (window as any).requestIdleCallback as
-    | ((cb: () => void, opts?: { timeout?: number }) => number)
-    | undefined;
-
-  if (typeof idleCallback === 'function') {
-    idleCallback(callback, { timeout });
-  } else {
-    setTimeout(callback, timeout);
-  }
-};
-
-const flushIdlePrefetchQueue = () => {
-  if (!idlePrefetchQueue.length) return;
-  const next = idlePrefetchQueue.shift();
-  next?.();
-
-  if (idlePrefetchQueue.length) {
-    runWhenIdle(flushIdlePrefetchQueue, 2000);
-  }
 };
 
 const prefetchByKey = (key: string | null | undefined) => {
@@ -157,98 +126,91 @@ const setupIntersectionPrefetch = () => {
   mutationObserver.observe(document.body, { childList: true, subtree: true });
 };
 
-const scheduleIdlePrefetch = () => {
-  if (!isBrowser || idlePrefetchScheduled) return;
-  idlePrefetchScheduled = true;
-  runWhenIdle(flushIdlePrefetchQueue, 2500);
-};
-
 export const initializePrefetchStrategies = () => {
   if (!isBrowser || prefetchStrategiesInitialized) return;
   prefetchStrategiesInitialized = true;
   setupPrefetchHandlers();
   setupIntersectionPrefetch();
-  scheduleIdlePrefetch();
 };
 
 export const LazyUserSettings = createLazyComponent(
   () => import('./UserSettings'),
-  { fallback: <div className="p-8 text-center">Loading Settings...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем настройки...</div> },
 );
 
 export const LazyBotManager = createLazyComponent(
   () => import('./BotManager'),
-  { fallback: <div className="p-8 text-center">Loading Bot Manager...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем менеджер ботов...</div> },
 );
 
 export const LazyAnalyticsDashboard = createLazyComponent(
   () => import('./AnalyticsDashboard'),
-  { fallback: <div className="p-8 text-center">Loading Analytics...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем аналитику...</div> },
 );
 
 export const LazyPerformanceDashboard = createLazyComponent(
   () => import('./PerformanceDashboard').then((module) => ({ default: module.PerformanceDashboard })),
-  { fallback: <div className="p-8 text-center">Loading Performance Data...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем метрики...</div> },
 );
 
 export const LazyChatFolders = createLazyComponent(
   () => import('./ChatFolders'),
-  { fallback: <div className="p-8 text-center">Loading Chat Folders...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем папки...</div> },
 );
 
 export const LazyThemeCustomizer = createLazyComponent(
   () => import('./ThemeCustomizer'),
-  { fallback: <div className="p-8 text-center">Loading Theme Customizer...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем темы...</div> },
 );
 
 export const LazyTwoFactorAuth = createLazyComponent(
   () => import('./TwoFactorAuth'),
-  { fallback: <div className="p-8 text-center">Loading Two-Factor Auth...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем двухфакторную защиту...</div> },
 );
 
 export const LazyPrivacySettings = createLazyComponent(
   () => import('./PrivacySettings'),
-  { fallback: <div className="p-8 text-center">Loading Privacy Settings...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем приватность...</div> },
 );
 
 export const LazyArchivedChats = createLazyComponent(
   () => import('./ArchivedChats'),
-  { fallback: <div className="p-8 text-center">Loading Archived Chats...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем архив...</div> },
 );
 
 export const LazyBlockedUsers = createLazyComponent(
   () => import('./BlockedUsers'),
-  { fallback: <div className="p-8 text-center">Loading Blocked Users...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем блокировки...</div> },
 );
 
 export const LazyCallModal = createLazyComponent(
   () => import('./CallModal'),
-  { fallback: <div className="p-8 text-center">Loading Call...</div> },
+  { fallback: <div className="p-8 text-center">Подключаем звонок...</div> },
 );
 
 export const LazyMediaViewer = createLazyComponent(
   () => import('./MediaViewer'),
-  { fallback: <div className="p-8 text-center">Loading Media...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем медиа...</div> },
 );
 
 export const LazyVoiceRecorder = createLazyComponent(
   () => import('./VoiceRecorder'),
-  { fallback: <div className="p-8 text-center">Loading Voice Recorder...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем диктофон...</div> },
 );
 
 export const LazyVirtualizedList = createLazyComponent(
   () => import('./VirtualizedList'),
-  { fallback: <div className="p-8 text-center">Loading List...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем список...</div> },
 );
 
 export const LazyTelegramSettingsPage = createLazyComponent(
   () => import('../pages/TelegramSettingsPage').then((module) => ({ default: module.TelegramSettingsPage })),
-  { fallback: <div className="p-8 text-center">Loading Telegram Settings...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем настройки Telegram...</div> },
 );
 
 export const LazyTelegramMiniApp = createLazyComponent(
   () => import('../pages/TelegramMiniApp').then((module) => ({ default: module.TelegramMiniApp })),
-  { fallback: <div className="p-8 text-center">Loading Telegram Mini App...</div> },
+  { fallback: <div className="p-8 text-center">Загружаем Telegram Mini App...</div> },
 );
 
 export const preloadCriticalComponents = () => {
@@ -279,7 +241,6 @@ export const preloadByRoute = (currentRoute: string) => {
   switch (route) {
     case '/login':
       preloadPages.register();
-      preloadPages.chat();
       break;
     case '/register':
       preloadPages.login();
@@ -299,12 +260,9 @@ export const preloadByRoute = (currentRoute: string) => {
 
   if (route === '/' || route.startsWith('/chat')) {
     preloadCriticalComponents();
-    prefetchByKey('settings');
   }
 
   if (route.includes('settings')) {
-    prefetchByKey('settings');
-    prefetchByKey('privacy');
     preloadPages.telegramSettings();
   }
 

@@ -19,8 +19,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onClose }) => {
     searchType === 'hashtag'
       ? 'Поиск по хэштегу'
       : searchType === 'mention'
-      ? 'Поиск упоминаний'
-      : 'Поиск сообщений';
+        ? 'Поиск упоминаний'
+        : 'Поиск сообщений';
 
   return (
     <div className="border-b border-slate-200/70 bg-white/95 p-4 dark:border-slate-700 dark:bg-slate-900/95">
