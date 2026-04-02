@@ -92,7 +92,6 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
         folders={folders}
         selectedFolderId={selectedFolderId}
         onSelectFolder={setSelectedFolderId}
-        onOpenMenu={() => setIsDrawerOpen(true)}
       />
 
       <div className="relative flex min-w-0 flex-1 flex-col md:bg-[#0f1822]">

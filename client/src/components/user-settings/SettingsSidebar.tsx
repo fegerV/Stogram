@@ -1,6 +1,6 @@
-import { ArrowLeft, ChevronRight, Search, X } from 'lucide-react';
-import { SettingsNavItem, SettingsSection } from './types';
+import { ArrowLeft, ChevronRight, Search } from 'lucide-react';
 import { useSettingsI18n } from './i18n';
+import { SettingsNavItem, SettingsSection } from './types';
 
 interface SettingsSidebarProps {
   avatarSrc: string;
@@ -38,13 +38,6 @@ export function SettingsSidebar({
           <ArrowLeft className="h-[22px] w-[22px]" />
         </button>
         <h2 className="flex-1 text-[20px] font-semibold">{t('settings.title')}</h2>
-        <button
-          onClick={onClose}
-          className="rounded-full p-2 transition hover:bg-white/10"
-          aria-label={t('settings.close')}
-        >
-          <X className="h-[20px] w-[20px]" />
-        </button>
       </div>
 
       <div className="px-4 pb-3">

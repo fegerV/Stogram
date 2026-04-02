@@ -1,4 +1,4 @@
-import { Folder, MessageSquare, PanelLeftOpen } from 'lucide-react';
+import { Folder, MessageSquare } from 'lucide-react';
 
 interface FolderOption {
   id: string;
@@ -10,7 +10,6 @@ interface DesktopNavRailProps {
   folders: FolderOption[];
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string | null) => void;
-  onOpenMenu: () => void;
 }
 
 function RailFolderButton({
@@ -38,7 +37,11 @@ function RailFolderButton({
         className="flex h-10 w-10 items-center justify-center rounded-2xl"
         style={{ backgroundColor: isActive ? accentColor || '#3390ec' : '#162330' }}
       >
-        {Icon ? <Icon className="h-5 w-5" /> : <span className="text-[13px] font-semibold">{label.slice(0, 2).toUpperCase()}</span>}
+        {Icon ? (
+          <Icon className="h-5 w-5" />
+        ) : (
+          <span className="text-[13px] font-semibold">{label.slice(0, 2).toUpperCase()}</span>
+        )}
       </div>
       <span className="max-w-[62px] truncate text-[11px] font-medium leading-none">{label}</span>
     </button>
@@ -49,18 +52,9 @@ export default function DesktopNavRail({
   folders,
   selectedFolderId,
   onSelectFolder,
-  onOpenMenu,
 }: DesktopNavRailProps) {
   return (
-    <aside className="hidden h-full md:flex w-[88px] shrink-0 flex-col items-center gap-2 border-r border-[#17232d] bg-[#0d1720] px-3 py-4">
-      <button
-        onClick={onOpenMenu}
-        className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#162330] text-white transition hover:bg-[#203140]"
-        title="Меню"
-      >
-        <PanelLeftOpen className="h-5 w-5" />
-      </button>
-
+    <aside className="hidden h-full w-[88px] shrink-0 flex-col items-center gap-2 border-r border-[#17232d] bg-[#0d1720] px-3 py-4 md:flex">
       <div className="flex w-full flex-col gap-1 overflow-y-auto">
         <RailFolderButton
           icon={MessageSquare}

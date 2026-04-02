@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Mic, MicOff, PhoneOff, Video, VideoOff, X } from 'lucide-react';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { socketService } from '../services/socket';
-import { useChatStore } from '../store/chatStore';
 import { useAuthStore } from '../store/authStore';
+import { useChatStore } from '../store/chatStore';
 
 interface CallModalProps {
   callId: string;
@@ -36,11 +36,9 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
 
   useEffect(() => {
     if (isInitiator) {
-      startCall(callType === 'VIDEO').catch((error) => {
-        console.error('Failed to start call:', error);
-      });
+      void startCall(callType === 'VIDEO');
     }
-  }, [callId, callType, isInitiator, startCall]);
+  }, [callType, isInitiator, startCall]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -52,10 +50,11 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
+
     if (remoteAudioRef.current && remoteStream && callType === 'AUDIO') {
       remoteAudioRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream, callType]);
+  }, [callType, remoteStream]);
 
   const handleEndCall = () => {
     cleanup();
@@ -72,6 +71,7 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
           type="button"
           onClick={handleEndCall}
           className="absolute right-4 top-4 z-10 rounded-full bg-slate-900/60 p-2 text-white transition hover:bg-slate-900/90"
+          title="Завершить звонок"
         >
           <X className="h-6 w-6" />
         </button>
@@ -107,6 +107,7 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
             className={`rounded-full p-4 transition ${
               isAudioEnabled ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-700'
             }`}
+            title={isAudioEnabled ? 'Выключить микрофон' : 'Включить микрофон'}
           >
             {isAudioEnabled ? <Mic className="h-6 w-6 text-white" /> : <MicOff className="h-6 w-6 text-white" />}
           </button>
@@ -118,6 +119,7 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
               className={`rounded-full p-4 transition ${
                 isVideoEnabled ? 'bg-slate-700 hover:bg-slate-600' : 'bg-rose-600 hover:bg-rose-700'
               }`}
+              title={isVideoEnabled ? 'Выключить камеру' : 'Включить камеру'}
             >
               {isVideoEnabled ? (
                 <Video className="h-6 w-6 text-white" />
@@ -131,6 +133,7 @@ export default function CallModal({ callId, chatId, callType, isInitiator, onClo
             type="button"
             onClick={handleEndCall}
             className="rounded-full bg-rose-600 p-4 transition hover:bg-rose-700"
+            title="Завершить звонок"
           >
             <PhoneOff className="h-6 w-6 text-white" />
           </button>
