@@ -7,6 +7,7 @@ import { useChatStore } from '../store/chatStore';
 import { ChatType, Message, NotificationLevel } from '../types';
 import { getChatAvatar, getChatName, getInitials } from '../utils/helpers';
 import PinnedMessageBanner from './PinnedMessageBanner';
+import { useConfirm } from './confirm/ConfirmDialogProvider';
 import { ChatWindowHeader } from './chat-window/ChatWindowHeader';
 import { MessageComposer } from './chat-window/MessageComposer';
 import { MessageContextMenu } from './chat-window/MessageContextMenu';
@@ -30,6 +31,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
+  const confirm = useConfirm();
   const {
     currentChat,
     messages,
@@ -146,7 +148,14 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('Удалить сообщение?')) {
+    const shouldDelete = await confirm({
+      title: 'Удалить сообщение',
+      message: 'Сообщение будет удалено из чата.',
+      confirmText: 'Удалить',
+      tone: 'danger',
+    });
+
+    if (!shouldDelete) {
       return;
     }
 

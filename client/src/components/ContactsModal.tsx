@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, UserPlus, X, MessageCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from './confirm/ConfirmDialogProvider';
 import { userApi } from '../services/api';
 import { useChatStore } from '../store/chatStore';
 import { Contact, ChatType, User } from '../types';
@@ -12,6 +13,7 @@ interface ContactsModalProps {
 }
 
 export default function ContactsModal({ onClose, onOpenChat }: ContactsModalProps) {
+  const confirm = useConfirm();
   const { chats, createChat } = useChatStore();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +102,14 @@ export default function ContactsModal({ onClose, onOpenChat }: ContactsModalProp
   };
 
   const handleRemoveContact = async (contactId: string) => {
-    if (!confirm('Удалить контакт?')) return;
+    const shouldRemove = await confirm({
+      title: 'Удалить контакт',
+      message: 'Контакт будет удалён из списка, но история сообщений сохранится.',
+      confirmText: 'Удалить',
+      tone: 'danger',
+    });
+
+    if (!shouldRemove) return;
 
     try {
       await userApi.removeContact(contactId);

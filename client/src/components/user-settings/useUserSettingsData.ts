@@ -5,6 +5,7 @@ import { userApi } from '../../services/api';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '../../utils/pushNotifications';
 import { useNotificationStore } from '../../store/notificationStore';
 import { notificationSound } from '../../utils/notificationSound';
+import { useConfirm } from '../confirm/ConfirmDialogProvider';
 import { Folder, SettingsSection, Session, StorageInfo } from './types';
 
 interface UseUserSettingsDataOptions {
@@ -13,6 +14,7 @@ interface UseUserSettingsDataOptions {
 }
 
 export function useUserSettingsData({ section, setAuthUser }: UseUserSettingsDataOptions) {
+  const confirm = useConfirm();
   const [user, setUser] = useState<any>(null);
   const [privacy, setPrivacy] = useState({
     showOnlineStatus: true,
@@ -300,7 +302,14 @@ export function useUserSettingsData({ section, setAuthUser }: UseUserSettingsDat
   };
 
   const handleDisable2FA = async () => {
-    if (!confirm('Отключить двухфакторную аутентификацию?')) {
+    const shouldDisable = await confirm({
+      title: 'Отключить 2FA',
+      message: 'Двухфакторная аутентификация будет отключена для вашего аккаунта.',
+      confirmText: 'Отключить',
+      tone: 'danger',
+    });
+
+    if (!shouldDisable) {
       return;
     }
 
@@ -329,7 +338,14 @@ export function useUserSettingsData({ section, setAuthUser }: UseUserSettingsDat
   };
 
   const handleRevokeAllSessions = async () => {
-    if (!confirm('Завершить все другие сеансы?')) {
+    const shouldRevoke = await confirm({
+      title: 'Завершить все сеансы',
+      message: 'Все другие активные сеансы будут завершены. Текущий сеанс останется активным.',
+      confirmText: 'Завершить',
+      tone: 'danger',
+    });
+
+    if (!shouldRevoke) {
       return;
     }
 
@@ -343,7 +359,14 @@ export function useUserSettingsData({ section, setAuthUser }: UseUserSettingsDat
   };
 
   const handleClearCache = async () => {
-    if (!confirm('Очистить кэш?')) {
+    const shouldClear = await confirm({
+      title: 'Очистить кэш',
+      message: 'Временные данные приложения будут удалены. Чаты и файлы это не затронет.',
+      confirmText: 'Очистить',
+      tone: 'danger',
+    });
+
+    if (!shouldClear) {
       return;
     }
 
@@ -433,7 +456,14 @@ export function useUserSettingsData({ section, setAuthUser }: UseUserSettingsDat
   };
 
   const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('Удалить папку?')) {
+    const shouldDelete = await confirm({
+      title: 'Удалить папку',
+      message: 'Папка будет удалена, а привязанные чаты останутся в общем списке.',
+      confirmText: 'Удалить',
+      tone: 'danger',
+    });
+
+    if (!shouldDelete) {
       return;
     }
 

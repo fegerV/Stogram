@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../components/confirm/ConfirmDialogProvider';
 import { n8nApi } from '../services/api';
 
 const AVAILABLE_EVENTS = [
@@ -22,6 +23,7 @@ interface N8nSettingsProps {
 }
 
 export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -152,7 +154,14 @@ export default function N8nSettings({ embedded = false }: N8nSettingsProps) {
   };
 
   const handleDeleteWebhook = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this webhook?')) return;
+    const shouldDelete = await confirm({
+      title: 'Delete webhook',
+      message: 'Are you sure you want to delete this webhook?',
+      confirmText: 'Delete',
+      tone: 'danger',
+    });
+
+    if (!shouldDelete) return;
     
     try {
       await n8nApi.deleteWebhook(id);

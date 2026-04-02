@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useConfirm } from '../components/confirm/ConfirmDialogProvider';
 import { telegramService } from '../services/telegramService';
 
 interface TelegramSettings {
@@ -21,6 +22,7 @@ interface TelegramSettings {
 }
 
 export const TelegramSettingsPage: React.FC = () => {
+  const confirm = useConfirm();
   const [settings, setSettings] = useState<TelegramSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(false);
@@ -49,7 +51,14 @@ export const TelegramSettingsPage: React.FC = () => {
   };
 
   const handleUnlink = async () => {
-    if (!confirm('Вы уверены, что хотите отвязать Telegram аккаунт?')) {
+    const shouldUnlink = await confirm({
+      title: 'Отвязать Telegram',
+      message: 'Вы уверены, что хотите отвязать Telegram-аккаунт?',
+      confirmText: 'Отвязать',
+      tone: 'danger',
+    });
+
+    if (!shouldUnlink) {
       return;
     }
 

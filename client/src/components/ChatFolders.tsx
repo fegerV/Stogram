@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Edit2, Folder, Plus, Trash2, X } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useConfirm } from './confirm/ConfirmDialogProvider';
 
 interface FolderType {
   id: string;
@@ -21,6 +22,7 @@ const modalShell =
   'w-full max-w-md rounded-[30px] border border-slate-200/80 bg-white/95 p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900/95';
 
 const ChatFolders: React.FC<ChatFoldersProps> = ({ onSelectFolder, selectedFolder }) => {
+  const confirm = useConfirm();
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
@@ -92,7 +94,14 @@ const ChatFolders: React.FC<ChatFoldersProps> = ({ onSelectFolder, selectedFolde
   };
 
   const deleteFolder = async (folderId: string) => {
-    if (!window.confirm('Удалить папку?')) return;
+    const shouldDelete = await confirm({
+      title: 'Удалить папку',
+      message: 'Папка будет удалена, а чаты останутся доступными в общем списке.',
+      confirmText: 'Удалить',
+      tone: 'danger',
+    });
+
+    if (!shouldDelete) return;
 
     try {
       const token = localStorage.getItem('token');

@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ConfirmDialogProvider } from './components/confirm/ConfirmDialogProvider';
 import { performanceMonitor } from './utils/performance';
 import { initializePrefetchStrategies, preloadByRoute } from './components/LazyComponents';
 import { useAuthStore } from './store/authStore';
@@ -120,98 +121,100 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
-        <RoutePreloader />
-        <Toaster position="top-right" />
-        {ENABLE_DEV_MONITOR && (
-          <Suspense fallback={null}>
-            <div className="hidden md:block">
-              <DevPerformanceMonitor />
-            </div>
+        <ConfirmDialogProvider>
+          <RoutePreloader />
+          <Toaster position="top-right" />
+          {ENABLE_DEV_MONITOR && (
+            <Suspense fallback={null}>
+              <div className="hidden md:block">
+                <DevPerformanceMonitor />
+              </div>
+            </Suspense>
+          )}
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route
+                path="/login"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <Navigate to="/" /> : <LoginPage />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/verify-email"
+                element={
+                  <ErrorBoundary>
+                    <VerifyEmailPage />
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/telegram/settings"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <TelegramSettingsPage /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/telegram/mini-app"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <TelegramMiniApp /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <AnalyticsDashboard /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/n8n"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <N8nSettings /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/bot"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <BotSettings /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/*"
+                element={
+                  <ErrorBoundary>
+                    {isAuthenticated ? <ChatPage /> : <Navigate to="/login" />}
+                  </ErrorBoundary>
+                }
+              />
+            </Routes>
           </Suspense>
-        )}
-        <Suspense fallback={<LoadingScreen />}>
-          <Routes>
-            <Route
-              path="/login"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <Navigate to="/" /> : <LoginPage />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <Navigate to="/" /> : <RegisterPage />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/verify-email"
-              element={
-                <ErrorBoundary>
-                  <VerifyEmailPage />
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/telegram/settings"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <TelegramSettingsPage /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/telegram/mini-app"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <TelegramMiniApp /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <AnalyticsDashboard /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/n8n"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <N8nSettings /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/bot"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <BotSettings /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="/*"
-              element={
-                <ErrorBoundary>
-                  {isAuthenticated ? <ChatPage /> : <Navigate to="/login" />}
-                </ErrorBoundary>
-              }
-            />
-          </Routes>
-        </Suspense>
-        {ENABLE_PERFORMANCE_WIDGET && (
-          <Suspense fallback={null}>
-            <div className="hidden md:block">
-              <PerformanceWidget position="bottom-right" />
-            </div>
-          </Suspense>
-        )}
+          {ENABLE_PERFORMANCE_WIDGET && (
+            <Suspense fallback={null}>
+              <div className="hidden md:block">
+                <PerformanceWidget position="bottom-right" />
+              </div>
+            </Suspense>
+          )}
+        </ConfirmDialogProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

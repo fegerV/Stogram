@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bot, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useConfirm } from './confirm/ConfirmDialogProvider';
 import { botApi, chatApi, webhookApi } from '../services/api';
 import { Chat } from '../types';
 
@@ -38,6 +39,7 @@ const primaryButtonClass =
   'rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#2c83d9] disabled:opacity-60';
 
 export default function BotManager() {
+  const confirm = useConfirm();
   const [bots, setBots] = useState<ManagedBot[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
@@ -123,7 +125,15 @@ export default function BotManager() {
   };
 
   const handleDeleteBot = async (botId: string) => {
-    if (!window.confirm('Удалить бота?')) return;
+    const shouldDelete = await confirm({
+      title: 'Удалить бота',
+      message: 'Бот будет удалён вместе с его командами, webhook-ами и установками в чатах.',
+      confirmText: 'Удалить',
+      tone: 'danger',
+    });
+
+    if (!shouldDelete) return;
+
     setBusy(true);
     try {
       await botApi.remove(botId);
@@ -138,7 +148,15 @@ export default function BotManager() {
   };
 
   const handleRegenerateToken = async (botId: string) => {
-    if (!window.confirm('Регенерировать токен?')) return;
+    const shouldRegenerate = await confirm({
+      title: 'Сгенерировать новый токен',
+      message: 'Старый токен перестанет работать. Новый токен будет скопирован в буфер обмена.',
+      confirmText: 'Сгенерировать',
+      tone: 'danger',
+    });
+
+    if (!shouldRegenerate) return;
+
     setBusy(true);
     try {
       const response = await botApi.regenerateToken(botId);
