@@ -35,16 +35,12 @@ export function ChatListHeader({
   return (
     <div className="border-b border-[#1c2b38] bg-[#17232e] text-white">
       <div className="flex h-16 items-center gap-2 px-3">
-        <button
-          onClick={onOpenMenu}
-          className="rounded-full p-2.5 transition hover:bg-white/10"
-          aria-label="Открыть меню"
-        >
-          <MenuIcon className="h-[22px] w-[22px]" />
-        </button>
+        <div className="min-w-0 flex-shrink-0 px-2">
+          <h1 className="truncate text-[20px] font-semibold tracking-tight">Stogram</h1>
+        </div>
 
         {isSearchOpen ? (
-          <div className="flex-1 rounded-2xl bg-white/8 px-4 py-2 md:max-w-[320px]">
+          <div className="flex-1 rounded-2xl bg-white/8 px-4 py-2">
             <input
               autoFocus
               type="text"
@@ -56,31 +52,26 @@ export function ChatListHeader({
             />
           </div>
         ) : (
-          <div className="flex flex-1 items-center gap-3 px-2">
-            <div className="hidden md:flex md:max-w-[290px] md:flex-1 md:items-center md:gap-2 md:rounded-2xl md:bg-white/8 md:px-4 md:py-2">
-              <Search className="h-4 w-4 text-white/45" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Поиск"
-                className="w-full bg-transparent py-1 text-[15px] text-white placeholder-white/45 focus:outline-none"
-              />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-[20px] font-semibold tracking-tight">Stogram</h1>
-              <p className="mt-0.5 text-xs text-white/55">Desktop workspace</p>
-            </div>
-          </div>
+          <div className="flex-1" />
         )}
 
-        <button
-          onClick={onToggleSearch}
-          className="rounded-full p-2.5 transition hover:bg-white/10 md:hidden"
-          aria-label="Поиск"
-        >
-          <Search className="h-[22px] w-[22px]" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleSearch}
+            className="rounded-full p-2.5 transition hover:bg-white/10"
+            aria-label="Поиск"
+          >
+            <Search className="h-[22px] w-[22px]" />
+          </button>
+
+          <button
+            onClick={onOpenMenu}
+            className="rounded-full p-2.5 transition hover:bg-white/10"
+            aria-label="Открыть меню"
+          >
+            <MenuIcon className="h-[22px] w-[22px]" />
+          </button>
+        </div>
       </div>
 
       <div className="flex overflow-x-auto border-t border-white/5 px-2 pb-2 scrollbar-none">

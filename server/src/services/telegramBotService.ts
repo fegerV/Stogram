@@ -1,8 +1,17 @@
 import crypto from 'crypto';
 import TelegramBot from 'node-telegram-bot-api';
 import prisma from '../utils/prisma';
+import {
+  buildConnectUsageText,
+  buildHelpText,
+  buildNotifyUsageText,
+  buildStartConnectedText,
+  buildStartDisconnectedText,
+  DEFAULT_TELEGRAM_BOT_COMMANDS,
+  TelegramBotCommandConfig,
+} from './telegramBotTexts';
 
-interface BotCommandConfig {
+interface BotCommandConfig extends TelegramBotCommandConfig {
   command: string;
   description: string;
 }
@@ -59,17 +68,7 @@ class TelegramBotService {
   }
 
   private getDefaultCommands(): BotCommandConfig[] {
-    return [
-      { command: 'start', description: 'Start the bot' },
-      { command: 'help', description: 'Show help information' },
-      { command: 'status', description: 'Check account status' },
-      { command: 'chats', description: 'List your chats' },
-      { command: 'unread', description: 'Show unread messages' },
-      { command: 'search', description: 'Search messages' },
-      { command: 'notify', description: 'Manage notifications' },
-      { command: 'connect', description: 'Connect Stogram account' },
-      { command: 'disconnect', description: 'Disconnect account' },
-    ];
+    return DEFAULT_TELEGRAM_BOT_COMMANDS;
   }
 
   private getWebhookSecretToken(): string {
@@ -164,36 +163,20 @@ class TelegramBotService {
     if (botUser?.isAuthorized) {
       await this.bot?.sendMessage(
         chatId,
-        `Welcome back, ${firstName}!\n\nYour Stogram account is connected.\n\nUse /help to see all available commands.`
+        buildStartConnectedText(firstName)
       );
       return;
     }
 
     await this.bot?.sendMessage(
       chatId,
-      `Welcome to Stogram Bot, ${firstName}!\n\nTo connect your Stogram account, use /connect.\n\nOr visit the Stogram web app to link your account.`
+      buildStartDisconnectedText(firstName)
     );
   }
 
   private async handleHelp(msg: TelegramBot.Message) {
     const chatId = msg.chat.id;
-    const helpText = `*Stogram Bot Commands*\n\n`
-      + `*Basic Commands:*\n`
-      + `/start - Start the bot\n`
-      + `/help - Show this help message\n`
-      + `/status - Check your account status\n\n`
-      + `*Chat Management:*\n`
-      + `/chats - List your chats\n`
-      + `/unread - Show unread messages\n`
-      + `/search [query] - Search messages\n\n`
-      + `*Notifications:*\n`
-      + `/notify on - Enable notifications\n`
-      + `/notify off - Disable notifications\n\n`
-      + `*Account:*\n`
-      + `/connect - Connect your Stogram account\n`
-      + `/disconnect - Disconnect your account\n\n`
-      + `*Inline Mode:*\n`
-      + `Type @${this.config?.botUsername || 'stogrambot'} in any chat to search your chats inline.`;
+    const helpText = buildHelpText(this.config?.botUsername);
 
     await this.bot?.sendMessage(chatId, helpText, { parse_mode: 'Markdown' });
   }
@@ -440,7 +423,7 @@ class TelegramBotService {
     if (!action || !['on', 'off'].includes(action)) {
       await this.bot?.sendMessage(
         chatId,
-        '*Notification Settings*\n\nUsage: /notify [on|off]\n\nExample: /notify on',
+        buildNotifyUsageText(),
         { parse_mode: 'Markdown' }
       );
       return;
@@ -477,7 +460,7 @@ class TelegramBotService {
     if (!authCode) {
       await this.bot?.sendMessage(
         chatId,
-        '*Connect Your Account*\n\nTo connect your Stogram account, provide your username or email:\n\nUsage: /connect [username|email]',
+        buildConnectUsageText(),
         { parse_mode: 'Markdown' }
       );
       return;
