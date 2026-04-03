@@ -106,7 +106,7 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <BarChart3 className="h-8 w-8 text-[#3390ec]" />
-          <h1 className="text-3xl font-bold">Analytics</h1>
+          <h1 className="text-3xl font-bold">Аналитика</h1>
         </div>
         <div className="flex gap-2">
           {(['7', '30', '90'] as const).map((days) => (
@@ -119,7 +119,7 @@ const AnalyticsDashboard: React.FC = () => {
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-[#202b36] dark:text-slate-300 dark:hover:bg-[#2a3947]'
               }`}
             >
-              {days} days
+              {days} дней
             </button>
           ))}
         </div>
@@ -129,32 +129,32 @@ const AnalyticsDashboard: React.FC = () => {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
           <StatCard
             icon={<Users className="h-6 w-6 text-white" />}
-            title="Total Users"
+            title="Всего пользователей"
             value={dashboardStats.totalUsers.toLocaleString()}
             color="bg-[#3390ec]"
           />
           <StatCard
             icon={<Activity className="h-6 w-6 text-white" />}
-            title="Active Users"
+            title="Активные пользователи"
             value={dashboardStats.activeUsers.toLocaleString()}
-            subtitle="Last 24 hours"
+            subtitle="За последние 24 часа"
             color="bg-emerald-500"
           />
           <StatCard
             icon={<MessageSquare className="h-6 w-6 text-white" />}
-            title="Messages Today"
+            title="Сообщения сегодня"
             value={dashboardStats.todayMessages.toLocaleString()}
             color="bg-violet-500"
           />
           <StatCard
             icon={<Phone className="h-6 w-6 text-white" />}
-            title="Calls Today"
+            title="Звонки сегодня"
             value={dashboardStats.todayCalls.toLocaleString()}
             color="bg-orange-500"
           />
           <StatCard
             icon={<BarChart3 className="h-6 w-6 text-white" />}
-            title="Active Bots"
+            title="Активные боты"
             value={dashboardStats.activeBots.toLocaleString()}
             color="bg-pink-500"
           />
@@ -164,29 +164,29 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <StatCard
           icon={<MessageSquare className="h-6 w-6 text-white" />}
-          title="Total Messages"
+          title="Всего сообщений"
           value={totals.messages.toLocaleString()}
-          subtitle={`Last ${period} days`}
+          subtitle={`За последние ${period} дней`}
           color="bg-[#3390ec]"
         />
         <StatCard
           icon={<Phone className="h-6 w-6 text-white" />}
-          title="Total Calls"
+          title="Всего звонков"
           value={totals.calls.toLocaleString()}
-          subtitle={`Last ${period} days`}
+          subtitle={`За последние ${period} дней`}
           color="bg-emerald-500"
         />
         <StatCard
           icon={<Activity className="h-6 w-6 text-white" />}
-          title="Active Time"
-          value={`${Math.round(totals.activeMinutes / 60)}h`}
-          subtitle={`Last ${period} days`}
+          title="Активное время"
+          value={`${Math.round(totals.activeMinutes / 60)} ч`}
+          subtitle={`За последние ${period} дней`}
           color="bg-violet-500"
         />
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-[#24323d] dark:bg-[#17212b]">
-        <h2 className="mb-6 text-xl font-bold">Activity Over Time</h2>
+        <h2 className="mb-6 text-xl font-bold">Активность по дням</h2>
         <div className="space-y-4">
           {analyticsData.slice(-10).map((day, index) => {
             const maxMessages = Math.max(...analyticsData.map((item) => item.messagesSent + item.messagesReceived));
@@ -197,12 +197,12 @@ const AnalyticsDashboard: React.FC = () => {
               <div key={index}>
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {new Date(day.date).toLocaleDateString('en-US', {
+                    {new Date(day.date).toLocaleDateString('ru-RU', {
                       month: 'short',
                       day: 'numeric',
                     })}
                   </span>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">{totalMessages} messages</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{totalMessages} сообщений</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-[#24323d]">
                   <div className="h-2 rounded-full bg-[#3390ec] transition-all" style={{ width: `${percentage}%` }} />
@@ -215,17 +215,17 @@ const AnalyticsDashboard: React.FC = () => {
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-[#24323d] dark:bg-[#17212b]">
         <div className="border-b border-slate-200 p-6 dark:border-[#24323d]">
-          <h2 className="text-xl font-bold">Detailed Statistics</h2>
+          <h2 className="text-xl font-bold">Подробная статистика</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 dark:bg-[#202b36]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Messages Sent</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Messages Received</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Calls</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Active Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Дата</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Отправлено</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Получено</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Звонки</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-slate-500">Активность</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-[#24323d]">
@@ -235,7 +235,7 @@ const AnalyticsDashboard: React.FC = () => {
                   <td className="whitespace-nowrap px-6 py-4">{day.messagesSent}</td>
                   <td className="whitespace-nowrap px-6 py-4">{day.messagesReceived}</td>
                   <td className="whitespace-nowrap px-6 py-4">{day.callsMade + day.callsReceived}</td>
-                  <td className="whitespace-nowrap px-6 py-4">{Math.round(day.activeMinutes)} min</td>
+                  <td className="whitespace-nowrap px-6 py-4">{Math.round(day.activeMinutes)} мин</td>
                 </tr>
               ))}
             </tbody>

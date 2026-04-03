@@ -100,11 +100,11 @@ export class ErrorBoundary extends Component<Props, State> {
                   Детали ошибки
                 </summary>
                 <div className="mt-3 max-h-40 overflow-auto rounded-2xl bg-slate-100 p-3 font-mono text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                  <div className="mb-2 font-bold">Error:</div>
+                  <div className="mb-2 font-bold">Ошибка:</div>
                   <div className="mb-3">{this.state.error.message}</div>
                   {this.state.error.stack && (
                     <>
-                      <div className="mb-2 font-bold">Stack Trace:</div>
+                      <div className="mb-2 font-bold">Стек вызовов:</div>
                       <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
                     </>
                   )}

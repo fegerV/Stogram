@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { telegramBotApi } from '../services/api';
 
 const DEFAULT_COMMANDS = [
-  { command: 'start', description: 'Start the bot' },
-  { command: 'help', description: 'Show help information' },
-  { command: 'status', description: 'Check account status' },
-  { command: 'chats', description: 'List your chats' },
-  { command: 'unread', description: 'Show unread messages' },
-  { command: 'search', description: 'Search messages' },
-  { command: 'notify', description: 'Manage notifications' },
-  { command: 'connect', description: 'Connect Stogram account' },
-  { command: 'disconnect', description: 'Disconnect account' },
+  { command: 'start', description: 'Запустить бота' },
+  { command: 'help', description: 'Показать справку' },
+  { command: 'status', description: 'Проверить статус аккаунта' },
+  { command: 'chats', description: 'Показать список чатов' },
+  { command: 'unread', description: 'Показать непрочитанные сообщения' },
+  { command: 'search', description: 'Поиск по сообщениям' },
+  { command: 'notify', description: 'Управление уведомлениями' },
+  { command: 'connect', description: 'Подключить аккаунт Stogram' },
+  { command: 'disconnect', description: 'Отключить аккаунт' },
 ];
 
 interface BotSettingsProps {
@@ -23,7 +23,6 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
-  
   const [config, setConfig] = useState({
     botUsername: '',
     webhookUrl: '',
@@ -34,21 +33,19 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const [botTokenInput, setBotTokenInput] = useState('');
   const [hasSavedToken, setHasSavedToken] = useState(false);
   const [tokenDirty, setTokenDirty] = useState(false);
-  
   const [stats, setStats] = useState({
     authorizedUsers: 0,
     totalMessages: 0,
     enabled: false,
     botUsername: '',
   });
-  
   const [users, setUsers] = useState<any[]>([]);
   const [botInfo, setBotInfo] = useState<any>(null);
 
   useEffect(() => {
-    loadConfig();
-    loadStats();
-    loadUsers();
+    void loadConfig();
+    void loadStats();
+    void loadUsers();
   }, []);
 
   const loadConfig = async () => {
@@ -79,8 +76,7 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const loadStats = async () => {
     try {
       const response = await telegramBotApi.getStats();
-      const data = response.data;
-      setStats(data);
+      setStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
       if ((error as any)?.response?.status === 403) {
@@ -92,8 +88,7 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const loadUsers = async () => {
     try {
       const response = await telegramBotApi.getUsers();
-      const data = response.data;
-      setUsers(data.users || []);
+      setUsers(response.data.users || []);
     } catch (error) {
       console.error('Failed to load users:', error);
       if ((error as any)?.response?.status === 403) {
@@ -107,7 +102,7 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
     try {
       const nextBotToken = botTokenInput.trim();
       if (config.enabled && !hasSavedToken && !nextBotToken) {
-        toast.error('Please enter a bot token before enabling the bot');
+        toast.error('Введите токен бота перед включением интеграции');
         return;
       }
 
@@ -115,16 +110,18 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
         ...config,
         ...(tokenDirty && nextBotToken ? { botToken: nextBotToken } : {}),
       });
+
       if (tokenDirty && nextBotToken) {
         setHasSavedToken(true);
       }
+
       setBotTokenInput('');
       setTokenDirty(false);
-      toast.success('Settings saved successfully');
+      toast.success('Настройки сохранены');
       await Promise.all([loadConfig(), loadStats(), loadUsers()]);
     } catch (error) {
       console.error('Failed to save config:', error);
-      toast.error('Failed to save settings');
+      toast.error('Не удалось сохранить настройки');
     } finally {
       setSaving(false);
     }
@@ -133,85 +130,85 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   const handleTestConnection = async () => {
     const tokenToTest = botTokenInput.trim();
     if (!tokenToTest && !hasSavedToken) {
-      toast.error('Please enter a bot token');
+      toast.error('Введите токен бота');
       return;
     }
-    
+
     setTesting(true);
     try {
       const response = await telegramBotApi.testConnection(tokenToTest);
       const data = response.data;
       if (data.success) {
         setBotInfo(data.bot);
-        setConfig({
-          ...config,
-          botUsername: data.bot.username,
-        });
-        toast.success(`Connected to @${data.bot.username}!`);
+        setConfig((prev) => ({ ...prev, botUsername: data.bot.username }));
+        toast.success(`Подключено к @${data.bot.username}`);
       } else {
-        toast.error(data.error || 'Failed to connect to bot');
+        toast.error(data.error || 'Не удалось подключить бота');
       }
     } catch (error) {
       console.error('Failed to test connection:', error);
-      toast.error('Failed to connect to bot');
+      toast.error('Не удалось подключить бота');
     } finally {
       setTesting(false);
     }
   };
 
   const handleBroadcast = async () => {
-    const message = prompt('Enter broadcast message:');
+    const message = prompt('Введите текст рассылки:');
     if (!message) return;
-    
+
     try {
       const response = await telegramBotApi.broadcast(message);
       const data = response.data;
       if (data.success) {
-        toast.success(`Message sent to ${data.usersNotified} users`);
+        toast.success(`Сообщение отправлено ${data.usersNotified} пользователям`);
       } else {
-        toast.error('Failed to broadcast message');
+        toast.error('Не удалось отправить рассылку');
       }
     } catch (error) {
       console.error('Failed to broadcast:', error);
-      toast.error('Failed to broadcast message');
+      toast.error('Не удалось отправить рассылку');
     }
   };
 
   const handleCommandChange = (index: number, field: string, value: string) => {
-    const newCommands = [...config.commands];
-    newCommands[index] = { ...newCommands[index], [field]: value };
-    setConfig({ ...config, commands: newCommands });
+    const nextCommands = [...config.commands];
+    nextCommands[index] = { ...nextCommands[index], [field]: value };
+    setConfig((prev) => ({ ...prev, commands: nextCommands }));
   };
 
   const handleAddCommand = () => {
-    setConfig({
-      ...config,
-      commands: [...config.commands, { command: '', description: '' }],
-    });
+    setConfig((prev) => ({
+      ...prev,
+      commands: [...prev.commands, { command: '', description: '' }],
+    }));
   };
 
   const handleRemoveCommand = (index: number) => {
-    const newCommands = config.commands.filter((_, i) => i !== index);
-    setConfig({ ...config, commands: newCommands });
+    setConfig((prev) => ({
+      ...prev,
+      commands: prev.commands.filter((_, commandIndex) => commandIndex !== index),
+    }));
   };
 
   if (loading) {
     return (
       <div className={`flex items-center justify-center ${embedded ? 'min-h-[240px]' : 'min-h-screen'}`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884]"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#00a884]" />
       </div>
     );
   }
 
   if (accessDenied) {
     return (
-      <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
-        <div className={`${embedded ? '' : 'max-w-4xl mx-auto'} bg-white dark:bg-gray-800 rounded-lg shadow p-6`}>
-          <h1 className={`font-bold text-gray-900 dark:text-white mb-2 ${embedded ? 'text-xl' : 'text-2xl'}`}>
-            Telegram Bot Settings
+      <div className={embedded ? '' : 'min-h-screen bg-gray-100 p-6 dark:bg-gray-900'}>
+        <div className={`${embedded ? '' : 'mx-auto max-w-4xl'} rounded-lg bg-white p-6 shadow dark:bg-gray-800`}>
+          <h1 className={`mb-2 font-bold text-gray-900 dark:text-white ${embedded ? 'text-xl' : 'text-2xl'}`}>
+            Настройки Telegram-бота
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            This section is available only to administrators. Add your user to `ADMIN_USER_IDS` on the server to manage Telegram bot integration.
+            Этот раздел доступен только администраторам. Добавьте своего пользователя в `ADMIN_USER_IDS`
+            на сервере, чтобы управлять интеграцией Telegram-бота.
           </p>
         </div>
       </div>
@@ -219,19 +216,16 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
   }
 
   return (
-    <div className={embedded ? '' : 'min-h-screen bg-gray-100 dark:bg-gray-900 p-6'}>
-      <div className={embedded ? '' : 'max-w-4xl mx-auto'}>
-        <h1 className={`font-bold text-gray-900 dark:text-white mb-6 ${embedded ? 'text-xl' : 'text-2xl'}`}>
-          Telegram Bot Settings
+    <div className={embedded ? '' : 'min-h-screen bg-gray-100 p-6 dark:bg-gray-900'}>
+      <div className={embedded ? '' : 'mx-auto max-w-4xl'}>
+        <h1 className={`mb-6 font-bold text-gray-900 dark:text-white ${embedded ? 'text-xl' : 'text-2xl'}`}>
+          Настройки Telegram-бота
         </h1>
 
-        {/* Bot Info Card */}
         {botInfo && (
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-6 mb-6 text-white">
+          <div className="mb-6 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white shadow">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl">
-                🤖
-              </div>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-2xl">🤖</div>
               <div>
                 <h2 className="text-xl font-bold">@{botInfo.username}</h2>
                 <p className="text-blue-100">{botInfo.firstName}</p>
@@ -241,179 +235,163 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
           </div>
         )}
 
-        {/* Statistics */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Authorized Users</p>
+        <div className="mb-6 grid grid-cols-3 gap-4">
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Авторизованные пользователи</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.authorizedUsers}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Messages</p>
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Всего сообщений</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalMessages}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Статус</p>
             <p className={`text-2xl font-bold ${stats.enabled ? 'text-green-600' : 'text-gray-400'}`}>
-              {stats.enabled ? 'Active' : 'Inactive'}
+              {stats.enabled ? 'Активен' : 'Выключен'}
             </p>
           </div>
         </div>
 
-        {/* Configuration */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Bot Configuration
-          </h2>
-          
+        <div className="mb-6 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Конфигурация бота</h2>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Bot Token
-              </label>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Токен бота</label>
               <div className="flex gap-2">
                 <input
                   type="password"
                   value={botTokenInput}
-                  onChange={(e) => {
-                    setBotTokenInput(e.target.value);
+                  onChange={(event) => {
+                    setBotTokenInput(event.target.value);
                     setTokenDirty(true);
                   }}
-                  placeholder={hasSavedToken ? 'Saved token is configured. Enter a new token only to replace it' : 'Enter your Telegram bot token'}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder={
+                    hasSavedToken
+                      ? 'Сохранённый токен уже настроен. Введите новый токен только если хотите его заменить'
+                      : 'Введите токен Telegram-бота'
+                  }
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#00a884] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <button
                   onClick={handleTestConnection}
                   disabled={testing || (!botTokenInput.trim() && !hasSavedToken)}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                  className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
-                  {testing ? 'Testing...' : 'Test'}
+                  {testing ? 'Проверка...' : 'Проверить'}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 {hasSavedToken
-                  ? 'A token is already saved. Leave this field empty to keep it, or paste a new token to replace it.'
-                  : 'Get your bot token from @BotFather on Telegram'}
+                  ? 'Токен уже сохранён. Оставьте поле пустым, чтобы сохранить его, или вставьте новый токен для замены.'
+                  : 'Получите токен у @BotFather в Telegram'}
               </p>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Webhook URL (optional)
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Webhook URL (необязательно)
               </label>
               <input
                 type="url"
                 value={config.webhookUrl}
-                onChange={(e) => setConfig({ ...config, webhookUrl: e.target.value })}
+                onChange={(event) => setConfig((prev) => ({ ...prev, webhookUrl: event.target.value }))}
                 placeholder="https://your-server.com/api/telegram-bot/webhook"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-[#00a884] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for long polling mode
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Оставьте пустым для режима long polling</p>
             </div>
-            
+
             <div className="flex items-center gap-6">
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={config.notifications}
-                  onChange={(e) => setConfig({ ...config, notifications: e.target.checked })}
-                  className="h-4 w-4 text-[#00a884] focus:ring-[#00a884] border-gray-300 rounded"
+                  onChange={(event) => setConfig((prev) => ({ ...prev, notifications: event.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-[#00a884] focus:ring-[#00a884]"
                 />
-                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                  Enable notifications
-                </span>
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Включить уведомления</span>
               </label>
-              
+
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={config.enabled}
-                  onChange={(e) => setConfig({ ...config, enabled: e.target.checked })}
-                  className="h-4 w-4 text-[#00a884] focus:ring-[#00a884] border-gray-300 rounded"
+                  onChange={(event) => setConfig((prev) => ({ ...prev, enabled: event.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-[#00a884] focus:ring-[#00a884]"
                 />
-                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                  Enable bot
-                </span>
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Включить бота</span>
               </label>
             </div>
-            
+
             <button
               onClick={handleSaveConfig}
               disabled={saving}
-              className="px-4 py-2 bg-[#00a884] text-white rounded-lg hover:bg-[#008f6d] disabled:opacity-50"
+              className="rounded-lg bg-[#00a884] px-4 py-2 text-white hover:bg-[#008f6d] disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save Settings'}
+              {saving ? 'Сохранение...' : 'Сохранить настройки'}
             </button>
           </div>
         </div>
 
-        {/* Commands */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Bot Commands
-            </h2>
+        <div className="mb-6 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Команды бота</h2>
             <button
               onClick={handleAddCommand}
-              className="px-3 py-1 text-sm bg-[#00a884] text-white rounded hover:bg-[#008f6d]"
+              className="rounded bg-[#00a884] px-3 py-1 text-sm text-white hover:bg-[#008f6d]"
             >
-              Add Command
+              Добавить команду
             </button>
           </div>
-          
+
           <div className="space-y-3">
-            {config.commands.map((cmd, index) => (
-              <div key={index} className="flex gap-3 items-center">
+            {config.commands.map((command, index) => (
+              <div key={`${command.command}-${index}`} className="flex items-center gap-3">
                 <input
                   type="text"
-                  value={cmd.command}
-                  onChange={(e) => handleCommandChange(index, 'command', e.target.value)}
-                  placeholder="command"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  value={command.command}
+                  onChange={(event) => handleCommandChange(index, 'command', event.target.value)}
+                  placeholder="команда"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-[#00a884] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <input
                   type="text"
-                  value={cmd.description}
-                  onChange={(e) => handleCommandChange(index, 'description', e.target.value)}
-                  placeholder="Description"
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00a884] focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  value={command.description}
+                  onChange={(event) => handleCommandChange(index, 'description', event.target.value)}
+                  placeholder="Описание"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-[#00a884] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <button
                   onClick={() => handleRemoveCommand(index)}
-                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded"
+                  className="rounded px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900"
                 >
-                  ✕
+                  Удалить
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Users */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Authorized Users
-            </h2>
+        <div className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Авторизованные пользователи</h2>
             <button
               onClick={handleBroadcast}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
             >
-              Broadcast
+              Рассылка
             </button>
           </div>
-          
+
           {users.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-              No authorized users yet
-            </p>
+            <p className="py-8 text-center text-gray-500 dark:text-gray-400">Пока нет авторизованных пользователей</p>
           ) : (
             <div className="space-y-2">
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700"
                 >
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">
@@ -424,7 +402,7 @@ export default function BotSettings({ embedded = false }: BotSettingsProps) {
                     </p>
                   </div>
                   <div className="text-sm text-gray-500">
-                    Connected: {new Date(user.updatedAt).toLocaleDateString()}
+                    Подключён: {new Date(user.updatedAt).toLocaleDateString()}
                   </div>
                 </div>
               ))}

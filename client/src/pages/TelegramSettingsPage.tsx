@@ -59,9 +59,7 @@ export const TelegramSettingsPage: React.FC = () => {
       tone: 'danger',
     });
 
-    if (!shouldUnlink) {
-      return;
-    }
+    if (!shouldUnlink) return;
 
     try {
       await telegramService.unlinkAccount();
@@ -138,9 +136,7 @@ export const TelegramSettingsPage: React.FC = () => {
                   {settings.telegram?.username && (
                     <p className="text-sm text-slate-500 dark:text-slate-400">@{settings.telegram.username}</p>
                   )}
-                  <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">
-                    Аккаунт успешно связан
-                  </p>
+                  <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">Аккаунт успешно связан</p>
                 </div>
               </div>
 
@@ -154,7 +150,7 @@ export const TelegramSettingsPage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               <p className="text-slate-600 dark:text-slate-300">
-                Свяжите свой Telegram аккаунт, чтобы получать уведомления и использовать интеграцию с ботом.
+                Свяжите свой Telegram-аккаунт, чтобы получать уведомления и использовать интеграцию с ботом.
               </p>
 
               {settings?.botInfo.username && <div id="telegram-login-container" className="flex justify-start" />}
@@ -182,7 +178,7 @@ export const TelegramSettingsPage: React.FC = () => {
                   <div>
                     <p className="font-medium">Уведомления в Telegram</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Получать уведомления о новых сообщениях через Telegram бота.
+                      Получать уведомления о новых сообщениях через Telegram-бота.
                     </p>
                   </div>
                 </label>
@@ -250,9 +246,7 @@ export const TelegramSettingsPage: React.FC = () => {
                     >
                       <div>
                         <p className="font-medium">Чат синхронизирован</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Направление: {bridge.syncDirection}
-                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Направление: {bridge.syncDirection}</p>
                         <p className="text-xs text-slate-400 dark:text-slate-500">
                           Последняя синхронизация: {new Date(bridge.lastSyncAt).toLocaleString()}
                         </p>
@@ -270,9 +264,7 @@ export const TelegramSettingsPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="rounded-2xl bg-slate-50 px-5 py-6 text-center dark:bg-[#111922]">
-                  <p className="mb-2 text-slate-600 dark:text-slate-300">
-                    У вас пока нет активных мостов для чатов.
-                  </p>
+                  <p className="mb-2 text-slate-600 dark:text-slate-300">У вас пока нет активных мостов для чатов.</p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Мосты позволяют автоматически синхронизировать сообщения между Telegram и Stogram.
                   </p>

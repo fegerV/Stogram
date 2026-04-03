@@ -71,7 +71,9 @@ export default function ChatSettingsDrawer({
         </div>
 
         <div className="px-4 py-4">
-          <h3 className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Уведомления</h3>
+          <h3 className="mb-4 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Уведомления
+          </h3>
 
           <div className="space-y-2">
             {notificationOptions.map((option) => {

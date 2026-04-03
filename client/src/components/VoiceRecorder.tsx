@@ -47,12 +47,12 @@ export const VoiceRecorder = ({ onSend, onCancel }: VoiceRecorderProps) => {
       mediaRecorder.start();
       setIsRecording(true);
 
-      // Start timer
+      // Запускаем таймер записи
       timerRef.current = setInterval(() => {
         setDuration((prev) => prev + 1);
       }, 1000);
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('Ошибка запуска записи:', error);
       onCancel();
     }
   };
@@ -90,30 +90,30 @@ export const VoiceRecorder = ({ onSend, onCancel }: VoiceRecorderProps) => {
 
   return (
     <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-      {/* Recording Indicator */}
+      {/* Индикатор записи */}
       {isRecording && (
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
           <span className="text-red-600 dark:text-red-400 font-medium">
-            Recording
+            Идёт запись
           </span>
         </div>
       )}
 
-      {/* Duration */}
+      {/* Длительность */}
       <div className="flex-1 text-center">
         <span className="text-2xl font-mono text-gray-700 dark:text-gray-300">
           {formatDuration(duration)}
         </span>
       </div>
 
-      {/* Controls */}
+      {/* Управление */}
       <div className="flex items-center gap-2">
         {isRecording ? (
           <button
             onClick={handleStop}
             className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-            title="Stop recording"
+            title="Остановить запись"
           >
             <Square size={20} fill="currentColor" />
           </button>
@@ -122,14 +122,14 @@ export const VoiceRecorder = ({ onSend, onCancel }: VoiceRecorderProps) => {
             <button
               onClick={handleCancel}
               className="p-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-              title="Cancel"
+              title="Отменить"
             >
               <Trash2 size={20} />
             </button>
             <button
               onClick={handleSend}
               className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition"
-              title="Send voice message"
+              title="Отправить голосовое сообщение"
             >
               <Send size={20} />
             </button>

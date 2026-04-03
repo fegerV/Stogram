@@ -42,8 +42,19 @@ const defaultDarkTheme: ThemeColors = {
   accent: '#10b981',
 };
 
+const COLOR_LABELS: Record<keyof ThemeColors, string> = {
+  primary: 'Основной цвет',
+  secondary: 'Дополнительный цвет',
+  background: 'Фон',
+  surface: 'Поверхность',
+  text: 'Основной текст',
+  textSecondary: 'Дополнительный текст',
+  border: 'Границы',
+  accent: 'Акцент',
+};
+
 const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [themeName, setThemeName] = useState('My Custom Theme');
+  const [themeName, setThemeName] = useState('Моя тема');
   const [isDark, setIsDark] = useState(false);
   const [colors, setColors] = useState<ThemeColors>(defaultLightTheme);
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
@@ -53,7 +64,7 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const handleModeToggle = () => {
-    setIsDark(!isDark);
+    setIsDark((prev) => !prev);
     setColors(isDark ? defaultLightTheme : defaultDarkTheme);
   };
 
@@ -98,42 +109,33 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-[#24323d]">
           <div className="flex items-center gap-3">
             <Palette className="h-6 w-6 text-[#3390ec]" />
-            <h2 className="text-2xl font-bold">Theme Customizer</h2>
+            <h2 className="text-2xl font-bold">Настройка темы</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 transition hover:bg-slate-100 dark:hover:bg-[#202b36]"
-          >
+          <button onClick={onClose} className="rounded-full p-2 transition hover:bg-slate-100 dark:hover:bg-[#202b36]">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="space-y-6 p-6">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Theme Name
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Название темы</label>
             <input
               type="text"
               value={themeName}
               onChange={(event) => setThemeName(event.target.value)}
               className="w-full rounded-xl border border-slate-200 px-4 py-2 text-slate-900 dark:border-[#364450] dark:bg-[#202b36] dark:text-white"
-              placeholder="Enter theme name"
+              placeholder="Введите название темы"
             />
           </div>
 
           <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-[#111922]">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dark Mode</label>
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Тёмный режим</label>
             <button
               onClick={handleModeToggle}
-              className={`relative h-7 w-14 rounded-full transition-colors ${
-                isDark ? 'bg-[#3390ec]' : 'bg-slate-300'
-              }`}
+              className={`relative h-7 w-14 rounded-full transition-colors ${isDark ? 'bg-[#3390ec]' : 'bg-slate-300'}`}
             >
               <span
-                className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform ${
-                  isDark ? 'translate-x-7' : ''
-                }`}
+                className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform ${isDark ? 'translate-x-7' : ''}`}
               />
             </button>
           </div>
@@ -141,8 +143,8 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {Object.entries(colors).map(([key, value]) => (
               <div key={key}>
-                <label className="mb-2 block text-sm font-medium capitalize text-slate-700 dark:text-slate-300">
-                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {COLOR_LABELS[key as keyof ThemeColors]}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -164,7 +166,7 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-4 dark:border-[#24323d]">
-            <h3 className="mb-4 text-lg font-semibold">Preview</h3>
+            <h3 className="mb-4 text-lg font-semibold">Предпросмотр</h3>
             <div
               className="space-y-3 rounded-2xl p-4"
               style={{
@@ -174,27 +176,24 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               }}
             >
               <div className="rounded-xl p-3" style={{ backgroundColor: colors.surface }}>
-                <p style={{ color: colors.text }}>Sample text</p>
-                <p style={{ color: colors.textSecondary }}>Secondary text</p>
+                <p style={{ color: colors.text }}>Пример основного текста</p>
+                <p style={{ color: colors.textSecondary }}>Пример дополнительного текста</p>
               </div>
-              <button
-                className="rounded-xl px-4 py-2 font-medium"
-                style={{ backgroundColor: colors.primary, color: '#ffffff' }}
-              >
-                Primary Button
+              <button className="rounded-xl px-4 py-2 font-medium" style={{ backgroundColor: colors.primary, color: '#ffffff' }}>
+                Основная кнопка
               </button>
               <button
                 className="ml-2 rounded-xl px-4 py-2 font-medium"
                 style={{ backgroundColor: colors.secondary, color: '#ffffff' }}
               >
-                Secondary Button
+                Дополнительная кнопка
               </button>
             </div>
           </div>
 
           {savedThemes.length > 0 && (
             <div>
-              <h3 className="mb-3 text-lg font-semibold">Saved Themes</h3>
+              <h3 className="mb-3 text-lg font-semibold">Сохранённые темы</h3>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {savedThemes.map((theme) => (
                   <button
@@ -205,11 +204,7 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="mb-2 font-medium">{theme.name}</div>
                     <div className="flex gap-1">
                       {Object.values(theme.colors).slice(0, 5).map((color, index) => (
-                        <div
-                          key={index}
-                          className="h-6 w-6 rounded"
-                          style={{ backgroundColor: color }}
-                        />
+                        <div key={index} className="h-6 w-6 rounded" style={{ backgroundColor: color }} />
                       ))}
                     </div>
                   </button>
@@ -223,14 +218,14 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               onClick={onClose}
               className="rounded-xl border border-slate-200 px-6 py-2 transition hover:bg-slate-50 dark:border-[#364450] dark:hover:bg-[#202b36]"
             >
-              Cancel
+              Отмена
             </button>
             <button
               onClick={handleSave}
               className="flex items-center gap-2 rounded-xl bg-[#3390ec] px-6 py-2 text-white transition hover:bg-[#2b7fd1]"
             >
               <Save className="h-4 w-4" />
-              Save Theme
+              Сохранить тему
             </button>
           </div>
         </div>
