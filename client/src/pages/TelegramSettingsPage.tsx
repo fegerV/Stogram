@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useConfirm } from '../components/confirm/ConfirmDialogProvider';
 import { telegramService } from '../services/telegramService';
 
@@ -65,10 +66,10 @@ export const TelegramSettingsPage: React.FC = () => {
     try {
       await telegramService.unlinkAccount();
       await loadSettings();
-      alert('Telegram аккаунт успешно отвязан');
+      toast.success('Telegram-аккаунт успешно отвязан');
     } catch (error) {
       console.error('Failed to unlink account:', error);
-      alert('Не удалось отвязать аккаунт');
+      toast.error('Не удалось отвязать аккаунт');
     }
   };
 
@@ -80,10 +81,10 @@ export const TelegramSettingsPage: React.FC = () => {
         syncMessages,
         syncProfile,
       });
-      alert('Настройки сохранены');
+      toast.success('Настройки сохранены');
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert('Не удалось сохранить настройки');
+      toast.error('Не удалось сохранить настройки');
     } finally {
       setSaving(false);
     }
@@ -92,10 +93,10 @@ export const TelegramSettingsPage: React.FC = () => {
   const handleTestNotification = async () => {
     try {
       await telegramService.sendTestNotification();
-      alert('Тестовое уведомление отправлено. Проверьте Telegram.');
+      toast.success('Тестовое уведомление отправлено. Проверьте Telegram.');
     } catch (error) {
       console.error('Failed to send test notification:', error);
-      alert('Не удалось отправить тестовое уведомление');
+      toast.error('Не удалось отправить тестовое уведомление');
     }
   };
 

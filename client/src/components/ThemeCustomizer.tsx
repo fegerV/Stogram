@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Palette, Save, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface ThemeColors {
   primary: string;
@@ -68,10 +69,10 @@ const ThemeCustomizer: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       themes.push({ ...theme, id: Date.now().toString() });
       localStorage.setItem('customThemes', JSON.stringify(themes));
       setSavedThemes(themes);
-      alert('Theme saved successfully!');
+      toast.success('Тема сохранена');
     } catch (error) {
       console.error('Failed to save theme:', error);
-      alert('Failed to save theme');
+      toast.error('Не удалось сохранить тему');
     }
   };
 

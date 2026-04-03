@@ -35,6 +35,7 @@ export const authApi = {
     api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   verifyEmail: (token: string) => api.post('/auth/verify-email', { token }),
+  requestVerificationEmail: (email: string) => api.post('/auth/resend-verification-request', { email }),
   resendVerification: () => api.post('/auth/resend-verification'),
 };
 

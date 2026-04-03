@@ -22,6 +22,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+      toast.error('Имя пользователя должно содержать от 3 до 30 символов: буквы, цифры или _');
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error('Пароли не совпадают');
       return;
@@ -33,9 +38,9 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(email, username, password, displayName || undefined);
-      toast.success('Аккаунт успешно создан');
-      navigate('/');
+      const response = await register(email, username, password, displayName || undefined);
+      toast.success(response?.message || 'Аккаунт создан. Проверьте почту для подтверждения.');
+      navigate(`/verify-email?pending=1&email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Не удалось зарегистрироваться');
     }
@@ -82,7 +87,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Username</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Имя пользователя</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input

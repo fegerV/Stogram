@@ -30,7 +30,7 @@ const extractDeviceInfo = (userAgent?: string) => {
 
 const registerSchema = z.object({
   email: z.string().email(),
-  username: z.string().min(3).max(30),
+  username: z.string().regex(/^[a-zA-Z0-9_]{3,30}$/),
   password: z.string().min(8),
   displayName: z.string().optional(),
 });
@@ -43,10 +43,12 @@ const loginSchema = z.object({
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, username, password, displayName } = registerSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim();
 
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, { username }],
+        OR: [{ email: normalizedEmail }, { username: normalizedUsername }],
       },
     });
 
@@ -60,14 +62,16 @@ export const register = async (req: Request, res: Response) => {
     );
 
     const verificationToken = generateVerificationToken();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await prisma.user.create({
       data: {
-        email,
-        username,
+        email: normalizedEmail,
+        username: normalizedUsername,
         password: hashedPassword,
-        displayName: displayName || username,
+        displayName: displayName || normalizedUsername,
         verificationToken,
+        verificationTokenExpiresAt,
       },
       select: {
         id: true,
@@ -82,31 +86,15 @@ export const register = async (req: Request, res: Response) => {
       },
     });
 
+    let emailSent = false;
+
     // Send verification email (don't wait for it)
     if (process.env.SMTP_USER) {
-      sendVerificationEmail(email, verificationToken, username).catch((error) => {
+      emailSent = true;
+      sendVerificationEmail(normalizedEmail, verificationToken, normalizedUsername).catch((error) => {
         console.error('Failed to send verification email:', error);
       });
     }
-
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '7d' }
-    );
-
-    const refreshToken = generateRefreshToken();
-    const refreshTokenHash = hashToken(refreshToken);
-
-    await prisma.userSession.create({
-      data: {
-        userId: user.id,
-        refreshTokenHash,
-        device: extractDeviceInfo(req.headers['user-agent']),
-        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
-        userAgent: req.headers['user-agent'] || null,
-      },
-    });
 
     // Audit log successful registration
     await AuditLogService.logAuth(
@@ -117,7 +105,14 @@ export const register = async (req: Request, res: Response) => {
       true
     );
 
-    res.status(201).json({ user, token, refreshToken });
+    res.status(201).json({
+      user,
+      requiresEmailVerification: true,
+      emailSent,
+      message: emailSent
+        ? 'Registration successful. Please verify your email before signing in.'
+        : 'Registration successful, but email delivery is not configured on the server.',
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -165,6 +160,13 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        error: 'Please verify your email before signing in',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: { status: 'ONLINE', lastSeen: new Date() },
@@ -197,6 +199,7 @@ export const login = async (req: Request, res: Response) => {
       avatar: user.avatar,
       bio: user.bio,
       status: user.status,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     };
 
@@ -258,7 +261,12 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const { token } = verifyEmailSchema.parse(req.body);
 
     const user = await prisma.user.findFirst({
-      where: { verificationToken: token },
+      where: {
+        verificationToken: token,
+        verificationTokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
     });
 
     if (!user) {
@@ -270,6 +278,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
       data: {
         emailVerified: true,
         verificationToken: null,
+        verificationTokenExpiresAt: null,
       },
     });
 
@@ -307,10 +316,11 @@ export const resendVerificationEmail = async (req: AuthRequest, res: Response) =
     }
 
     const verificationToken = generateVerificationToken();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { verificationToken },
+      data: { verificationToken, verificationTokenExpiresAt },
     });
 
     if (process.env.SMTP_USER) {
@@ -321,6 +331,45 @@ export const resendVerificationEmail = async (req: AuthRequest, res: Response) =
   } catch (error) {
     console.error('Resend verification email error:', error);
     res.status(500).json({ error: 'Failed to send verification email' });
+  }
+};
+
+const publicResendVerificationSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resendVerificationEmailPublic = async (req: Request, res: Response) => {
+  try {
+    const { email } = publicResendVerificationSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (user && !user.emailVerified) {
+      const verificationToken = generateVerificationToken();
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { verificationToken, verificationTokenExpiresAt },
+      });
+
+      if (process.env.SMTP_USER) {
+        await sendVerificationEmail(user.email, verificationToken, user.username);
+      }
+    }
+
+    res.json({
+      message: 'If an unverified account exists for this email, a new verification link has been sent.',
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Public resend verification email error:', error);
+    res.status(500).json({ error: 'Failed to process verification email request' });
   }
 };
 

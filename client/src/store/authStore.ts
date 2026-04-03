@@ -10,7 +10,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (login: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string, displayName?: string) => Promise<void>;
+  register: (email: string, username: string, password: string, displayName?: string) => Promise<any>;
   logout: () => void;
   loadUser: () => Promise<void>;
   clearError: () => void;
@@ -45,10 +45,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authApi.register({ email, username, password, displayName });
-      const { user, token } = response.data;
-      localStorage.setItem('token', token);
-      set({ user, token, isAuthenticated: true, isLoading: false });
-      socketService.connect(token);
+      set({ isLoading: false });
+      return response.data;
     } catch (error: any) {
       set({
         error: error.response?.data?.error || 'Registration failed',

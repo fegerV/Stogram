@@ -5,6 +5,7 @@ import {
   getMe, 
   verifyEmail, 
   resendVerificationEmail,
+  resendVerificationEmailPublic,
   refreshAccessToken,
   logout,
   logoutAll
@@ -19,6 +20,7 @@ router.post('/register', strictIPRateLimit, register);
 router.post('/login', strictIPRateLimit, login);
 router.get('/me', authenticate, getMe);
 router.post('/verify-email', moderateIPRateLimit, verifyEmail);
+router.post('/resend-verification-request', moderateIPRateLimit, resendVerificationEmailPublic);
 router.post('/resend-verification', authenticate, moderateIPRateLimit, resendVerificationEmail);
 router.post('/refresh', moderateIPRateLimit, refreshAccessToken);
 router.post('/logout', authenticate, logout);

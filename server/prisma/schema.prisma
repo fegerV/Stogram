@@ -19,6 +19,7 @@ model User {
   lastSeen               DateTime             @default(now())
   emailVerified          Boolean              @default(false)
   verificationToken      String?
+  verificationTokenExpiresAt DateTime?
   pushSubscription       String?
   theme                  String?              @default("light")
   showOnlineStatus       Boolean              @default(true)
@@ -69,6 +70,7 @@ model User {
   @@index([email])
   @@index([username])
   @@index([verificationToken])
+  @@index([verificationTokenExpiresAt])
   @@index([telegramId])
 }
 
