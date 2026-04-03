@@ -65,7 +65,6 @@ function App() {
     performanceMonitor.trackInteraction('app_init', 'App');
     loadUser();
     initializeTheme();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

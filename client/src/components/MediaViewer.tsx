@@ -27,8 +27,6 @@ export const MediaViewer = ({
     setIndex(currentIndex);
   }, [currentIndex]);
 
-  if (!isOpen) return null;
-
   const currentItem = items ? items[index] : { url: mediaUrl, type: mediaType };
   const hasMultiple = Boolean(items && items.length > 1);
 
@@ -59,6 +57,8 @@ export const MediaViewer = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [index, hasMultiple, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-sm">
