@@ -37,7 +37,10 @@ export function MessageComposer({
   onCloseSelfDestructOptions,
 }: MessageComposerProps) {
   return (
-    <form onSubmit={onSubmit} className="border-t border-gray-200 bg-[#f0f2f5] px-2 py-2 dark:border-[#202c33] dark:bg-[#202c33] md:px-4 md:py-3">
+    <form
+      onSubmit={onSubmit}
+      className="border-t border-gray-200 bg-[#f0f2f5] px-2 py-2 dark:border-[#202c33] dark:bg-[#202c33] md:px-4 md:py-3"
+    >
       <input
         ref={fileInputRef}
         type="file"

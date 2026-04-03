@@ -82,7 +82,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   const handleStartCall = (type: 'AUDIO' | 'VIDEO') => {
     if (currentChat?.type !== ChatType.PRIVATE) {
-      toast.error('Calls are currently available only in private chats');
+      toast.error('Звонки сейчас доступны только в личных чатах');
       return;
     }
 

@@ -174,7 +174,7 @@ export default function ChatProfileDrawer({
     try {
       await userApi.removeContact(profileUserId);
       setContacts((prev) => prev.filter((item) => item.contactId !== profileUserId));
-      toast.success('Контакт удален');
+      toast.success('Контакт удалён');
     } catch (error: any) {
       console.error('Failed to remove contact from profile drawer:', error);
       toast.error(error?.response?.data?.error || 'Не удалось удалить контакт');
@@ -182,6 +182,17 @@ export default function ChatProfileDrawer({
       setIsMutatingContact(false);
     }
   };
+
+  const statusLabel =
+    isLoadingProfile
+      ? 'Загрузка...'
+      : profile?.status === UserStatus.ONLINE || otherMember?.status === UserStatus.ONLINE
+        ? 'В сети'
+        : profile?.lastSeen
+          ? `Был(а) ${formatLastSeen(profile.lastSeen)}`
+          : otherMember?.lastSeen
+            ? `Был(а) ${formatLastSeen(otherMember.lastSeen)}`
+            : 'Не в сети';
 
   const panel = (
     <div
@@ -236,9 +247,7 @@ export default function ChatProfileDrawer({
                 {chat.type === ChatType.PRIVATE && profile?.username ? `t.me/${profile.username}` : 'Ссылка и описание'}
               </span>
             </div>
-            <p className="text-sm leading-6 text-[#d7e3ec]">
-              {isLoadingProfile ? 'Загрузка...' : description}
-            </p>
+            <p className="text-sm leading-6 text-[#d7e3ec]">{isLoadingProfile ? 'Загрузка...' : description}</p>
           </div>
 
           {chat.type === ChatType.PRIVATE && (
@@ -252,8 +261,11 @@ export default function ChatProfileDrawer({
               <div className="rounded-3xl bg-[#141f2a] p-4">
                 <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">Профиль</p>
                 <div className="space-y-3">
-                  <StatRow label="Username" value={isLoadingProfile ? 'Загрузка...' : profile?.username ? `@${profile.username}` : 'Не указан'} />
-                  <StatRow label="Статус" value={isLoadingProfile ? 'Загрузка...' : profile?.status || otherMember?.status || 'OFFLINE'} />
+                  <StatRow
+                    label="Username"
+                    value={isLoadingProfile ? 'Загрузка...' : profile?.username ? `@${profile.username}` : 'Не указан'}
+                  />
+                  <StatRow label="Статус" value={statusLabel} />
                 </div>
               </div>
 
