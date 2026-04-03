@@ -125,10 +125,12 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { login, password } = loginSchema.parse(req.body);
+    const normalizedLogin = login.trim();
+    const normalizedEmailLogin = normalizedLogin.toLowerCase();
 
     const user = await prisma.user.findFirst({
       where: {
-        OR: [{ email: login }, { username: login }],
+        OR: [{ email: normalizedEmailLogin }, { username: normalizedLogin }],
       },
     });
 

@@ -40,7 +40,7 @@ export default function RegisterPage() {
     try {
       const response = await register(email, username, password, displayName || undefined);
       toast.success(response?.message || 'Аккаунт создан. Проверьте почту для подтверждения.');
-      navigate(`/verify-email?pending=1&email=${encodeURIComponent(email)}`);
+      navigate(`/verify-email?pending=1&email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Не удалось зарегистрироваться');
     }
@@ -87,7 +87,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Имя пользователя</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Имя пользователя
+            </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -102,7 +104,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Отображаемое имя</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Отображаемое имя
+            </label>
             <div className="relative">
               <UserCircle className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -132,7 +136,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Подтвердите пароль</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Подтвердите пароль
+            </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input

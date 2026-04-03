@@ -53,7 +53,7 @@ export const VerifyEmailPage = () => {
 
     setResending(true);
     try {
-      const response = await authApi.requestVerificationEmail(pendingEmail);
+      const response = await authApi.requestVerificationEmail(pendingEmail.trim().toLowerCase());
       toast.success(response.data.message);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Не удалось отправить письмо повторно');

@@ -19,10 +19,11 @@ const hashToken = (token: string) => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
 
-export const authenticate = async (
+const resolveAuthenticatedUser = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
+  options?: { requireVerified?: boolean }
 ) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -53,7 +54,7 @@ export const authenticate = async (
       return res.status(401).json({ error: 'User not found' });
     }
 
-    if (!user.emailVerified) {
+    if (options?.requireVerified !== false && !user.emailVerified) {
       return res.status(403).json({ error: 'Email verification required' });
     }
 
@@ -84,6 +85,18 @@ export const authenticate = async (
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
+
+export const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => resolveAuthenticatedUser(req, res, next, { requireVerified: true });
+
+export const authenticateAllowUnverified = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => resolveAuthenticatedUser(req, res, next, { requireVerified: false });
 
 export const auth = authenticate;
 export const authenticateToken = authenticate;

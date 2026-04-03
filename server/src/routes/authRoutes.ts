@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { 
+import {
   register, 
   login, 
   getMe, 
@@ -10,7 +10,7 @@ import {
   logout,
   logoutAll
 } from '../controllers/authController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, authenticateAllowUnverified } from '../middleware/auth';
 import { strictIPRateLimit, moderateIPRateLimit } from '../middleware/ipRateLimit';
 
 const router = Router();
@@ -21,7 +21,7 @@ router.post('/login', strictIPRateLimit, login);
 router.get('/me', authenticate, getMe);
 router.post('/verify-email', moderateIPRateLimit, verifyEmail);
 router.post('/resend-verification-request', moderateIPRateLimit, resendVerificationEmailPublic);
-router.post('/resend-verification', authenticate, moderateIPRateLimit, resendVerificationEmail);
+router.post('/resend-verification', authenticateAllowUnverified, moderateIPRateLimit, resendVerificationEmail);
 router.post('/refresh', moderateIPRateLimit, refreshAccessToken);
 router.post('/logout', authenticate, logout);
 router.post('/logout-all', authenticate, logoutAll);
