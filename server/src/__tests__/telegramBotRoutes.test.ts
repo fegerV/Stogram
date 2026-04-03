@@ -42,6 +42,7 @@ describe('telegram bot routes', () => {
       avatar: null,
       bio: null,
       status: 'ONLINE',
+      emailVerified: true,
     });
   });
 
@@ -69,6 +70,7 @@ describe('telegram bot routes', () => {
       avatar: null,
       bio: null,
       status: 'ONLINE',
+      emailVerified: true,
     });
 
     const response = await request(app)

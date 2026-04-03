@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, MessageCircle } from 'lucide-react';
+import { AlertCircle, Lock, Mail, MessageCircle, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [pendingVerificationLogin, setPendingVerificationLogin] = useState('');
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const { login: loginUser, isLoading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -20,11 +23,41 @@ export default function LoginPage() {
     }
 
     try {
-      await loginUser(login, password);
+      await loginUser(login.trim(), password);
+      setPendingVerificationLogin('');
       toast.success('С возвращением!');
       navigate('/');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Не удалось войти');
+      const code = error.response?.data?.code;
+      const message = error.response?.data?.error;
+
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setPendingVerificationLogin(login.trim());
+        toast.error('Подтвердите email перед входом');
+        return;
+      }
+
+      toast.error(message || 'Не удалось войти');
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!pendingVerificationLogin || !pendingVerificationLogin.includes('@')) {
+      toast.error('Для повторной отправки укажите email');
+      return;
+    }
+
+    setIsResendingVerification(true);
+
+    try {
+      const response = await authApi.requestVerificationEmail(pendingVerificationLogin.trim().toLowerCase());
+      toast.success(
+        response.data?.message || 'Если аккаунт существует, письмо с подтверждением отправлено повторно.'
+      );
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Не удалось отправить письмо повторно');
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -47,14 +80,18 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="mb-2 text-center text-4xl font-bold text-slate-900 dark:text-white">Добро пожаловать</h1>
+        <h1 className="mb-2 text-center text-4xl font-bold text-slate-900 dark:text-white">
+          Добро пожаловать
+        </h1>
         <p className="mb-8 text-center text-slate-500 dark:text-slate-400">
           Войдите в Stogram и продолжите переписку
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Email или username</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Email или username
+            </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -69,7 +106,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Пароль</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Пароль
+            </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -82,6 +121,37 @@ export default function LoginPage() {
               />
             </div>
           </div>
+
+          {pendingVerificationLogin ? (
+            <div className="rounded-2xl border border-amber-300/70 bg-amber-50/90 p-4 text-left dark:border-amber-500/40 dark:bg-amber-500/10">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    Почта ещё не подтверждена
+                  </p>
+                  <p className="mt-1 text-sm text-amber-800 dark:text-amber-200/90">
+                    Подтвердите адрес <span className="font-medium">{pendingVerificationLogin}</span>, чтобы войти в
+                    аккаунт.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={isResendingVerification}
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400"
+                  >
+                    <Send className="h-4 w-4" />
+                    {isResendingVerification ? 'Отправляем письмо...' : 'Отправить письмо повторно'}
+                  </button>
+                  {!pendingVerificationLogin.includes('@') && (
+                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-200/80">
+                      Для повторной отправки нужен именно email, а не username.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <button
             type="submit"

@@ -51,6 +51,7 @@ describe('analytics routes', () => {
       avatar: null,
       bio: null,
       status: 'ONLINE',
+      emailVerified: true,
     });
   });
 
@@ -78,6 +79,7 @@ describe('analytics routes', () => {
       avatar: null,
       bio: null,
       status: 'ONLINE',
+      emailVerified: true,
     });
     (AnalyticsService.getDashboardStats as jest.Mock).mockResolvedValue({
       users: 10,
