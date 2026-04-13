@@ -33,7 +33,8 @@ describe('telegram bot routes', () => {
     jest.clearAllMocks();
     process.env.ADMIN_USER_IDS = 'admin-user';
 
-    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'regular-user' });
+    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'regular-user', sessionId: 'session-1' });
+    (prisma.userSession.findFirst as jest.Mock).mockResolvedValue({ id: 'session-1' });
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'regular-user',
       email: 'user@example.com',
@@ -61,7 +62,8 @@ describe('telegram bot routes', () => {
   });
 
   it('requires an explicit bot token even for admins', async () => {
-    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'admin-user' });
+    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'admin-user', sessionId: 'session-1' });
+    (prisma.userSession.findFirst as jest.Mock).mockResolvedValue({ id: 'session-1' });
     (prisma.user.findUnique as jest.Mock).mockResolvedValue({
       id: 'admin-user',
       email: 'admin@example.com',

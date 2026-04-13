@@ -7,6 +7,9 @@ import prisma from '../utils/prisma';
 import { z } from 'zod';
 import { generateVerificationToken, sendVerificationEmail } from '../services/emailService';
 import { AuditLogService, AuditAction } from '../services/auditLogService';
+import { TwoFactorService } from '../services/twoFactorService';
+import { SecurityService } from '../services/securityService';
+import { getAccessTokenTtl, getJwtSecret, getRefreshTokenTtlDays } from '../utils/authConfig';
 
 const generateRefreshToken = () => {
   return crypto.randomBytes(64).toString('hex');
@@ -14,6 +17,11 @@ const generateRefreshToken = () => {
 
 const hashToken = (token: string) => {
   return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+const createRefreshTokenExpiry = () => {
+  const days = getRefreshTokenTtlDays();
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 };
 
 const extractDeviceInfo = (userAgent?: string) => {
@@ -38,6 +46,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   login: z.string(),
   password: z.string(),
+  code: z.string().optional(),
 });
 
 export const register = async (req: Request, res: Response) => {
@@ -124,7 +133,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { login, password } = loginSchema.parse(req.body);
+    const { login, password, code } = loginSchema.parse(req.body);
     const normalizedLogin = login.trim();
     const normalizedEmailLogin = normalizedLogin.toLowerCase();
 
@@ -147,9 +156,19 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      return res.status(423).json({
+        error: 'Account is temporarily locked due to multiple failed login attempts',
+        code: 'ACCOUNT_LOCKED',
+        lockedUntil: user.lockedUntil,
+      });
+    }
+
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
+      const isNowLocked = await SecurityService.handleFailedLogin(user.id);
+
       // Audit log failed login attempt
       await AuditLogService.logAuth(
         AuditAction.USER_LOGIN,
@@ -159,7 +178,34 @@ export const login = async (req: Request, res: Response) => {
         false,
         'Invalid password'
       );
+
+      if (isNowLocked) {
+        return res.status(423).json({
+          error: 'Account is temporarily locked due to multiple failed login attempts',
+          code: 'ACCOUNT_LOCKED',
+        });
+      }
+
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    await SecurityService.resetFailedLoginAttempts(user.id);
+
+    if (user.twoFactorEnabled) {
+      if (!code) {
+        return res.status(401).json({
+          error: 'Two-factor authentication code is required',
+          code: 'TWO_FACTOR_REQUIRED',
+        });
+      }
+
+      const isValidCode = await TwoFactorService.verify2FACode(user.id, code);
+      if (!isValidCode) {
+        return res.status(401).json({
+          error: 'Invalid two-factor authentication code',
+          code: 'TWO_FACTOR_INVALID',
+        });
+      }
     }
 
     if (!user.emailVerified) {
@@ -174,24 +220,25 @@ export const login = async (req: Request, res: Response) => {
       data: { status: 'ONLINE', lastSeen: new Date() },
     });
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '7d' }
-    );
-
     const refreshToken = generateRefreshToken();
     const refreshTokenHash = hashToken(refreshToken);
-
-    await prisma.userSession.create({
+    const session = await prisma.userSession.create({
       data: {
         userId: user.id,
         refreshTokenHash,
         device: extractDeviceInfo(req.headers['user-agent']),
         ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
         userAgent: req.headers['user-agent'] || null,
+        expiresAt: createRefreshTokenExpiry(),
       },
     });
+
+    const accessTokenTtl = getAccessTokenTtl() as jwt.SignOptions['expiresIn'];
+    const token = jwt.sign(
+      { userId: user.id, sessionId: session.id },
+      getJwtSecret(),
+      { expiresIn: accessTokenTtl }
+    );
 
     const userResponse = {
       id: user.id,
@@ -385,7 +432,12 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     const session = await prisma.userSession.findFirst({
-      where: { refreshTokenHash },
+      where: {
+        refreshTokenHash,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
       include: { user: true },
     });
 
@@ -393,18 +445,33 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
+    if (!session.user.emailVerified) {
+      return res.status(403).json({
+        error: 'Please verify your email before signing in',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+    }
+
+    const newRefreshToken = generateRefreshToken();
+    const newRefreshTokenHash = hashToken(newRefreshToken);
+
     await prisma.userSession.update({
       where: { id: session.id },
-      data: { lastActive: new Date() },
+      data: {
+        refreshTokenHash: newRefreshTokenHash,
+        lastActive: new Date(),
+        expiresAt: createRefreshTokenExpiry(),
+      },
     });
 
+    const accessTokenTtl = getAccessTokenTtl() as jwt.SignOptions['expiresIn'];
     const token = jwt.sign(
-      { userId: session.userId },
-      process.env.JWT_SECRET || 'secret',
-      { expiresIn: '7d' }
+      { userId: session.userId, sessionId: session.id },
+      getJwtSecret(),
+      { expiresIn: accessTokenTtl }
     );
 
-    res.json({ token });
+    res.json({ token, refreshToken: newRefreshToken });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -416,16 +483,24 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: AuthRequest, res: Response) => {
   try {
-    const refreshToken = req.body.refreshToken || req.headers['x-refresh-token'];
-    
-    if (refreshToken) {
-      const refreshTokenHash = hashToken(refreshToken as string);
+    if (req.sessionId) {
       await prisma.userSession.deleteMany({
         where: {
+          id: req.sessionId,
           userId: req.userId!,
-          refreshTokenHash,
         },
       });
+    } else {
+      const refreshToken = req.body.refreshToken || req.headers['x-refresh-token'];
+      if (refreshToken) {
+        const refreshTokenHash = hashToken(refreshToken as string);
+        await prisma.userSession.deleteMany({
+          where: {
+            userId: req.userId!,
+            refreshTokenHash,
+          },
+        });
+      }
     }
 
     res.json({ message: 'Logged out successfully' });

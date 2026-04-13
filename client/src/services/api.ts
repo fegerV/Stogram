@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthTokens, getAccessToken, getRefreshToken, refreshAccessToken } from '../utils/authTokens';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -10,7 +11,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -19,9 +20,31 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config as any;
+    const requestUrl = originalRequest?.url as string | undefined;
+    const isAuthEndpoint = requestUrl?.includes('/auth/login')
+      || requestUrl?.includes('/auth/register')
+      || requestUrl?.includes('/auth/refresh');
+
+    if (
+      error.response?.status === 401
+      && !originalRequest?._retry
+      && !isAuthEndpoint
+      && getRefreshToken()
+    ) {
+      originalRequest._retry = true;
+      const nextAccessToken = await refreshAccessToken(API_URL);
+
+      if (nextAccessToken) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+        return api(originalRequest);
+      }
+    }
+
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      clearAuthTokens();
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -31,12 +54,16 @@ api.interceptors.response.use(
 export const authApi = {
   register: (data: { email: string; username: string; password: string; displayName?: string }) =>
     api.post('/auth/register', data),
-  login: (data: { login: string; password: string }) =>
+  login: (data: { login: string; password: string; code?: string }) =>
     api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
   verifyEmail: (token: string) => api.post('/auth/verify-email', { token }),
   requestVerificationEmail: (email: string) => api.post('/auth/resend-verification-request', { email }),
   resendVerification: () => api.post('/auth/resend-verification'),
+  refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
+  logout: (refreshToken?: string) =>
+    api.post('/auth/logout', refreshToken ? { refreshToken } : {}),
+  logoutAll: () => api.post('/auth/logout-all'),
 };
 
 export const userApi = {

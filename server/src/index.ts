@@ -10,8 +10,13 @@ import { errorHandler } from './middleware/errorHandler';
 import prisma from './utils/prisma';
 import { initScheduler } from './services/schedulerService';
 import { lenientIPRateLimit } from './middleware/ipRateLimit';
+import { getJwtSecret } from './utils/authConfig';
 
 dotenv.config();
+
+if (process.env.NODE_ENV !== 'test') {
+  getJwtSecret();
+}
 
 const app = express();
 const httpServer = createServer(app);

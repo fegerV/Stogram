@@ -8,6 +8,7 @@ import { initializePrefetchStrategies, preloadByRoute } from './components/LazyC
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
 import { socketService } from './services/socket';
+import { getAccessToken } from './utils/authTokens';
 import { usePwaLifecycle } from './hooks/usePwaLifecycle';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -94,7 +95,7 @@ function App() {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (!token) {
       return;
     }

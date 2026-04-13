@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { User } from '../types';
 import { authApi } from '../services/api';
 import { socketService } from '../services/socket';
+import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from '../utils/authTokens';
 
 interface AuthState {
   user: User | null;
@@ -9,7 +10,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (login: string, password: string) => Promise<void>;
+  login: (login: string, password: string, code?: string) => Promise<void>;
   register: (email: string, username: string, password: string, displayName?: string) => Promise<any>;
   logout: () => void;
   loadUser: () => Promise<void>;
@@ -19,17 +20,22 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: localStorage.getItem('token'),
+  token: getAccessToken(),
   isAuthenticated: false,
   isLoading: false,
   error: null,
 
-  login: async (login: string, password: string) => {
+  login: async (login: string, password: string, code?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await authApi.login({ login, password });
-      const { user, token } = response.data;
-      localStorage.setItem('token', token);
+      const response = await authApi.login({ login, password, code });
+      const { user, token, refreshToken } = response.data;
+
+      if (!token || !refreshToken) {
+        throw new Error('Authentication tokens are missing in login response');
+      }
+
+      setAuthTokens(token, refreshToken);
       set({ user, token, isAuthenticated: true, isLoading: false });
       socketService.connect(token);
     } catch (error: any) {
@@ -57,7 +63,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('token');
+    const refreshToken = getRefreshToken();
+    void authApi.logout(refreshToken || undefined).catch(() => {});
+    clearAuthTokens();
     socketService.disconnect();
     set({ user: null, token: null, isAuthenticated: false });
   },
@@ -69,7 +77,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (!token) {
       set({ isAuthenticated: false, isLoading: false });
       return;
@@ -81,7 +89,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: response.data, token, isAuthenticated: true, isLoading: false });
       socketService.connect(token);
     } catch (error) {
-      localStorage.removeItem('token');
+      clearAuthTokens();
       set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },

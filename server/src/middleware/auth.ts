@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
-import * as crypto from 'crypto';
 import prisma from '../utils/prisma';
+import { getJwtSecret } from '../utils/authConfig';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -14,10 +14,6 @@ const getAdminIdentifiers = () =>
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
-
-const hashToken = (token: string) => {
-  return crypto.createHash('sha256').update(token).digest('hex');
-};
 
 const resolveAuthenticatedUser = async (
   req: AuthRequest,
@@ -32,9 +28,29 @@ const resolveAuthenticatedUser = async (
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as {
+    const decoded = jwt.verify(token, getJwtSecret()) as {
       userId: string;
+      sessionId?: string;
     };
+
+    if (!decoded.sessionId) {
+      return res.status(401).json({ error: 'Invalid session token' });
+    }
+
+    const session = await prisma.userSession.findFirst({
+      where: {
+        id: decoded.sessionId,
+        userId: decoded.userId,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired or revoked' });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -60,24 +76,15 @@ const resolveAuthenticatedUser = async (
 
     req.userId = user.id;
     req.user = user;
+    req.sessionId = session.id;
 
-    const refreshToken = req.body.refreshToken || req.headers['x-refresh-token'];
-    if (refreshToken) {
-      const refreshTokenHash = hashToken(refreshToken as string);
-      const session = await prisma.userSession.findFirst({
-        where: {
-          userId: user.id,
-          refreshTokenHash,
-        },
+    try {
+      await prisma.userSession.update({
+        where: { id: session.id },
+        data: { lastActive: new Date() },
       });
-
-      if (session) {
-        req.sessionId = session.id;
-        await prisma.userSession.update({
-          where: { id: session.id },
-          data: { lastActive: new Date() },
-        }).catch(() => {});
-      }
+    } catch {
+      // Best-effort touch for session activity
     }
 
     next();

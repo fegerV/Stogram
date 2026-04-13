@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { performanceMonitor } from './performance';
+import { clearAuthTokens, getAccessToken, getRefreshToken, refreshAccessToken } from './authTokens';
 
 interface MonitoredRequestConfig extends AxiosRequestConfig {
   enableMonitoring?: boolean;
@@ -48,7 +49,7 @@ class MonitoredApi {
     this.instance.interceptors.request.use(
       (config) => {
         // Add auth token if available
-        const token = localStorage.getItem('token');
+        const token = getAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -87,7 +88,7 @@ class MonitoredApi {
 
         return response;
       },
-      (error) => {
+      async (error) => {
         // Calculate request duration for failed requests
         const endTime = performance.now();
         const duration = endTime - error.config?.metadata?.startTime || 0;
@@ -102,9 +103,30 @@ class MonitoredApi {
         }
 
         // Handle common errors
+        const originalRequest = error.config as any;
+        const requestUrl = originalRequest?.url as string | undefined;
+        const isAuthEndpoint = requestUrl?.includes('/auth/login')
+          || requestUrl?.includes('/auth/register')
+          || requestUrl?.includes('/auth/refresh');
+
+        if (
+          error.response?.status === 401
+          && !originalRequest?._retry
+          && !isAuthEndpoint
+          && getRefreshToken()
+        ) {
+          originalRequest._retry = true;
+          const nextAccessToken = await refreshAccessToken(API_URL);
+
+          if (nextAccessToken) {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+            return this.instance(originalRequest);
+          }
+        }
+
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem('token');
+          clearAuthTokens();
           window.location.href = '/login';
         }
 

@@ -21,6 +21,9 @@ jest.mock('../utils/prisma', () => ({
     call: {
       findUnique: jest.fn(),
     },
+    userSession: {
+      findFirst: jest.fn(),
+    },
   },
 }));
 
@@ -81,7 +84,8 @@ describe('socket handlers', () => {
     Object.keys(socketHandlers).forEach((key) => delete socketHandlers[key]);
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
 
-    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'user-1' });
+    (jwt.verify as jest.Mock).mockReturnValue({ userId: 'user-1', sessionId: 'session-1' });
+    (prisma.userSession.findFirst as jest.Mock).mockResolvedValue({ id: 'session-1' });
     (prisma.user.update as jest.Mock).mockResolvedValue({});
     (prisma.chatMember.findMany as jest.Mock).mockResolvedValue([]);
 

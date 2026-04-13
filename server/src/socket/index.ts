@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma';
 import telegramService from '../services/telegramService';
+import { getJwtSecret } from '../utils/authConfig';
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -107,7 +108,29 @@ export const initSocketHandlers = (io: Server) => {
         return next(new Error('Authentication error'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string };
+      const decoded = jwt.verify(token, getJwtSecret()) as {
+        userId: string;
+        sessionId?: string;
+      };
+
+      if (!decoded.sessionId) {
+        return next(new Error('Authentication error'));
+      }
+
+      const session = await prisma.userSession.findFirst({
+        where: {
+          id: decoded.sessionId,
+          userId: decoded.userId,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!session) {
+        return next(new Error('Authentication error'));
+      }
 
       socket.userId = decoded.userId;
       next();
