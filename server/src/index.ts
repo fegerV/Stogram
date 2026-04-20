@@ -37,16 +37,6 @@ const io = new Server(httpServer, {
 
 export { prisma };
 
-// Serve uploaded files BEFORE helmet/cors to avoid cross-origin restrictions
-// These are user-uploaded media files that need to be accessible from the frontend (different origin)
-app.use('/uploads', cors({ origin: '*' }), express.static('uploads', {
-  setHeaders: (res) => {
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
-  },
-}));
-
 // Security headers with Helmet - Enhanced with CSP and HSTS
 app.use(helmet({
   contentSecurityPolicy: {

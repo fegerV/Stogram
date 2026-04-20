@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import prisma from '../utils/prisma';
 import telegramService from '../services/telegramService';
 import { getJwtSecret } from '../utils/authConfig';
+import { attachLinkPreview, sendChatMessage } from '../services/messageLifecycleService';
+import { markChatReadThroughMessage } from '../services/chatReadStateService';
+import { assertCanPinMessage } from '../utils/permissions';
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -144,6 +147,7 @@ export const initSocketHandlers = (io: Server) => {
     console.log(`User connected: ${userId}`);
 
     registerSocket(userId, socket.id);
+    socket.join(`user:${userId}`);
 
     await prisma.user.update({
       where: { id: userId },
@@ -163,53 +167,31 @@ export const initSocketHandlers = (io: Server) => {
 
     socket.on('message:send', async (data) => {
       try {
-        const { chatId, content, type, replyToId } = data;
+        const { chatId, content, type, replyToId, clientMessageId } = data;
 
-        const isMember = await prisma.chatMember.findFirst({
-          where: { chatId, userId },
+        const { message, isDuplicate, links, unreadUpdates } = await sendChatMessage({
+          chatId,
+          senderId: userId,
+          content,
+          type: type || 'TEXT',
+          replyToId,
+          clientMessageId,
         });
 
-        if (!isMember) {
-          return socket.emit('error', { message: 'Not a member of this chat' });
+        if (!isDuplicate) {
+          io.to(`chat:${chatId}`).emit('message:new', message);
+          unreadUpdates.forEach((update) => {
+            io.to(`user:${update.userId}`).emit('chat:unread-updated', update);
+          });
+        } else {
+          socket.emit('message:sent', message);
         }
 
-        const message = await prisma.message.create({
-          data: {
-            content,
-            type: type || 'TEXT',
-            senderId: userId,
-            chatId,
-            replyToId,
-          },
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatar: true,
-              },
-            },
-            replyTo: {
-              include: {
-                sender: {
-                  select: {
-                    id: true,
-                    username: true,
-                    displayName: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        await prisma.chat.update({
-          where: { id: chatId },
-          data: { updatedAt: new Date() },
-        });
-
-        io.to(`chat:${chatId}`).emit('message:new', message);
+        if (links.length > 0) {
+          attachLinkPreview(message.id, chatId, links[0], (updatedMessage) => {
+            io.to(`chat:${chatId}`).emit('message:update', updatedMessage);
+          }).catch(console.error);
+        }
 
         const chatMembers = await prisma.chatMember.findMany({
           where: { chatId },
@@ -226,7 +208,7 @@ export const initSocketHandlers = (io: Server) => {
             const senderName = message.sender.displayName || message.sender.username;
             await telegramService.sendNotification(
               member.user.telegramId,
-              `рџ’¬ РќРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РѕС‚ *${senderName}*\n\n${content}`
+              `Новое сообщение от *${senderName}*\n\n${content}`
             );
           }
         }
@@ -273,10 +255,15 @@ export const initSocketHandlers = (io: Server) => {
         const message = await getAccessibleMessage(messageId, userId);
 
         if (message) {
+          const unreadUpdate = await markChatReadThroughMessage(message.chatId, userId, messageId);
+
           io.to(`chat:${message.chatId}`).emit('message:read', {
             messageId,
             userId,
           });
+          if (unreadUpdate) {
+            io.to(`user:${userId}`).emit('chat:unread-updated', unreadUpdate);
+          }
         }
       } catch (error) {
         console.error('Message read error:', error);
@@ -659,15 +646,9 @@ export const initSocketHandlers = (io: Server) => {
 
     socket.on('chat:pin-message', async ({ chatId, messageId }) => {
       try {
-        const isMember = await prisma.chatMember.findFirst({
-          where: {
-            chatId,
-            userId,
-            role: { in: ['OWNER', 'ADMIN'] },
-          },
-        });
-
-        if (!isMember) {
+        try {
+          await assertCanPinMessage(chatId, userId);
+        } catch {
           return socket.emit('error', { message: 'Only owners and admins can pin messages' });
         }
 
@@ -707,15 +688,9 @@ export const initSocketHandlers = (io: Server) => {
 
     socket.on('chat:unpin-message', async ({ chatId }) => {
       try {
-        const isMember = await prisma.chatMember.findFirst({
-          where: {
-            chatId,
-            userId,
-            role: { in: ['OWNER', 'ADMIN'] },
-          },
-        });
-
-        if (!isMember) {
+        try {
+          await assertCanPinMessage(chatId, userId);
+        } catch {
           return socket.emit('error', { message: 'Only owners and admins can unpin messages' });
         }
 

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { userApi, chatSettingsApi } from '../../services/api';
+import { socketService } from '../../services/socket';
 import { monitoredApi } from '../../utils/monitoredApi';
 import { ChatType, Message, NotificationLevel, User } from '../../types';
 import { getChatName } from '../../utils/helpers';
+import ru from '../../i18n/ru';
 
 export type ChatFilter = 'all' | 'private' | 'groups' | 'bots';
 
@@ -19,6 +21,14 @@ interface ChatListChat {
   messages?: Message[];
   pinnedMessageId?: string | null;
   members?: Array<{ userId: string }>;
+}
+
+interface ChatSettingsSnapshot {
+  isMuted?: boolean;
+  notificationLevel?: NotificationLevel;
+  folderId?: string | null;
+  unreadCount?: number;
+  lastReadMessageId?: string | null;
 }
 
 interface UseChatListDataParams {
@@ -42,9 +52,7 @@ export function useChatListData({
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  const [chatSettings, setChatSettings] = useState<
-    Map<string, { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null }>
-  >(new Map());
+  const [chatSettings, setChatSettings] = useState<Map<string, ChatSettingsSnapshot>>(new Map());
 
   const filteredChats = useMemo(() => {
     let result = chats;
@@ -94,10 +102,7 @@ export function useChatListData({
 
   useEffect(() => {
     const loadChatSettings = async () => {
-      const settingsMap = new Map<
-        string,
-        { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null }
-      >();
+      const settingsMap = new Map<string, ChatSettingsSnapshot>();
 
       const responses = await Promise.allSettled(
         chats.map(async (chat) => ({
@@ -143,7 +148,7 @@ export function useChatListData({
     const handleChatSettingsUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<{
         chatId: string;
-        settings: { isMuted?: boolean; notificationLevel?: NotificationLevel; folderId?: string | null };
+        settings: ChatSettingsSnapshot;
       }>;
       const detail = customEvent.detail;
 
@@ -162,6 +167,31 @@ export function useChatListData({
     return () => window.removeEventListener('chat-settings-updated', handleChatSettingsUpdated as EventListener);
   }, []);
 
+  useEffect(() => {
+    const handleUnreadUpdated = (update: {
+      chatId: string;
+      unreadCount: number;
+      lastReadMessageId: string | null;
+    }) => {
+      if (!update?.chatId) {
+        return;
+      }
+
+      setChatSettings((prev) => {
+        const next = new Map(prev);
+        next.set(update.chatId, {
+          ...next.get(update.chatId),
+          unreadCount: update.unreadCount,
+          lastReadMessageId: update.lastReadMessageId,
+        });
+        return next;
+      });
+    };
+
+    socketService.on('chat:unread-updated', handleUnreadUpdated);
+    return () => socketService.off('chat:unread-updated', handleUnreadUpdated);
+  }, []);
+
   const tabCounts = useMemo(() => {
     const all = chats.length;
     const privateCount = chats.filter((chat) => chat.type === ChatType.PRIVATE).length;
@@ -170,10 +200,10 @@ export function useChatListData({
   }, [chats]);
 
   const filters: { id: ChatFilter; label: string; count?: number }[] = [
-    { id: 'all', label: 'Все', count: tabCounts.all > 0 ? tabCounts.all : undefined },
-    { id: 'private', label: 'Личные', count: tabCounts.private > 0 ? tabCounts.private : undefined },
-    { id: 'groups', label: 'Группы', count: tabCounts.groups > 0 ? tabCounts.groups : undefined },
-    { id: 'bots', label: 'Боты', count: tabCounts.bots > 0 ? tabCounts.bots : undefined },
+    { id: 'all', label: ru.chat.filters.all, count: tabCounts.all > 0 ? tabCounts.all : undefined },
+    { id: 'private', label: ru.chat.filters.private, count: tabCounts.private > 0 ? tabCounts.private : undefined },
+    { id: 'groups', label: ru.chat.filters.groups, count: tabCounts.groups > 0 ? tabCounts.groups : undefined },
+    { id: 'bots', label: ru.chat.filters.bots, count: tabCounts.bots > 0 ? tabCounts.bots : undefined },
   ];
 
   const handleCreateChatWithUser = async (selectedUser: User) => {
@@ -183,7 +213,8 @@ export function useChatListData({
           return false;
         }
 
-        return chat.members?.some((member) => member.userId === selectedUser.id);
+        const participantIds = new Set(chat.members?.map((member) => member.userId) || []);
+        return participantIds.size === 2 && participantIds.has(userId || '') && participantIds.has(selectedUser.id);
       });
 
       if (existingChat) {
@@ -194,10 +225,10 @@ export function useChatListData({
 
       await createChat(ChatType.PRIVATE, [selectedUser.id]);
       setSearchQuery('');
-      toast.success(`Чат с ${selectedUser.displayName || selectedUser.username} создан`);
+      toast.success(ru.chat.actions.created(selectedUser.displayName || selectedUser.username));
     } catch (error) {
       console.error('Create chat error:', error);
-      toast.error('Ошибка создания чата');
+      toast.error(ru.chat.actions.createFailed);
     }
   };
 
@@ -210,7 +241,7 @@ export function useChatListData({
       onSelectChat(chatId);
     } catch (error) {
       console.error('Failed to queue quick call:', error);
-      toast.error('Не удалось начать звонок');
+      toast.error(ru.chat.actions.quickCallFailed);
     }
   };
 

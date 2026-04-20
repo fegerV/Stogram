@@ -133,6 +133,7 @@ model ChatMember {
 
 model Message {
   id                  String          @id @default(uuid())
+  clientMessageId     String?
   content             String?
   type                MessageType     @default(TEXT)
   senderId            String
@@ -179,6 +180,7 @@ model Message {
 
   @@index([chatId])
   @@index([senderId])
+  @@unique([senderId, clientMessageId])
   @@index([botId])
   @@index([createdAt])
   @@index([scheduledFor])

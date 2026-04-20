@@ -1,10 +1,13 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Lock, Mail, MessageCircle, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import ru from '../i18n/ru';
 import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+
+const t = ru.auth.login;
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -20,12 +23,12 @@ export default function LoginPage() {
     event.preventDefault();
 
     if (!login || !password) {
-      toast.error('Заполните все поля');
+      toast.error(t.validation.required);
       return;
     }
 
     if (requiresTwoFactor && !twoFactorCode.trim()) {
-      toast.error('Введите код двухфакторной аутентификации');
+      toast.error(t.validation.twoFactorRequired);
       return;
     }
 
@@ -34,7 +37,7 @@ export default function LoginPage() {
       setPendingVerificationLogin('');
       setRequiresTwoFactor(false);
       setTwoFactorCode('');
-      toast.success('С возвращением!');
+      toast.success(t.toast.welcomeBack);
       navigate('/');
     } catch (error: any) {
       const code = error.response?.data?.code;
@@ -42,29 +45,29 @@ export default function LoginPage() {
 
       if (code === 'EMAIL_NOT_VERIFIED') {
         setPendingVerificationLogin(login.trim());
-        toast.error('Подтвердите email перед входом');
+        toast.error(t.toast.verifyEmailBeforeLogin);
         return;
       }
 
       if (code === 'TWO_FACTOR_REQUIRED') {
         setRequiresTwoFactor(true);
-        toast.error('Требуется код 2FA');
+        toast.error(t.toast.twoFactorRequired);
         return;
       }
 
       if (code === 'TWO_FACTOR_INVALID') {
         setRequiresTwoFactor(true);
-        toast.error('Неверный код 2FA');
+        toast.error(t.toast.twoFactorInvalid);
         return;
       }
 
-      toast.error(message || 'Не удалось войти');
+      toast.error(message || t.toast.loginFailed);
     }
   };
 
   const handleResendVerification = async () => {
     if (!pendingVerificationLogin || !pendingVerificationLogin.includes('@')) {
-      toast.error('Р”Р»СЏ РїРѕРІС‚РѕСЂРЅРѕР№ РѕС‚РїСЂР°РІРєРё СѓРєР°Р¶РёС‚Рµ email');
+      toast.error(t.toast.emailRequiredForResend);
       return;
     }
 
@@ -72,11 +75,9 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.requestVerificationEmail(pendingVerificationLogin.trim().toLowerCase());
-      toast.success(
-        response.data?.message || 'Р•СЃР»Рё Р°РєРєР°СѓРЅС‚ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РїРёСЃСЊРјРѕ СЃ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµРј РѕС‚РїСЂР°РІР»РµРЅРѕ РїРѕРІС‚РѕСЂРЅРѕ.'
-      );
+      toast.success(response.data?.message || t.toast.verificationResent);
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РїРёСЃСЊРјРѕ РїРѕРІС‚РѕСЂРЅРѕ');
+      toast.error(error.response?.data?.error || t.toast.verificationResendFailed);
     } finally {
       setIsResendingVerification(false);
     }
@@ -101,17 +102,13 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="mb-2 text-center text-4xl font-bold text-slate-900 dark:text-white">
-          Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ
-        </h1>
-        <p className="mb-8 text-center text-slate-500 dark:text-slate-400">
-          Р’РѕР№РґРёС‚Рµ РІ Stogram Рё РїСЂРѕРґРѕР»Р¶РёС‚Рµ РїРµСЂРµРїРёСЃРєСѓ
-        </p>
+        <h1 className="mb-2 text-center text-4xl font-bold text-slate-900 dark:text-white">{t.title}</h1>
+        <p className="mb-8 text-center text-slate-500 dark:text-slate-400">{t.subtitle}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Email РёР»Рё username
+              {t.loginLabel}
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -120,7 +117,7 @@ export default function LoginPage() {
                 value={login}
                 onChange={(event) => setLogin(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Р’РІРµРґРёС‚Рµ email РёР»Рё username"
+                placeholder={t.loginPlaceholder}
                 disabled={isLoading}
               />
             </div>
@@ -128,7 +125,7 @@ export default function LoginPage() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              РџР°СЂРѕР»СЊ
+              {t.passwordLabel}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -137,7 +134,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Р’РІРµРґРёС‚Рµ РїР°СЂРѕР»СЊ"
+                placeholder={t.passwordPlaceholder}
                 disabled={isLoading}
               />
             </div>
@@ -146,7 +143,7 @@ export default function LoginPage() {
           {requiresTwoFactor ? (
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Код 2FA
+                {t.twoFactorLabel}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -170,11 +167,10 @@ export default function LoginPage() {
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" />
                 <div className="min-w-0">
                   <p className="font-semibold text-amber-900 dark:text-amber-100">
-                    РџРѕС‡С‚Р° РµС‰С‘ РЅРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅР°
+                    {t.emailNotVerifiedTitle}
                   </p>
                   <p className="mt-1 text-sm text-amber-800 dark:text-amber-200/90">
-                    РџРѕРґС‚РІРµСЂРґРёС‚Рµ Р°РґСЂРµСЃ <span className="font-medium">{pendingVerificationLogin}</span>, С‡С‚РѕР±С‹ РІРѕР№С‚Рё РІ
-                    Р°РєРєР°СѓРЅС‚.
+                    {t.emailNotVerifiedDescription(pendingVerificationLogin)}
                   </p>
                   <button
                     type="button"
@@ -183,11 +179,11 @@ export default function LoginPage() {
                     className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400"
                   >
                     <Send className="h-4 w-4" />
-                    {isResendingVerification ? 'РћС‚РїСЂР°РІР»СЏРµРј РїРёСЃСЊРјРѕ...' : 'РћС‚РїСЂР°РІРёС‚СЊ РїРёСЃСЊРјРѕ РїРѕРІС‚РѕСЂРЅРѕ'}
+                    {isResendingVerification ? t.resendInProgress : t.resend}
                   </button>
                   {!pendingVerificationLogin.includes('@') && (
                     <p className="mt-2 text-xs text-amber-700 dark:text-amber-200/80">
-                      Р”Р»СЏ РїРѕРІС‚РѕСЂРЅРѕР№ РѕС‚РїСЂР°РІРєРё РЅСѓР¶РµРЅ РёРјРµРЅРЅРѕ email, Р° РЅРµ username.
+                      {t.resendNeedsEmail}
                     </p>
                   )}
                 </div>
@@ -200,18 +196,17 @@ export default function LoginPage() {
             disabled={isLoading}
             className="w-full rounded-2xl bg-[#3390ec] py-3 font-semibold text-white transition hover:bg-[#2c83d9] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? 'Р’С…РѕРґ...' : 'Р’РѕР№С‚Рё'}
+            {isLoading ? t.submitting : t.submit}
           </button>
         </form>
 
         <p className="mt-6 text-center text-slate-500 dark:text-slate-400">
-          РќРµС‚ Р°РєРєР°СѓРЅС‚Р°?{' '}
+          {t.noAccount}{' '}
           <Link to="/register" className="font-semibold text-[#3390ec] transition hover:text-[#2c83d9]">
-            Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ
+            {t.register}
           </Link>
         </p>
       </div>
     </div>
   );
 }
-

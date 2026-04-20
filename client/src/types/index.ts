@@ -62,6 +62,8 @@ export enum NotificationLevel {
 
 export interface Message {
   id: string;
+  clientMessageId?: string | null;
+  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
   content: string | null;
   type: MessageType;
   senderId: string;
@@ -85,6 +87,7 @@ export interface Message {
   isSent?: boolean;
   isRead?: boolean;
   readBy?: string[]; // Array of user IDs who read the message
+  reads?: Array<{ userId: string; readAt: string }>;
   linkPreview?: LinkPreview | null;
   createdAt: string;
   updatedAt: string;

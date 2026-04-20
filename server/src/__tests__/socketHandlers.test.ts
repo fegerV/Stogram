@@ -17,6 +17,18 @@ jest.mock('../utils/prisma', () => ({
     },
     message: {
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      count: jest.fn(),
+    },
+    messageRead: {
+      upsert: jest.fn(),
+    },
+    chatSettings: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+    },
+    telegramChatBridge: {
+      findMany: jest.fn(),
     },
     call: {
       findUnique: jest.fn(),
@@ -88,6 +100,18 @@ describe('socket handlers', () => {
     (prisma.userSession.findFirst as jest.Mock).mockResolvedValue({ id: 'session-1' });
     (prisma.user.update as jest.Mock).mockResolvedValue({});
     (prisma.chatMember.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.message.findUnique as jest.Mock).mockResolvedValue({
+      id: 'message-1',
+      createdAt: new Date('2026-04-20T10:00:00.000Z'),
+    });
+    (prisma.message.count as jest.Mock).mockResolvedValue(0);
+    (prisma.messageRead.upsert as jest.Mock).mockResolvedValue({});
+    (prisma.chatSettings.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.chatSettings.upsert as jest.Mock).mockResolvedValue({
+      unreadCount: 0,
+      lastReadMessageId: 'message-1',
+    });
+    (prisma.telegramChatBridge.findMany as jest.Mock).mockResolvedValue([]);
 
     initSocketHandlers(io);
 
@@ -117,10 +141,24 @@ describe('socket handlers', () => {
     (prisma.message.findFirst as jest.Mock).mockResolvedValue({
       id: 'message-1',
       chatId: 'chat-1',
+      createdAt: new Date('2026-04-20T10:00:00.000Z'),
     });
 
     await socketHandlers['message:read']({ messageId: 'message-1' });
 
+    expect(prisma.messageRead.upsert).toHaveBeenCalledWith({
+      where: {
+        messageId_userId: {
+          messageId: 'message-1',
+          userId: 'user-1',
+        },
+      },
+      create: {
+        messageId: 'message-1',
+        userId: 'user-1',
+      },
+      update: {},
+    });
     expect(ioTo).toHaveBeenCalledWith('chat:chat-1');
     expect(ioToEmit).toHaveBeenCalledWith('message:read', {
       messageId: 'message-1',

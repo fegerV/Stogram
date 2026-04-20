@@ -3,6 +3,11 @@ import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
 import n8nService from '../services/n8nService';
+import {
+  assertCanPinMessage,
+  checkChatAdminPermission,
+  checkChatOwnership,
+} from '../utils/permissions';
 
 const createChatSchema = z.object({
   type: z.enum(['PRIVATE', 'GROUP', 'CHANNEL']),
@@ -25,14 +30,13 @@ export const createChat = async (req: AuthRequest, res: Response) => {
     }
 
     if (type === 'PRIVATE') {
-      const existingChat = await prisma.chat.findFirst({
+      const existingChats = await prisma.chat.findMany({
         where: {
           type: 'PRIVATE',
-          members: {
-            every: {
-              userId: { in: [userId, memberIds[0]] },
-            },
-          },
+          AND: [
+            { members: { some: { userId } } },
+            { members: { some: { userId: memberIds[0] } } },
+          ],
         },
         include: {
           members: {
@@ -40,6 +44,11 @@ export const createChat = async (req: AuthRequest, res: Response) => {
           },
         },
       });
+      const participantIds = new Set([userId, memberIds[0]]);
+      const existingChat = existingChats.find((chat) => (
+        chat.members.length === participantIds.size &&
+        chat.members.every((member) => participantIds.has(member.userId))
+      ));
 
       if (existingChat) {
         return res.json(existingChat);
@@ -298,15 +307,7 @@ export const updateChat = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const { name, description, avatar } = req.body;
 
-    const member = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!member) {
+    if (!(await checkChatAdminPermission(chatId, userId))) {
       return res.status(403).json({ error: 'Permission denied' });
     }
 
@@ -342,15 +343,7 @@ export const deleteChat = async (req: AuthRequest, res: Response) => {
     const { chatId } = req.params;
     const userId = req.userId!;
 
-    const member = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: 'OWNER',
-      },
-    });
-
-    if (!member) {
+    if (!(await checkChatOwnership(chatId, userId))) {
       return res.status(403).json({ error: 'Only owner can delete chat' });
     }
 
@@ -371,15 +364,7 @@ export const addMember = async (req: AuthRequest, res: Response) => {
     const { userId: newUserId } = req.body;
     const userId = req.userId!;
 
-    const member = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!member) {
+    if (!(await checkChatAdminPermission(chatId, userId))) {
       return res.status(403).json({ error: 'Permission denied' });
     }
 
@@ -414,15 +399,7 @@ export const removeMember = async (req: AuthRequest, res: Response) => {
     const { chatId, memberId } = req.params;
     const userId = req.userId!;
 
-    const member = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!member) {
+    if (!(await checkChatAdminPermission(chatId, userId))) {
       return res.status(403).json({ error: 'Permission denied' });
     }
 
@@ -445,15 +422,9 @@ export const pinMessage = async (req: AuthRequest, res: Response) => {
     const { chatId } = req.params;
     const { messageId } = pinMessageSchema.parse(req.body);
 
-    const isMember = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!isMember) {
+    try {
+      await assertCanPinMessage(chatId, userId);
+    } catch {
       return res.status(403).json({ error: 'Only owners and admins can pin messages' });
     }
 
@@ -511,15 +482,9 @@ export const unpinMessage = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const { chatId } = req.params;
 
-    const isMember = await prisma.chatMember.findFirst({
-      where: {
-        chatId,
-        userId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    });
-
-    if (!isMember) {
+    try {
+      await assertCanPinMessage(chatId, userId);
+    } catch {
       return res.status(403).json({ error: 'Only owners and admins can unpin messages' });
     }
 

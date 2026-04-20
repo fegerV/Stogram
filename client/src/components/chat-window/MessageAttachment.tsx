@@ -1,5 +1,5 @@
 import { Paperclip } from 'lucide-react';
-import { getMediaUrl } from '../../utils/helpers';
+import { downloadSecureMedia, useSecureMediaUrl } from '../../hooks/useSecureMediaUrl';
 import { Message, MessageType } from '../../types';
 import { getRenderableMessageType } from './helpers';
 
@@ -8,14 +8,19 @@ interface MessageAttachmentProps {
 }
 
 export function MessageAttachment({ message }: MessageAttachmentProps) {
-  const fileUrl = getMediaUrl(message.fileUrl);
+  const { url: fileUrl, isLoading } = useSecureMediaUrl(message.fileUrl);
+  const originalMediaPath = message.fileUrl?.replace('_compressed', '') || null;
+  const { url: originalFileUrl } = useSecureMediaUrl(originalMediaPath);
+  const { url: thumbnailUrl } = useSecureMediaUrl(message.thumbnailUrl);
 
   if (!fileUrl) {
+    if (isLoading) {
+      return <div className="mb-2 h-20 rounded-lg bg-gray-100 dark:bg-gray-700" />;
+    }
     return null;
   }
 
-  const originalFileUrl = fileUrl.replace('_compressed', '');
-  const messageType = getRenderableMessageType(message, fileUrl);
+  const messageType = getRenderableMessageType(message, message.fileUrl);
 
   return (
     <div className="mb-2">
@@ -37,7 +42,7 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
               const target = event.target as HTMLImageElement;
               const currentSrc = target.src;
 
-              if (currentSrc.includes('_compressed') && originalFileUrl !== currentSrc) {
+              if (currentSrc.includes('_compressed') && originalFileUrl && originalFileUrl !== currentSrc) {
                 if (!target.dataset.fallbackTried) {
                   target.dataset.fallbackTried = 'true';
                   target.src = originalFileUrl;
@@ -52,11 +57,9 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
               }
             }}
           />
-          <a
-            href={fileUrl}
-            download={message.fileName || 'image'}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => message.fileUrl && downloadSecureMedia(message.fileUrl, message.fileName || 'image')}
             className="flex items-center gap-2 rounded-lg bg-gray-100 p-3 transition hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
             style={{ display: 'none' }}
           >
@@ -65,7 +68,7 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
               <p className="truncate text-sm font-medium">{message.fileName || 'Image'}</p>
               <p className="text-xs text-gray-500">Click to download</p>
             </div>
-          </a>
+          </button>
         </div>
       )}
 
@@ -75,7 +78,7 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
             src={fileUrl}
             controls
             className="max-h-96 max-w-full rounded-lg"
-            poster={message.thumbnailUrl ? getMediaUrl(message.thumbnailUrl) ?? undefined : undefined}
+            poster={thumbnailUrl ?? undefined}
           />
         </div>
       )}
@@ -87,9 +90,9 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
       )}
 
       {(messageType === MessageType.FILE || !messageType) && (
-        <a
-          href={fileUrl}
-          download={message.fileName || undefined}
+        <button
+          type="button"
+          onClick={() => message.fileUrl && downloadSecureMedia(message.fileUrl, message.fileName)}
           className="flex items-center gap-2 rounded bg-gray-100 p-2 transition hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           <Paperclip className="h-4 w-4" />
@@ -99,7 +102,7 @@ export function MessageAttachment({ message }: MessageAttachmentProps) {
               <p className="text-xs text-gray-500">{(message.fileSize / 1024).toFixed(2)} KB</p>
             )}
           </div>
-        </a>
+        </button>
       )}
     </div>
   );

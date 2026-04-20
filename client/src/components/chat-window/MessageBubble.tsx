@@ -6,6 +6,7 @@ import SelfDestructTimer from '../SelfDestructTimer';
 import { formatMessageTime } from '../../utils/helpers';
 import { ChatType, Message } from '../../types';
 import { MessageAttachment } from './MessageAttachment';
+import ru from '../../i18n/ru';
 
 interface MessageBubbleProps {
   message: Message;
@@ -22,6 +23,19 @@ function MessageBubbleComponent({
   onMessageContextMenu,
   onExpireMessage,
 }: MessageBubbleProps) {
+  const isReadByRecipient = Boolean(
+    message.readBy?.some((readerId) => readerId !== message.senderId) ||
+      message.reads?.some((read) => read.userId !== message.senderId)
+  );
+  const deliveryStatus =
+    message.deliveryStatus === 'failed' || message.deliveryStatus === 'pending'
+      ? message.deliveryStatus
+      : message.isRead || isReadByRecipient
+        ? 'read'
+        : message.isSent
+          ? 'delivered'
+          : 'sent';
+
   return (
     <div
       id={`message-${message.id}`}
@@ -42,7 +56,7 @@ function MessageBubbleComponent({
           <div className="mb-1 border-b border-[#667781]/20 pb-1 dark:border-[#8696a0]/20">
             <p className="flex items-center gap-1 text-xs text-[#667781] dark:text-[#8696a0]">
               <Forward className="h-3 w-3" />
-              Переслано
+              {ru.chat.messages.forwarded}
             </p>
           </div>
         )}
@@ -76,10 +90,8 @@ function MessageBubbleComponent({
           <span className="text-xs text-[#667781] dark:text-[#8696a0]">
             {formatMessageTime(message.createdAt)}
           </span>
-          {message.isEdited && <span className="text-xs text-[#667781] dark:text-[#8696a0]">(edited)</span>}
-          {isOwn && (
-            <MessageStatus isSent={message.isSent || false} isRead={message.isRead || false} isOwn />
-          )}
+          {message.isEdited && <span className="text-xs text-[#667781] dark:text-[#8696a0]">({ru.chat.messages.edited})</span>}
+          {isOwn && <MessageStatus status={deliveryStatus} isOwn />}
         </div>
       </div>
     </div>

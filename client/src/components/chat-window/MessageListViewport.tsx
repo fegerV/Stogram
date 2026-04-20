@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent,
 import { TypingIndicator } from '../TypingIndicator';
 import { Message, ChatType } from '../../types';
 import { MessageBubble } from './MessageBubble';
+import ru from '../../i18n/ru';
 
 type TypingUsersMap = Map<string, { username: string; displayName?: string }>;
 
@@ -144,7 +145,7 @@ export function MessageListViewport({
             }}
             className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/15"
           >
-            Показать более ранние сообщения
+            {ru.chat.messages.showEarlier}
           </button>
         </div>
       )}

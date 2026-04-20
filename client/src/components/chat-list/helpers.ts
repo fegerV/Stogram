@@ -1,4 +1,5 @@
 import { ChatType, Message, MessageType, NotificationLevel } from '../../types';
+import ru from '../../i18n/ru';
 
 interface ChatWithMeta {
   type: ChatType;
@@ -19,13 +20,13 @@ export function getChatPreview(chatType: ChatType, lastMessage?: Message) {
   let previewSender = '';
 
   if (lastMessage.type === MessageType.IMAGE) {
-    previewText = 'Фото';
+    previewText = ru.chat.preview.photo;
   } else if (lastMessage.type === MessageType.VIDEO) {
-    previewText = 'Видео';
+    previewText = ru.chat.preview.video;
   } else if (lastMessage.type === MessageType.AUDIO || lastMessage.type === MessageType.VOICE) {
-    previewText = 'Аудио';
+    previewText = ru.chat.preview.audio;
   } else if (lastMessage.type === MessageType.FILE) {
-    previewText = lastMessage.fileName || 'Файл';
+    previewText = lastMessage.fileName || ru.chat.preview.file;
   } else {
     previewText = lastMessage.content || '';
   }

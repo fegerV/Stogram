@@ -7,6 +7,7 @@ import {
   getInitials,
 } from '../../utils/helpers';
 import { getChatMetaFlags, getChatPreview } from './helpers';
+import ru from '../../i18n/ru';
 
 interface ChatListItemChat {
   id: string;
@@ -22,6 +23,7 @@ interface ChatListItemProps {
   settings?: {
     isMuted?: boolean;
     notificationLevel?: NotificationLevel;
+    unreadCount?: number;
   };
   onSelect: (chatId: string) => void;
 }
@@ -37,6 +39,7 @@ export function ChatListItem({
   const chatAvatar = getChatAvatar(chat as never, userId || '');
   const lastMessage = chat.messages?.[0];
   const { isMuted, isPinned } = getChatMetaFlags(chat, settings);
+  const unreadCount = settings?.unreadCount ?? 0;
   const { previewText, previewSender } = getChatPreview(chat.type, lastMessage);
 
   return (
@@ -109,6 +112,22 @@ export function ChatListItem({
             )}
             {isPinned && (
               <Pin className={`h-4 w-4 flex-shrink-0 ${selected ? 'text-white/60' : 'text-[#6f879b]'}`} />
+            )}
+            {unreadCount > 0 && (
+              <span
+                className={`flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
+                  isMuted
+                    ? selected
+                      ? 'bg-white/20 text-white/80'
+                      : 'bg-[#6f879b] text-[#101922]'
+                    : selected
+                      ? 'bg-white text-[#21384a]'
+                      : 'bg-[#3390ec] text-white'
+                }`}
+                title={ru.chat.list.unread(unreadCount)}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </div>
         )}

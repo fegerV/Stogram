@@ -1,0 +1,84 @@
+const ru = {
+  chat: {
+    filters: {
+      all: 'Все',
+      private: 'Личные',
+      groups: 'Группы',
+      bots: 'Боты',
+    },
+    preview: {
+      photo: 'Фото',
+      video: 'Видео',
+      audio: 'Аудио',
+      file: 'Файл',
+    },
+    list: {
+      unread: (count: number) => `${count} непрочитанных`,
+    },
+    messages: {
+      showEarlier: 'Показать более ранние сообщения',
+      forwarded: 'Переслано',
+      edited: 'изменено',
+      placeholder: 'Сообщение',
+      voiceTitle: 'Голосовое сообщение',
+      attachTitle: 'Прикрепить файл',
+      selfDestructTitle: 'Самоуничтожающееся сообщение',
+    },
+    menu: {
+      copy: 'Копировать',
+      forward: 'Переслать',
+      pin: 'Закрепить',
+      edit: 'Редактировать',
+      delete: 'Удалить',
+    },
+    status: {
+      pending: 'Отправляется',
+      sent: 'Отправлено',
+      delivered: 'Доставлено',
+      read: 'Прочитано',
+      failed: 'Не отправлено',
+    },
+    actions: {
+      created: (name: string) => `Чат с ${name} создан`,
+      createFailed: 'Ошибка создания чата',
+      quickCallFailed: 'Не удалось начать звонок',
+    },
+  },
+  auth: {
+    login: {
+      validation: {
+        required: 'Заполните все поля',
+        twoFactorRequired: 'Введите код двухфакторной аутентификации',
+      },
+      toast: {
+        welcomeBack: 'С возвращением!',
+        verifyEmailBeforeLogin: 'Подтвердите email перед входом',
+        twoFactorRequired: 'Требуется код 2FA',
+        twoFactorInvalid: 'Неверный код 2FA',
+        loginFailed: 'Не удалось войти',
+        emailRequiredForResend: 'Для повторной отправки укажите email',
+        verificationResent:
+          'Если аккаунт существует, письмо с подтверждением отправлено повторно.',
+        verificationResendFailed: 'Не удалось отправить письмо повторно',
+      },
+      title: 'Добро пожаловать',
+      subtitle: 'Войдите в Stogram и продолжите переписку',
+      loginLabel: 'Email или username',
+      loginPlaceholder: 'Введите email или username',
+      passwordLabel: 'Пароль',
+      passwordPlaceholder: 'Введите пароль',
+      twoFactorLabel: 'Код 2FA',
+      emailNotVerifiedTitle: 'Почта еще не подтверждена',
+      emailNotVerifiedDescription: (email: string) => `Подтвердите адрес ${email}, чтобы войти в аккаунт.`,
+      resendInProgress: 'Отправляем письмо...',
+      resend: 'Отправить письмо повторно',
+      resendNeedsEmail: 'Для повторной отправки нужен именно email, а не username.',
+      submitting: 'Вход...',
+      submit: 'Войти',
+      noAccount: 'Нет аккаунта?',
+      register: 'Зарегистрироваться',
+    },
+  },
+};
+
+export default ru;

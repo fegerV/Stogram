@@ -1,6 +1,34 @@
 import { create } from 'zustand';
 import { Chat, Message } from '../types';
 import { chatApi, messageApi } from '../services/api';
+import { useAuthStore } from './authStore';
+
+const createClientMessageId = () => {
+  const randomPart =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  return `${Date.now()}-${randomPart}`;
+};
+
+const mergeByServerOrClientId = (messages: Message[], nextMessage: Message) => {
+  const exists = messages.some((message) => (
+    message.id === nextMessage.id ||
+    Boolean(message.clientMessageId && nextMessage.clientMessageId && message.clientMessageId === nextMessage.clientMessageId)
+  ));
+
+  if (!exists) {
+    return [...messages, nextMessage];
+  }
+
+  return messages.map((message) => (
+    message.id === nextMessage.id ||
+    (message.clientMessageId && nextMessage.clientMessageId && message.clientMessageId === nextMessage.clientMessageId)
+      ? nextMessage
+      : message
+  ));
+};
 
 interface ChatState {
   chats: Chat[];
@@ -11,7 +39,7 @@ interface ChatState {
   loadChats: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   createChat: (type: string, memberIds: string[], name?: string, description?: string) => Promise<Chat>;
-  sendMessage: (chatId: string, content: string, file?: File, messageType?: string, expiresIn?: number) => Promise<void>;
+  sendMessage: (chatId: string, content: string, file?: File, messageType?: string, expiresIn?: number) => Promise<Message | undefined>;
   loadMessages: (chatId: string) => Promise<void>;
   addMessage: (message: Message) => void;
   updateMessage: (messageId: string, contentOrMessage: string | Message) => void;
@@ -74,9 +102,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   sendMessage: async (chatId: string, content: string, file?: File, messageType?: string, expiresIn?: number) => {
+    const clientMessageId = createClientMessageId();
     try {
       const formData = new FormData();
       formData.append('content', content);
+      formData.append('clientMessageId', clientMessageId);
+      const currentUser = useAuthStore.getState().user;
       
       // Определяем тип сообщения
       let type = messageType || 'TEXT';
@@ -101,11 +132,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
         formData.append('expiresIn', expiresIn.toString());
       }
 
+      if (currentUser) {
+        const pendingMessage: Message = {
+          id: `pending-${clientMessageId}`,
+          clientMessageId,
+          deliveryStatus: 'pending',
+          content,
+          type: type as Message['type'],
+          senderId: currentUser.id,
+          chatId,
+          replyToId: null,
+          fileUrl: null,
+          fileName: file?.name || null,
+          fileSize: file?.size || null,
+          isEdited: false,
+          isDeleted: false,
+          isSent: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          sender: currentUser,
+        };
+
+        set((state) => {
+          const isCurrentChat = state.currentChat?.id === chatId || (!state.currentChat && chatId);
+          if (!isCurrentChat) {
+            return state;
+          }
+
+          return {
+            messages: mergeByServerOrClientId(state.messages, pendingMessage),
+          };
+        });
+      }
+
       const response = await messageApi.send(chatId, formData);
       
       // Добавляем сообщение сразу в локальный state (оптимистичное обновление)
       if (response.data) {
-        const newMessage = response.data;
+        const newMessage = {
+          ...response.data,
+          deliveryStatus: response.data.isSent ? 'delivered' : 'sent',
+        };
         set((state) => {
           // Добавляем сообщение если это для текущего чата или если currentChat не установлен, но chatId совпадает
           const isCurrentChat = state.currentChat?.id === chatId || (!state.currentChat && chatId);
@@ -113,26 +180,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
           if (isCurrentChat) {
             // Проверяем, нет ли уже такого сообщения (избегаем дубликатов)
             const messageExists = state.messages.some(msg => msg.id === newMessage.id);
-            if (messageExists) {
+            const clientMessageExists = state.messages.some(
+              msg => Boolean(msg.clientMessageId && newMessage.clientMessageId && msg.clientMessageId === newMessage.clientMessageId)
+            );
+            if (messageExists || clientMessageExists) {
               // Обновляем существующее сообщение
               return {
                 messages: state.messages.map(msg => 
-                  msg.id === newMessage.id ? newMessage : msg
+                  msg.id === newMessage.id || (msg.clientMessageId && newMessage.clientMessageId && msg.clientMessageId === newMessage.clientMessageId)
+                    ? newMessage
+                    : msg
                 ),
               };
             }
             return {
-              messages: [...state.messages, newMessage],
+              messages: mergeByServerOrClientId(state.messages, newMessage),
             };
           }
           return state;
         });
+        return newMessage;
       }
     } catch (error: any) {
+      set((state) => ({
+        messages: state.messages.map((message) => (
+          message.clientMessageId === clientMessageId && message.deliveryStatus === 'pending'
+            ? { ...message, deliveryStatus: 'failed' }
+            : message
+        )),
+      }));
       set({
         error: error.response?.data?.error || 'Failed to send message',
       });
     }
+    return undefined;
   },
 
   loadMessages: async (chatId: string) => {
@@ -156,11 +237,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (isCurrentChat) {
         // Проверяем, нет ли уже такого сообщения (избегаем дубликатов)
         const messageExists = state.messages.some(msg => msg.id === message.id);
-        if (messageExists) {
+        const clientMessageExists = state.messages.some(
+          msg => Boolean(msg.clientMessageId && message.clientMessageId && msg.clientMessageId === message.clientMessageId)
+        );
+        if (messageExists || clientMessageExists) {
           // Обновляем существующее сообщение вместо игнорирования
           return {
             messages: state.messages.map(msg => 
-              msg.id === message.id ? message : msg
+              msg.id === message.id || (msg.clientMessageId && message.clientMessageId && msg.clientMessageId === message.clientMessageId)
+                ? message
+                : msg
             ),
           };
         }
@@ -203,6 +289,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             return {
               ...msg,
               isRead: true,
+              deliveryStatus: 'read',
               readBy: [...readBy, userId],
             };
           }

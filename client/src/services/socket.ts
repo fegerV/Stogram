@@ -49,8 +49,8 @@ class SocketService {
     this.socket?.emit(event, data);
   }
 
-  sendMessage(chatId: string, content: string, type = 'TEXT', replyToId?: string) {
-    this.emit('message:send', { chatId, content, type, replyToId });
+  sendMessage(chatId: string, content: string, type = 'TEXT', replyToId?: string, clientMessageId?: string) {
+    this.emit('message:send', { chatId, content, type, replyToId, clientMessageId });
   }
 
   typing(chatId: string, isTyping: boolean) {

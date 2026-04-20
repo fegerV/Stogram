@@ -24,6 +24,19 @@ vi.mock('../utils/monitoredApi', () => ({
   },
 }));
 
+const socketListeners = new Map<string, (...args: any[]) => void>();
+
+vi.mock('../services/socket', () => ({
+  socketService: {
+    on: vi.fn((event: string, callback: (...args: any[]) => void) => {
+      socketListeners.set(event, callback);
+    }),
+    off: vi.fn((event: string) => {
+      socketListeners.delete(event);
+    }),
+  },
+}));
+
 const chats = [
   {
     id: 'chat-1',
@@ -42,6 +55,7 @@ const chats = [
 describe('useChatListData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketListeners.clear();
     sessionStorage.clear();
   });
 
@@ -106,6 +120,35 @@ describe('useChatListData', () => {
     expect(JSON.parse(raw || '{}')).toMatchObject({
       chatId: 'chat-1',
       type: 'VIDEO',
+    });
+  });
+
+  it('updates unread counters from socket events', async () => {
+    const { result } = renderHook(() =>
+      useChatListData({
+        chats,
+        userId: 'user-1',
+        createChat: vi.fn().mockResolvedValue(undefined),
+        onSelectChat: vi.fn(),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.chatSettings.size).toBe(2);
+      expect(socketListeners.has('chat:unread-updated')).toBe(true);
+    });
+
+    act(() => {
+      socketListeners.get('chat:unread-updated')?.({
+        chatId: 'chat-1',
+        unreadCount: 3,
+        lastReadMessageId: 'message-9',
+      });
+    });
+
+    expect(result.current.chatSettings.get('chat-1')).toMatchObject({
+      unreadCount: 3,
+      lastReadMessageId: 'message-9',
     });
   });
 });

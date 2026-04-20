@@ -2,24 +2,28 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
-import { processMedia } from '../services/mediaService';
-import { sendNewMessageNotification } from '../services/pushService';
 import { handleControllerError, handleNotFound, handleForbidden } from '../utils/errorHandlers';
-import { checkChatMembership } from '../utils/permissions';
-import { extractMentions, extractHashtags, extractUrls } from '../utils/textParsers';
-import { fetchLinkPreview } from '../utils/linkPreview';
+import { assertCanSendMessage, checkChatMembership } from '../utils/permissions';
 import { basicUserSelect } from '../utils/userSelect';
 import { io } from '../index';
 import n8nService from '../services/n8nService';
 import internalBotRuntimeService from '../services/internalBotRuntimeService';
+import { attachLinkPreview, sendChatMessage } from '../services/messageLifecycleService';
+import { incrementUnreadForChatMembers, markChatReadThroughMessage } from '../services/chatReadStateService';
 
 const sendMessageSchema = z.object({
   content: z.string().optional(),
   type: z.enum(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'VOICE', 'GIF']).default('TEXT'),
   replyToId: z.string().optional(),
   scheduledFor: z.string().optional(),
-  expiresIn: z.number().optional(), // Время в секундах до самоуничтожения
-  isSilent: z.boolean().optional(),
+  expiresIn: z.preprocess((value) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return Number(value);
+  }, z.number().int().positive().optional()),
+  isSilent: z.preprocess((value) => value === true || value === 'true', z.boolean().optional()),
+  clientMessageId: z.string().max(128).optional(),
 });
 
 const forwardMessageSchema = z.object({
@@ -31,6 +35,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     const { chatId } = req.params;
     const userId = req.userId!;
     const { limit = 50, before } = req.query;
+    const normalizedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
 
     const isMember = await checkChatMembership(chatId, userId);
 
@@ -49,7 +54,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
 
     const messages = await prisma.message.findMany({
       where,
-      take: Number(limit),
+      take: normalizedLimit,
       orderBy: { createdAt: 'desc' },
       include: {
         bot: true,
@@ -62,6 +67,12 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
             sender: {
               select: basicUserSelect,
             },
+          },
+        },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
           },
         },
       },
@@ -97,6 +108,12 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
           io.to(`chat:${chatId}`).emit('message:read', { messageId, userId });
         });
       }
+
+      const latestFetchedMessage = messages[0];
+      const unreadUpdate = await markChatReadThroughMessage(chatId, userId, latestFetchedMessage.id);
+      if (unreadUpdate) {
+        io.to(`user:${userId}`).emit('chat:unread-updated', unreadUpdate);
+      }
     }
 
     res.json(messages.reverse());
@@ -111,183 +128,45 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const userId = req.userId!;
     const data = sendMessageSchema.parse(req.body);
 
-    const isMember = await checkChatMembership(chatId, userId);
-
-    if (!isMember) {
-      return handleForbidden(res, 'Not a member of this chat');
-    }
-
-    let fileUrl, fileName, fileSize, thumbnailUrl, duration, waveform;
-    let messageType = data.type;
-
-    // Process uploaded file
-    if (req.file) {
-      fileUrl = `/uploads/${req.file.filename}`;
-      fileName = req.file.originalname;
-      fileSize = req.file.size;
-
-      // Automatically determine messageType based on MIME type if not explicitly set or is generic 'FILE'
-      if (!messageType || messageType === 'FILE') {
-        if (req.file.mimetype.startsWith('image/')) {
-          messageType = 'IMAGE';
-        } else if (req.file.mimetype.startsWith('video/')) {
-          messageType = 'VIDEO';
-        } else if (req.file.mimetype.startsWith('audio/')) {
-          messageType = 'AUDIO';
-        } else {
-          messageType = 'FILE';
-        }
-      }
-
-      // Process media (compress, generate thumbnails, etc.)
-      try {
-        const mediaResult = await processMedia(req.file.path, req.file.mimetype);
-        
-        // Use compressed path if available, otherwise use original
-        if (mediaResult.compressedPath && mediaResult.compressedPath !== mediaResult.originalPath) {
-          fileUrl = mediaResult.compressedPath.replace(/^.*\/uploads/, '/uploads');
-          console.log(`Using compressed image: ${fileUrl}`);
-        } else {
-          // Keep original file URL
-          console.log(`Using original image: ${fileUrl}`);
-        }
-        
-        if (mediaResult.thumbnailPath) {
-          thumbnailUrl = mediaResult.thumbnailPath.replace(/^.*\/uploads/, '/uploads');
-        }
-        if (mediaResult.duration) {
-          duration = mediaResult.duration;
-        }
-        if (mediaResult.waveform) {
-          waveform = mediaResult.waveform;
-        }
-      } catch (error) {
-        console.error('Media processing error:', error);
-        // Continue with original file if processing fails
-        console.log(`Falling back to original file: ${fileUrl}`);
-      }
-    }
-
-    // Parse scheduled date if provided
-    const scheduledFor = data.scheduledFor ? new Date(data.scheduledFor) : undefined;
-    const isSent = !scheduledFor;
-
-    // Calculate expiration time if expiresIn is provided
-    const expiresAt = data.expiresIn 
-      ? new Date(Date.now() + data.expiresIn * 1000)
-      : undefined;
-
-    // Extract mentions and hashtags from content
-    const mentions = data.content ? JSON.stringify(extractMentions(data.content)) : null;
-    const hashtags = data.content ? JSON.stringify(extractHashtags(data.content)) : null;
-    
-    // Extract links from content for preview (async, don't wait)
-    const links = data.content ? extractUrls(data.content) : [];
-
-    const message = await prisma.message.create({
-      data: {
-        content: data.content,
-        type: messageType as any,
-        senderId: userId,
-        chatId,
-        replyToId: data.replyToId,
-        fileUrl,
-        fileName,
-        fileSize,
-        thumbnailUrl,
-        duration,
-        waveform,
-        scheduledFor,
-        expiresAt,
-        isSent,
-        isSilent: data.isSilent || false,
-        mentions,
-        hashtags,
-        linkPreview: undefined, // Will be updated asynchronously
-      },
-      include: {
-        bot: true,
-        sender: {
-          select: basicUserSelect,
-        },
-        replyTo: {
-          include: {
-            bot: true,
-            sender: {
-              select: basicUserSelect,
-            },
-          },
-        },
-      },
-    });
-
-    await prisma.chat.update({
-      where: { id: chatId },
-      data: { updatedAt: new Date() },
-    });
-
-    // Emit new message via Socket.IO to all chat participants
-    io.to(`chat:${chatId}`).emit('message:new', message);
-
-    // Fetch link preview asynchronously (don't wait)
-    if (links.length > 0) {
-      fetchLinkPreview(links[0])
-        .then((preview) => {
-          if (preview) {
-            // Update message with preview
-            prisma.message.update({
-              where: { id: message.id },
-              data: { linkPreview: JSON.parse(JSON.stringify(preview)) },
-            }).then((updatedMessage) => {
-              // Emit update to chat
-              io.to(`chat:${chatId}`).emit('message:update', updatedMessage);
-            }).catch(console.error);
-          }
-        })
-        .catch(console.error);
-    }
-
-    // Send push notifications to other members (only if sent immediately and not silent)
-    if (isSent && !data.isSilent) {
-      const chat = await prisma.chat.findUnique({
-        where: { id: chatId },
-        include: { members: true },
-      });
-
-      if (chat) {
-        const otherMembers = chat.members.filter((m: { userId: string }) => m.userId !== userId);
-        const sender = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { displayName: true, username: true },
-        });
-
-        if (sender) {
-          const senderName = sender.displayName || sender.username;
-          otherMembers.forEach((member: { userId: string }) => {
-            sendNewMessageNotification(
-              member.userId,
-              senderName,
-              data.content || 'Sent a file',
-              chatId
-            ).catch(console.error);
-          });
-        }
-      }
-    }
-
-    // Send n8n webhook event (async, don't wait)
-    n8nService.deliverWebhookEvent('new_message', {
-      messageId: message.id,
+    const { message, isDuplicate, links, unreadUpdates } = await sendChatMessage({
       chatId,
       senderId: userId,
       content: data.content,
-      type: messageType,
-      timestamp: message.createdAt.toISOString(),
-    }).catch(console.error);
+      type: data.type,
+      replyToId: data.replyToId,
+      scheduledFor: data.scheduledFor,
+      expiresIn: data.expiresIn,
+      isSilent: data.isSilent,
+      clientMessageId: data.clientMessageId,
+      file: req.file,
+    });
 
-    internalBotRuntimeService.dispatchChatMessageEvent(message.id, 'message.created').catch(console.error);
+    if (!isDuplicate) {
+      io.to(`chat:${chatId}`).emit('message:new', message);
+      unreadUpdates.forEach((update) => {
+        io.to(`user:${update.userId}`).emit('chat:unread-updated', update);
+      });
 
-    res.status(201).json(message);
+      n8nService.deliverWebhookEvent('new_message', {
+        messageId: message.id,
+        chatId,
+        senderId: userId,
+        content: data.content,
+        type: message.type,
+        timestamp: message.createdAt.toISOString(),
+      }).catch(console.error);
+
+      internalBotRuntimeService.dispatchChatMessageEvent(message.id, 'message.created').catch(console.error);
+    }
+
+    if (links.length > 0) {
+      attachLinkPreview(message.id, chatId, links[0], (updatedMessage) => {
+        io.to(`chat:${chatId}`).emit('message:update', updatedMessage);
+      })
+        .catch(console.error);
+    }
+
+    res.status(isDuplicate ? 200 : 201).json(message);
   } catch (error) {
     handleControllerError(error, res, 'Failed to send message');
   }
@@ -328,12 +207,9 @@ export const forwardMessage = async (req: AuthRequest, res: Response) => {
       return handleForbidden(res, 'Access denied to original message');
     }
 
-    // Verify user is member of all target chats
+    // Verify user can send to all target chats, including channel role rules.
     for (const targetChatId of chatIds) {
-      const isMember = await checkChatMembership(targetChatId, userId);
-      if (!isMember) {
-        return handleForbidden(res, `Not a member of chat ${targetChatId}`);
-      }
+      await assertCanSendMessage(targetChatId, userId);
     }
 
     // Forward message to all target chats
@@ -372,6 +248,10 @@ export const forwardMessage = async (req: AuthRequest, res: Response) => {
 
       // Emit to chat participants
       io.to(`chat:${targetChatId}`).emit('message:new', forwardedMessage);
+      const unreadUpdates = await incrementUnreadForChatMembers(targetChatId, userId);
+      unreadUpdates.forEach((update) => {
+        io.to(`user:${update.userId}`).emit('chat:unread-updated', update);
+      });
 
       forwardedMessages.push(forwardedMessage);
     }
@@ -411,23 +291,11 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
       return handleForbidden(res, 'Not a member of this chat');
     }
 
-    // Mark as read
-    await prisma.messageRead.upsert({
-      where: {
-        messageId_userId: {
-          messageId,
-          userId,
-        },
-      },
-      create: {
-        messageId,
-        userId,
-      },
-      update: {},
-    });
-
-    // Emit read receipt
+    const unreadUpdate = await markChatReadThroughMessage(message.chatId, userId, messageId);
     io.to(`chat:${message.chatId}`).emit('message:read', { messageId, userId });
+    if (unreadUpdate) {
+      io.to(`user:${userId}`).emit('chat:unread-updated', unreadUpdate);
+    }
 
     res.json({ success: true });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { assertChatMember } from '../utils/permissions';
 
 export const pinMessage = async (req: AuthRequest, res: Response) => {
   try {
@@ -10,6 +11,8 @@ export const pinMessage = async (req: AuthRequest, res: Response) => {
     if (!messageId || !chatId) {
       return res.status(400).json({ error: 'Message ID and Chat ID are required' });
     }
+
+    await assertChatMember(chatId, userId);
 
     const message = await prisma.message.findUnique({
       where: { id: messageId }
@@ -57,6 +60,9 @@ export const pinMessage = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ pinnedMessage });
   } catch (error) {
+    if ((error as any).statusCode) {
+      return res.status((error as any).statusCode).json({ error: (error as Error).message });
+    }
     console.error('Pin message error:', error);
     res.status(500).json({ error: 'Failed to pin message' });
   }
@@ -66,6 +72,8 @@ export const unpinMessage = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { messageId, chatId } = req.params;
+
+    await assertChatMember(chatId, userId);
 
     const pinnedMessage = await prisma.pinnedMessage.findUnique({
       where: {
@@ -93,6 +101,9 @@ export const unpinMessage = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Message unpinned successfully' });
   } catch (error) {
+    if ((error as any).statusCode) {
+      return res.status((error as any).statusCode).json({ error: (error as Error).message });
+    }
     console.error('Unpin message error:', error);
     res.status(500).json({ error: 'Failed to unpin message' });
   }
@@ -102,6 +113,8 @@ export const getPinnedMessages = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { chatId } = req.params;
+
+    await assertChatMember(chatId, userId);
 
     const pinnedMessages = await prisma.pinnedMessage.findMany({
       where: {
@@ -139,6 +152,9 @@ export const getPinnedMessages = async (req: AuthRequest, res: Response) => {
 
     res.json({ pinnedMessages });
   } catch (error) {
+    if ((error as any).statusCode) {
+      return res.status((error as any).statusCode).json({ error: (error as Error).message });
+    }
     console.error('Get pinned messages error:', error);
     res.status(500).json({ error: 'Failed to get pinned messages' });
   }

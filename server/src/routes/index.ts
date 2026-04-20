@@ -18,12 +18,14 @@ import securityRoutes from './security';
 import analyticsRoutes from './analytics';
 import n8nRoutes from './n8n';
 import telegramBotRoutes from './telegramBot';
+import mediaRoutes from './mediaRoutes';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/chats', chatRoutes);
 router.use('/messages', messageRoutes);
+router.use('/media', mediaRoutes);
 router.use('/users', userRoutes);
 router.use('/search', searchRoutes);
 router.use('/chat-settings', chatSettingsRoutes);

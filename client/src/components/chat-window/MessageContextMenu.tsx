@@ -1,5 +1,6 @@
 import { Copy, Edit, Forward, Pin, Trash2 } from 'lucide-react';
 import { Message } from '../../types';
+import ru from '../../i18n/ru';
 
 interface MessageContextMenuProps {
   contextMenu: { messageId: string; x: number; y: number };
@@ -47,14 +48,14 @@ export function MessageContextMenu({
           className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111b21] hover:bg-gray-100 dark:text-[#e9edef] dark:hover:bg-[#2a3942]"
         >
           <Copy className="h-4 w-4" />
-          Копировать
+          {ru.chat.menu.copy}
         </button>
         <button
           onClick={() => onForwardMessage(message.id)}
           className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111b21] hover:bg-gray-100 dark:text-[#e9edef] dark:hover:bg-[#2a3942]"
         >
           <Forward className="h-4 w-4" />
-          Переслать
+          {ru.chat.menu.forward}
         </button>
         {isAdmin && (
           <button
@@ -62,7 +63,7 @@ export function MessageContextMenu({
             className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111b21] hover:bg-gray-100 dark:text-[#e9edef] dark:hover:bg-[#2a3942]"
           >
             <Pin className="h-4 w-4" />
-            Закрепить
+            {ru.chat.menu.pin}
           </button>
         )}
         {isOwn && (
@@ -72,14 +73,14 @@ export function MessageContextMenu({
               className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111b21] hover:bg-gray-100 dark:text-[#e9edef] dark:hover:bg-[#2a3942]"
             >
               <Edit className="h-4 w-4" />
-              Редактировать
+              {ru.chat.menu.edit}
             </button>
             <button
               onClick={() => onDeleteMessage(message.id)}
               className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-[#2a3942]"
             >
               <Trash2 className="h-4 w-4" />
-              Удалить
+              {ru.chat.menu.delete}
             </button>
           </>
         )}

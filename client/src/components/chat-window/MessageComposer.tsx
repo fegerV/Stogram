@@ -2,6 +2,7 @@ import { Clock, Mic, Paperclip, Send } from 'lucide-react';
 import type { ChangeEvent, FormEvent, Ref } from 'react';
 import { EmojiInput } from '../EmojiInput';
 import SelfDestructOptions from '../SelfDestructOptions';
+import ru from '../../i18n/ru';
 
 interface MessageComposerProps {
   messageInput: string;
@@ -53,7 +54,7 @@ export function MessageComposer({
           type="button"
           onClick={onVoiceRecorderOpen}
           className="flex-shrink-0 rounded-full p-1.5 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] md:p-2"
-          title="Голосовое сообщение"
+          title={ru.chat.messages.voiceTitle}
         >
           <Mic className="h-5 w-5 text-[#54656f] dark:text-[#8696a0]" />
         </button>
@@ -61,7 +62,7 @@ export function MessageComposer({
           type="button"
           onClick={onFileButtonClick}
           className="flex-shrink-0 rounded-full p-1.5 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] md:p-2"
-          title="Прикрепить файл"
+          title={ru.chat.messages.attachTitle}
         >
           <Paperclip className="h-5 w-5 text-[#54656f] dark:text-[#8696a0]" />
         </button>
@@ -73,7 +74,7 @@ export function MessageComposer({
             className={`rounded-full p-2 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] ${
               selfDestructSeconds ? 'bg-[#00a884]/20 text-[#00a884]' : ''
             }`}
-            title="Самоуничтожающееся сообщение"
+            title={ru.chat.messages.selfDestructTitle}
           >
             <Clock className="h-5 w-5" />
           </button>
@@ -86,7 +87,7 @@ export function MessageComposer({
           type="text"
           value={messageInput}
           onChange={onTyping}
-          placeholder="Сообщение"
+          placeholder={ru.chat.messages.placeholder}
           className="min-w-0 flex-1 rounded-full border-none bg-white px-3 py-2 text-[15px] text-[#111b21] placeholder-[#667781] focus:outline-none dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder-[#8696a0] md:px-4 md:py-2.5"
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {

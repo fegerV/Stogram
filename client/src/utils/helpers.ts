@@ -1,4 +1,5 @@
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { getAccessToken } from './authTokens';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -16,9 +17,18 @@ export const getMediaUrl = (path: string | null | undefined): string | null => {
   
   // Ensure API_URL doesn't end with / and path starts with /
   const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
-  const mediaPath = path.startsWith('/') ? path : `/${path}`;
+  const mediaPath = getProtectedMediaPath(path);
+  const token = getAccessToken();
+  const tokenQuery = token ? `?access_token=${encodeURIComponent(token)}` : '';
   
-  return `${baseUrl}${mediaPath}`;
+  return `${baseUrl}/api${mediaPath}${tokenQuery}`;
+};
+
+export const getProtectedMediaPath = (path: string): string => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return normalizedPath.startsWith('/uploads/')
+    ? `/media${normalizedPath}`
+    : normalizedPath;
 };
 
 export const formatMessageTime = (date: string | Date): string => {
