@@ -40,7 +40,7 @@ export function MessageComposer({
   return (
     <form
       onSubmit={onSubmit}
-      className="border-t border-gray-200 bg-[#f0f2f5] px-2 py-2 dark:border-[#202c33] dark:bg-[#202c33] md:px-4 md:py-3"
+      className="safe-pb border-t border-white/8 bg-[linear-gradient(180deg,rgba(18,28,40,0.9),rgba(15,24,35,0.96))] px-2 py-2 md:px-4 md:py-3"
     >
       <input
         ref={fileInputRef}
@@ -53,26 +53,26 @@ export function MessageComposer({
         <button
           type="button"
           onClick={onVoiceRecorderOpen}
-          className="flex-shrink-0 rounded-full p-1.5 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] md:p-2"
+          className="panel-soft flex-shrink-0 rounded-full p-1.5 text-[#9cb4ca] transition hover:bg-white/10 md:p-2"
           title={ru.chat.messages.voiceTitle}
         >
-          <Mic className="h-5 w-5 text-[#54656f] dark:text-[#8696a0]" />
+          <Mic className="h-5 w-5" />
         </button>
         <button
           type="button"
           onClick={onFileButtonClick}
-          className="flex-shrink-0 rounded-full p-1.5 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] md:p-2"
+          className="panel-soft flex-shrink-0 rounded-full p-1.5 text-[#9cb4ca] transition hover:bg-white/10 md:p-2"
           title={ru.chat.messages.attachTitle}
         >
-          <Paperclip className="h-5 w-5 text-[#54656f] dark:text-[#8696a0]" />
+          <Paperclip className="h-5 w-5" />
         </button>
         <div className="relative hidden md:block">
           <button
             ref={selfDestructButtonRef}
             type="button"
             onClick={onToggleSelfDestructOptions}
-            className={`rounded-full p-2 transition hover:bg-gray-200 dark:hover:bg-[#2a3942] ${
-              selfDestructSeconds ? 'bg-[#00a884]/20 text-[#00a884]' : ''
+            className={`panel-soft rounded-full p-2 text-[#9cb4ca] transition hover:bg-white/10 ${
+              selfDestructSeconds ? 'bg-[#4ba3ff]/18 text-[#8cc6ff] ring-1 ring-[#4ba3ff]/30' : ''
             }`}
             title={ru.chat.messages.selfDestructTitle}
           >
@@ -88,7 +88,7 @@ export function MessageComposer({
           value={messageInput}
           onChange={onTyping}
           placeholder={ru.chat.messages.placeholder}
-          className="min-w-0 flex-1 rounded-full border-none bg-white px-3 py-2 text-[15px] text-[#111b21] placeholder-[#667781] focus:outline-none dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder-[#8696a0] md:px-4 md:py-2.5"
+          className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-[15px] text-white placeholder-[#8ba4bc] shadow-inner shadow-black/10 focus:outline-none md:px-4 md:py-3"
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
@@ -101,7 +101,7 @@ export function MessageComposer({
 
         <button
           type="submit"
-          className="flex-shrink-0 rounded-full bg-[#00a884] p-1.5 text-white transition hover:bg-[#008069] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#00a884] dark:hover:bg-[#008069] md:p-2"
+          className="flex-shrink-0 rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] p-1.5 text-white shadow-[0_12px_30px_rgba(47,140,255,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 md:p-2.5"
           disabled={!messageInput.trim()}
         >
           <Send className="h-5 w-5" />

@@ -28,14 +28,18 @@ function RailFolderButton({
   return (
     <button
       onClick={onClick}
-      className={`group flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 transition ${
-        isActive ? 'bg-[#162330] text-white' : 'text-[#7e97ad] hover:bg-[#162330] hover:text-white'
+      className={`group flex w-full flex-col items-center gap-2 rounded-[24px] px-2 py-2.5 transition ${
+        isActive ? 'bg-white/[0.06] text-white shadow-[0_14px_32px_rgba(7,17,27,0.24)]' : 'text-[#7e97ad] hover:bg-white/[0.045] hover:text-white'
       }`}
       title={label}
     >
       <div
-        className="flex h-10 w-10 items-center justify-center rounded-2xl"
-        style={{ backgroundColor: isActive ? accentColor || '#3390ec' : '#162330' }}
+        className="flex h-11 w-11 items-center justify-center rounded-[18px] border border-white/8 shadow-[0_10px_24px_rgba(7,17,27,0.18)]"
+        style={{
+          background: isActive
+            ? `linear-gradient(135deg, ${accentColor || '#4ba3ff'}, #2f8cff)`
+            : 'rgba(255,255,255,0.04)',
+        }}
       >
         {Icon ? (
           <Icon className="h-5 w-5" />
@@ -54,8 +58,12 @@ export default function DesktopNavRail({
   onSelectFolder,
 }: DesktopNavRailProps) {
   return (
-    <aside className="hidden h-full w-[88px] shrink-0 flex-col items-center gap-2 border-r border-[#17232d] bg-[#0d1720] px-3 py-4 md:flex">
-      <div className="flex w-full flex-col gap-1 overflow-y-auto">
+    <aside className="hidden h-full w-[92px] shrink-0 flex-col items-center gap-3 border-r border-white/8 bg-[linear-gradient(180deg,rgba(10,18,28,0.98),rgba(8,15,24,0.94))] px-3 py-4 md:flex">
+      <div className="panel-soft flex h-12 w-12 items-center justify-center rounded-[20px] text-white">
+        <MessageSquare className="h-5 w-5" />
+      </div>
+
+      <div className="flex w-full flex-col gap-2 overflow-y-auto scrollbar-none">
         <RailFolderButton
           icon={MessageSquare}
           label="Все"

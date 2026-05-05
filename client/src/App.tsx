@@ -48,8 +48,16 @@ function RoutePreloader() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a884] dark:border-[#00a884]"></div>
+    <div className="app-shell relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+      <div className="floating-orb left-[-60px] top-[-40px] h-40 w-40 bg-[#4ba3ff]/25" />
+      <div className="floating-orb bottom-[-50px] right-[-20px] h-52 w-52 bg-[#61d394]/15" />
+      <div className="panel-glass-strong relative flex w-full max-w-sm flex-col items-center rounded-[32px] px-8 py-10 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[22px] bg-white/8">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/15 border-t-[#4ba3ff]" />
+        </div>
+        <div className="text-xl font-semibold tracking-tight text-white">Stogram</div>
+        <p className="mt-2 text-sm text-[#9cb2c7]">Подготавливаем чаты, медиа и PWA-сессии…</p>
+      </div>
     </div>
   );
 }

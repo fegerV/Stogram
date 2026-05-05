@@ -121,10 +121,9 @@ export function MessageListViewport({
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className="flex-1 space-y-1 overflow-y-auto bg-[#0f1822] px-4 py-4 scrollbar-thin md:px-7"
+      className="telegram-wallpaper flex-1 space-y-1 overflow-y-auto px-4 py-5 scrollbar-thin md:px-7"
       style={{
-        backgroundImage: 'radial-gradient(circle at center, rgba(108,130,147,0.16) 1px, transparent 1px)',
-        backgroundSize: '36px 36px',
+        backgroundBlendMode: 'normal',
       }}
     >
       {visibleStartIndex > 0 && (
@@ -143,7 +142,7 @@ export function MessageListViewport({
               };
               setVisibleStartIndex((current) => Math.max(0, current - LOAD_MORE_COUNT));
             }}
-            className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/15"
+            className="panel-soft rounded-full px-4 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/15"
           >
             {ru.chat.messages.showEarlier}
           </button>

@@ -87,14 +87,14 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
   };
 
   return (
-    <div className="relative flex h-full bg-white dark:bg-[#0b141a] md:bg-[#101922]">
+    <div className="relative flex h-full bg-transparent text-white">
       <DesktopNavRail
         folders={folders}
         selectedFolderId={selectedFolderId}
         onSelectFolder={setSelectedFolderId}
       />
 
-      <div className="relative flex min-w-0 flex-1 flex-col md:bg-[#0f1822]">
+      <div className="relative flex min-w-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(11,20,31,0.9),rgba(10,17,28,0.92))]">
         <ChatListHeader
           isSearchOpen={isSearchOpen}
           searchQuery={searchQuery}
@@ -115,7 +115,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
           onFolderChange={setSelectedFolderId}
         />
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin bg-[#101922]">
+        <div className="flex-1 overflow-y-auto scrollbar-thin bg-[linear-gradient(180deg,rgba(11,20,31,0.46),rgba(10,17,28,0.66))] pb-24">
           <ChatSearchResults
             searchQuery={searchQuery}
             isSearchingUsers={isSearchingUsers}
@@ -124,9 +124,14 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
           />
 
           {filteredChats.length === 0 && (!searchQuery.trim() || searchQuery.length < 2) ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-[#7f96ab]">
-              <Search className="h-10 w-10 opacity-40" />
-              <p className="text-sm">Чаты не найдены</p>
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-[#7f96ab]">
+              <div className="panel-soft flex h-16 w-16 items-center justify-center rounded-[24px]">
+                <Search className="h-8 w-8 opacity-60" />
+              </div>
+              <p className="text-base font-medium text-[#d9e9f8]">Чаты не найдены</p>
+              <p className="max-w-xs text-sm leading-6 text-[#8ba4bc]">
+                Попробуйте изменить фильтр, откройте другую папку или начните новый диалог.
+              </p>
             </div>
           ) : (
             filteredChats.map((chat) => (
@@ -144,7 +149,7 @@ export default function ChatList({ onSelectChat, selectedChatId }: ChatListProps
 
         <button
           onClick={openNewPrivateChat}
-          className="absolute bottom-5 right-5 z-10 flex h-[56px] w-[56px] items-center justify-center rounded-full bg-[#3390ec] text-white shadow-lg transition hover:bg-[#2b7fd4] active:scale-95 dark:bg-[#3390ec] dark:hover:bg-[#2b7fd4]"
+          className="absolute bottom-5 right-5 z-10 flex h-[62px] w-[62px] items-center justify-center rounded-[24px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] text-white shadow-[0_18px_45px_rgba(47,140,255,0.35)] transition hover:scale-[1.02] hover:brightness-110 active:scale-95"
           title="Новое сообщение"
         >
           <Edit3 className="h-6 w-6" />

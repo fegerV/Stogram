@@ -170,8 +170,10 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   if (!currentChat) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#00a884] dark:border-[#00a884]" />
+      <div className="telegram-wallpaper flex h-full items-center justify-center">
+        <div className="panel-soft flex h-16 w-16 items-center justify-center rounded-[22px]">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/10 border-t-[#4ba3ff]" />
+        </div>
       </div>
     );
   }
@@ -187,8 +189,8 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         : 'канал';
 
   return (
-    <div className="flex h-full bg-[#0e1621]">
-      <div className="flex min-w-0 flex-1 flex-col bg-[#0f1822]">
+    <div className="flex h-full bg-transparent">
+      <div className="flex min-w-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(11,20,31,0.76),rgba(10,17,28,0.92))]">
         <ChatWindowHeader
           chatName={chatName}
           chatAvatar={chatAvatar}

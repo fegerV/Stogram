@@ -32,13 +32,13 @@ export function ChatWindowHeader({
   getInitials,
 }: ChatWindowHeaderProps) {
   return (
-    <div className="border-b border-[#21303d] bg-[#18232e] px-3 py-3 text-white shadow-sm dark:border-[#202c33] dark:bg-[#202c33] md:px-5">
-      <div className="flex items-center justify-between">
+    <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(18,29,42,0.94),rgba(15,24,35,0.88))] px-3 py-3 text-white md:px-5">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
           {onBack && (
             <button
               onClick={onBack}
-              className="flex-shrink-0 rounded-full p-1.5 transition hover:bg-white/10 md:hidden"
+              className="panel-soft flex-shrink-0 rounded-full p-2 transition hover:bg-white/10 md:hidden"
               title="Назад"
             >
               <ArrowLeft className="h-5 w-5 text-white" />
@@ -46,24 +46,24 @@ export function ChatWindowHeader({
           )}
           <button
             onClick={onOpenProfile}
-            className="flex min-w-0 items-center gap-2 rounded-2xl px-1 py-1 text-left transition hover:bg-white/10 md:gap-3"
+            className="flex min-w-0 items-center gap-3 rounded-[22px] px-1.5 py-1.5 text-left transition hover:bg-white/6"
             title="Открыть профиль"
           >
             {chatAvatar ? (
-              <img src={chatAvatar} alt={chatName} className="h-10 w-10 flex-shrink-0 rounded-full object-cover" />
+              <img src={chatAvatar} alt={chatName} className="h-11 w-11 flex-shrink-0 rounded-full object-cover ring-2 ring-white/10" />
             ) : (
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#3390ec] text-sm font-medium text-white">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] text-sm font-medium text-white shadow-[0_10px_30px_rgba(47,140,255,0.32)]">
                 {getInitials(chatName)}
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="truncate text-[16px] font-medium text-white">{chatName}</h2>
-              <p className="truncate text-xs text-white/60">{chatSubtitle}</p>
+              <h2 className="truncate text-[16px] font-semibold text-white">{chatName}</h2>
+              <p className="truncate text-xs text-[#93abc1]">{chatSubtitle}</p>
             </div>
           </button>
         </div>
 
-        <div className="flex items-center gap-1 rounded-2xl bg-white/5 px-1 py-1">
+        <div className="flex items-center gap-1 rounded-[22px] border border-white/8 bg-white/[0.035] px-1.5 py-1.5 backdrop-blur-xl">
           {hasPinnedMessage && (
             <button
               onClick={onUnpinMessage}

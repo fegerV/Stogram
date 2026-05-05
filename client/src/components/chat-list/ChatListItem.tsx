@@ -52,8 +52,10 @@ export function ChatListItem({
           onSelect(chat.id);
         }
       }}
-      className={`mx-2 my-0.5 flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3 transition-colors ${
-        selected ? 'bg-[#21384a] ring-1 ring-[#345267]' : 'hover:bg-[#172430] active:bg-[#1d2c39]'
+      className={`mx-2 my-1 flex cursor-pointer items-center gap-3 rounded-[24px] px-4 py-3 transition-all ${
+        selected
+          ? 'bg-[linear-gradient(135deg,rgba(53,94,126,0.72),rgba(28,50,68,0.94))] shadow-[0_16px_38px_rgba(5,12,22,0.28)] ring-1 ring-[#5f88ad]/40'
+          : 'hover:bg-white/[0.05] active:bg-white/[0.08]'
       }`}
     >
       <div className="relative flex-shrink-0">
@@ -61,12 +63,14 @@ export function ChatListItem({
           <img
             src={chatAvatar}
             alt={chatName}
-            className="h-[54px] w-[54px] rounded-full object-cover"
+            className="h-[54px] w-[54px] rounded-full object-cover ring-2 ring-white/10"
           />
         ) : (
           <div
-            className={`flex h-[54px] w-[54px] items-center justify-center rounded-full text-base font-medium text-white ${
-              chat.type === ChatType.GROUP ? 'bg-[#4fae4e]' : 'bg-[#3390ec]'
+            className={`flex h-[54px] w-[54px] items-center justify-center rounded-full text-base font-medium text-white shadow-[0_12px_28px_rgba(10,17,28,0.22)] ${
+              chat.type === ChatType.GROUP
+                ? 'bg-[linear-gradient(135deg,#58c27d,#30945c)]'
+                : 'bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)]'
             }`}
           >
             {chat.type === ChatType.GROUP ? <Users className="h-6 w-6" /> : getInitials(chatName)}
@@ -80,7 +84,7 @@ export function ChatListItem({
       <div className="min-w-0 flex-1 py-1.5">
         <div className="mb-0.5 flex items-center justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <h3 className="truncate text-[15px] font-semibold text-white">{chatName}</h3>
+            <h3 className="truncate text-[15px] font-semibold text-[#f5fbff]">{chatName}</h3>
           </div>
           <div className="ml-2 flex flex-shrink-0 items-center gap-1">
             {lastMessage && (
@@ -99,7 +103,7 @@ export function ChatListItem({
                   className={
                     selected
                       ? 'font-medium text-white/90'
-                      : 'font-medium text-[#3390ec] dark:text-[#6ab3f3]'
+                      : 'font-medium text-[#78bcff]'
                   }
                 >
                   {previewSender}

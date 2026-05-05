@@ -8,39 +8,33 @@ interface PinnedMessageBannerProps {
 
 export default function PinnedMessageBanner({ message, onUnpin }: PinnedMessageBannerProps) {
   const getMessagePreview = (msg: Message) => {
-    if (msg.type === 'IMAGE') return '📷 Фото';
-    if (msg.type === 'VIDEO') return '🎥 Видео';
-    if (msg.type === 'AUDIO' || msg.type === 'VOICE') return '🎤 Аудио';
-    if (msg.type === 'FILE') return '📎 ' + (msg.fileName || 'Файл');
+    if (msg.type === 'IMAGE') return 'Фото';
+    if (msg.type === 'VIDEO') return 'Видео';
+    if (msg.type === 'AUDIO' || msg.type === 'VOICE') return 'Аудио';
+    if (msg.type === 'FILE') return msg.fileName || 'Файл';
     return msg.content || '';
   };
 
   const senderName = message.sender?.displayName || message.sender?.username || 'Unknown';
 
   return (
-    <div className="px-4 py-2 bg-[#fff9c4] dark:bg-[#2a3f2a] border-b border-[#e5ddd5] dark:border-[#202c33]">
+    <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(23,36,50,0.9),rgba(19,31,44,0.8))] px-4 py-2.5">
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-0.5">
-          <Pin className="w-4 h-4 text-[#667781] dark:text-[#8696a0]" />
+        <div className="panel-soft mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl">
+          <Pin className="h-4 w-4 text-[#8cc6ff]" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[#3390ec] dark:text-[#6ab3f3]">
-            Закреплено
-          </p>
-          <p className="text-xs text-[#667781] dark:text-[#8696a0] truncate">
-            {senderName}
-          </p>
-          <p className="text-sm text-[#111b21] dark:text-[#e9edef] truncate">
-            {getMessagePreview(message)}
-          </p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#84c2ff]">Закреплено</p>
+          <p className="truncate text-xs text-[#93abc1]">{senderName}</p>
+          <p className="truncate text-sm text-white">{getMessagePreview(message)}</p>
         </div>
         {onUnpin && (
           <button
             onClick={onUnpin}
-            className="flex-shrink-0 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition"
+            className="panel-soft flex-shrink-0 rounded-full p-1.5 transition hover:bg-white/10"
             title="Открепить"
           >
-            <X className="w-4 h-4 text-[#667781] dark:text-[#8696a0]" />
+            <X className="h-4 w-4 text-[#9db7cf]" />
           </button>
         )}
       </div>

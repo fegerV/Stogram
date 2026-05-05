@@ -39,22 +39,23 @@ function MessageBubbleComponent({
   return (
     <div
       id={`message-${message.id}`}
-      className={`mb-1 flex transition ${isOwn ? 'justify-end' : 'justify-start'}`}
+      className={`mb-1.5 flex transition ${isOwn ? 'justify-end' : 'justify-start'}`}
       onContextMenu={(event) => onMessageContextMenu(event, message.id)}
     >
       <div
-        className={`max-w-[70%] px-3 py-2 xl:max-w-[56%] ${
+        className={`max-w-[78%] border px-3.5 py-2.5 shadow-[0_12px_30px_rgba(6,12,20,0.18)] xl:max-w-[58%] ${
           isOwn
-            ? 'rounded-lg rounded-tr-none bg-[#d9fdd3] text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]'
-            : 'rounded-lg rounded-tl-none bg-white text-[#111b21] shadow-sm dark:bg-[#202c33] dark:text-[#e9edef]'
+            ? 'border-[#6fe0b2]/20 text-[#10211b] dark:text-[#e9edef]'
+            : 'border-white/10 text-[#111b21] dark:text-[#e9edef]'
         }`}
         style={{
+          background: isOwn ? 'var(--app-bubble-own-dark)' : 'var(--app-bubble-peer-dark)',
           borderRadius: isOwn ? '7.5px 7.5px 0 7.5px' : '7.5px 7.5px 7.5px 0',
         }}
       >
         {message.isForwarded && (
-          <div className="mb-1 border-b border-[#667781]/20 pb-1 dark:border-[#8696a0]/20">
-            <p className="flex items-center gap-1 text-xs text-[#667781] dark:text-[#8696a0]">
+          <div className="mb-1 border-b border-white/10 pb-1">
+            <p className="flex items-center gap-1 text-xs text-[#d2e3f2]/70">
               <Forward className="h-3 w-3" />
               {ru.chat.messages.forwarded}
             </p>
@@ -62,7 +63,7 @@ function MessageBubbleComponent({
         )}
 
         {!isOwn && currentChatType !== ChatType.PRIVATE && (
-          <p className="mb-0.5 text-xs font-semibold text-[#3390ec] dark:text-[#53bdeb]">
+          <p className="mb-0.5 text-xs font-semibold text-[#84c2ff]">
             {message.bot?.displayName ||
               message.bot?.username ||
               message.sender.displayName ||
@@ -72,7 +73,7 @@ function MessageBubbleComponent({
 
         <MessageAttachment message={message} />
 
-        {message.content && <p className="break-words text-[15px] leading-[1.4]">{message.content}</p>}
+        {message.content && <p className="break-words text-[15px] leading-[1.45]">{message.content}</p>}
 
         {message.linkPreview && typeof message.linkPreview === 'object' && (
           <div className="mt-2">
@@ -87,10 +88,10 @@ function MessageBubbleComponent({
         )}
 
         <div className={`mt-0.5 flex items-center gap-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
-          <span className="text-xs text-[#667781] dark:text-[#8696a0]">
+          <span className="text-xs text-[#d2e3f2]/70">
             {formatMessageTime(message.createdAt)}
           </span>
-          {message.isEdited && <span className="text-xs text-[#667781] dark:text-[#8696a0]">({ru.chat.messages.edited})</span>}
+          {message.isEdited && <span className="text-xs text-[#d2e3f2]/70">({ru.chat.messages.edited})</span>}
           {isOwn && <MessageStatus status={deliveryStatus} isOwn />}
         </div>
       </div>

@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, Mail, MessageCircle, User, UserCircle } from 'lucide-react';
+import { Lock, Mail, MessageCircle, Sparkles, User, UserCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useAuthStore } from '../store/authStore';
+
+function AuthHint({ label }: { label: string }) {
+  return (
+    <div className="panel-soft rounded-full px-3 py-2 text-xs font-medium text-[#d7ebff]">
+      {label}
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -47,126 +55,159 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 via-cyan-600 to-slate-900 px-4 py-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sky-400/10 blur-3xl" />
-      </div>
+    <div className="app-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+      <div className="floating-orb left-[-90px] top-[-80px] h-72 w-72 bg-[#4ba3ff]/20" />
+      <div className="floating-orb bottom-[-120px] right-[-80px] h-80 w-80 bg-[#61d394]/10" />
 
-      <div className="relative z-10 w-full max-w-md rounded-[32px] border border-white/15 bg-white/95 p-8 shadow-2xl backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/95">
-        <div className="mb-5 flex justify-end">
-          <ThemeToggle />
+      <div className="relative z-10 grid w-full max-w-6xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="panel-glass-strong relative w-full rounded-[36px] p-6 shadow-[0_28px_80px_rgba(3,9,17,0.42)] md:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="lg:hidden">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] text-white shadow-[0_16px_38px_rgba(47,140,255,0.35)]">
+                <MessageCircle className="h-6 w-6" />
+              </div>
+            </div>
+            <ThemeToggle />
+          </div>
+
+          <h1 className="text-3xl font-semibold tracking-tight text-white">Создать аккаунт</h1>
+          <p className="mt-2 text-sm leading-6 text-[#9cb4ca]">
+            Присоединяйтесь к Stogram и сразу получайте PWA-мессенджер с аккуратным мобильным интерфейсом.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#d8ebff]">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f9bb5]" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-[24px] border border-white/10 bg-white/[0.045] py-3.5 pl-12 pr-4 text-white transition placeholder:text-[#7f9bb5] focus:border-[#4ba3ff]/40 focus:outline-none focus:ring-2 focus:ring-[#4ba3ff]/30"
+                  placeholder="you@example.com"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#d8ebff]">Имя пользователя</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f9bb5]" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="w-full rounded-[24px] border border-white/10 bg-white/[0.045] py-3.5 pl-12 pr-4 text-white transition placeholder:text-[#7f9bb5] focus:border-[#4ba3ff]/40 focus:outline-none focus:ring-2 focus:ring-[#4ba3ff]/30"
+                  placeholder="username"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#d8ebff]">Отображаемое имя</label>
+              <div className="relative">
+                <UserCircle className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f9bb5]" />
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  className="w-full rounded-[24px] border border-white/10 bg-white/[0.045] py-3.5 pl-12 pr-4 text-white transition placeholder:text-[#7f9bb5] focus:border-[#4ba3ff]/40 focus:outline-none focus:ring-2 focus:ring-[#4ba3ff]/30"
+                  placeholder="Как вас показывать в Stogram"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[#d8ebff]">Пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f9bb5]" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full rounded-[24px] border border-white/10 bg-white/[0.045] py-3.5 pl-12 pr-4 text-white transition placeholder:text-[#7f9bb5] focus:border-[#4ba3ff]/40 focus:outline-none focus:ring-2 focus:ring-[#4ba3ff]/30"
+                    placeholder="Минимум 8 символов"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[#d8ebff]">Подтвердите пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7f9bb5]" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="w-full rounded-[24px] border border-white/10 bg-white/[0.045] py-3.5 pl-12 pr-4 text-white transition placeholder:text-[#7f9bb5] focus:border-[#4ba3ff]/40 focus:outline-none focus:ring-2 focus:ring-[#4ba3ff]/30"
+                    placeholder="Повторите пароль"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-[24px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] py-3.5 font-semibold text-white shadow-[0_18px_45px_rgba(47,140,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoading ? 'Создаем аккаунт…' : 'Создать аккаунт'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-[#9cb4ca]">
+            Уже есть аккаунт?{' '}
+            <Link to="/login" className="font-semibold text-[#84c2ff] transition hover:text-white">
+              Войти
+            </Link>
+          </p>
         </div>
 
-        <div className="mb-8 flex items-center justify-center">
-          <div className="rounded-[28px] bg-gradient-to-br from-[#3390ec] to-cyan-500 p-4 text-white shadow-lg">
-            <MessageCircle className="h-10 w-10" />
+        <div className="panel-glass-strong hidden min-h-[720px] flex-col justify-between rounded-[36px] p-10 text-white lg:flex">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[22px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] shadow-[0_16px_38px_rgba(47,140,255,0.35)]">
+                <Sparkles className="h-7 w-7" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-[#8da4bb]">New account</p>
+                <h2 className="text-3xl font-semibold tracking-tight">Создайте свой визуально цельный мессенджер-опыт</h2>
+              </div>
+            </div>
+
+            <p className="mt-8 max-w-xl text-base leading-7 text-[#a5bfd5]">
+              После регистрации пользователь сразу попадает в современный интерфейс с папками, быстрым поиском и PWA-установкой.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <AuthHint label="Telegram-like layout" />
+              <AuthHint label="Чистый мобильный ритм" />
+              <AuthHint label="Готово к установке как app" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="panel-soft rounded-[28px] p-5">
+              <p className="text-sm font-semibold text-white">Быстрый старт</p>
+              <p className="mt-2 text-sm leading-6 text-[#9cb4ca]">
+                Регистрация укладывается в один экран и не перегружает пользователя лишними шагами.
+              </p>
+            </div>
+            <div className="panel-soft rounded-[28px] p-5">
+              <p className="text-sm font-semibold text-white">Готово к росту</p>
+              <p className="mt-2 text-sm leading-6 text-[#9cb4ca]">
+                После входа уже доступны чаты, папки, закрепы, уведомления и дальнейшая PWA-полировка.
+              </p>
+            </div>
           </div>
         </div>
-
-        <h1 className="mb-2 text-center text-4xl font-bold text-slate-900 dark:text-white">Создать аккаунт</h1>
-        <p className="mb-8 text-center text-slate-500 dark:text-slate-400">
-          Присоединяйтесь к Stogram и начните общаться
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="you@example.com"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Имя пользователя
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="username"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Отображаемое имя
-            </label>
-            <div className="relative">
-              <UserCircle className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Как вас показывать в Stogram"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Пароль</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Минимум 8 символов"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Подтвердите пароль
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-[#3390ec] dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Повторите пароль"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-2xl bg-[#3390ec] py-3 font-semibold text-white transition hover:bg-[#2c83d9] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? 'Создаём аккаунт...' : 'Создать аккаунт'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-slate-500 dark:text-slate-400">
-          Уже есть аккаунт?{' '}
-          <Link to="/login" className="font-semibold text-[#3390ec] transition hover:text-[#2c83d9]">
-            Войти
-          </Link>
-        </p>
       </div>
     </div>
   );

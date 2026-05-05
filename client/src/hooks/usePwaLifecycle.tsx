@@ -8,6 +8,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+const toastCardClassName =
+  'panel-glass-strong flex max-w-sm items-center gap-3 rounded-[24px] px-4 py-3 text-slate-100 shadow-2xl';
+
 export const usePwaLifecycle = (isAuthenticated: boolean) => {
   const installPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const installToastRef = useRef<string | null>(null);
@@ -66,34 +69,37 @@ export const usePwaLifecycle = (isAuthenticated: boolean) => {
         return;
       }
 
-      installToastRef.current = toast.custom((toastInstance) => (
-        <div className="flex max-w-sm items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 shadow-2xl">
-          <div className="flex-1">
-            <div className="text-sm font-semibold">Установить Stogram</div>
-            <div className="text-xs text-slate-400">
-              Приложение откроется как отдельное окно и будет удобнее работать даже без сети.
+      installToastRef.current = toast.custom(
+        (toastInstance) => (
+          <div className={toastCardClassName}>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-white">Установить Stogram</div>
+              <div className="text-xs text-[#9cb2c7]">
+                Приложение откроется как отдельное окно и будет удобнее работать даже без сети.
+              </div>
             </div>
+            <button
+              className="rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] px-3 py-1 text-sm font-medium text-white"
+              onClick={async () => {
+                const deferredPrompt = installPromptRef.current;
+                toast.dismiss(toastInstance.id);
+                installToastRef.current = null;
+
+                if (!deferredPrompt) {
+                  return;
+                }
+
+                await deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                installPromptRef.current = null;
+              }}
+            >
+              Установить
+            </button>
           </div>
-          <button
-            className="rounded-full bg-[#3390ec] px-3 py-1 text-sm font-medium text-white"
-            onClick={async () => {
-              const deferredPrompt = installPromptRef.current;
-              toast.dismiss(toastInstance.id);
-              installToastRef.current = null;
-
-              if (!deferredPrompt) {
-                return;
-              }
-
-              await deferredPrompt.prompt();
-              await deferredPrompt.userChoice;
-              installPromptRef.current = null;
-            }}
-          >
-            Установить
-          </button>
-        </div>
-      ), { duration: Infinity });
+        ),
+        { duration: Infinity },
+      );
     };
 
     const handleOfflineReady = () => {
@@ -105,26 +111,27 @@ export const usePwaLifecycle = (isAuthenticated: boolean) => {
         return;
       }
 
-      updateToastRef.current = toast.custom((toastInstance) => (
-        <div className="flex max-w-sm items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 shadow-2xl">
-          <div className="flex-1">
-            <div className="text-sm font-semibold">Доступно обновление</div>
-            <div className="text-xs text-slate-400">
-              Перезагрузи приложение, чтобы включить новую версию.
+      updateToastRef.current = toast.custom(
+        (toastInstance) => (
+          <div className={toastCardClassName}>
+            <div className="flex-1">
+              <div className="text-sm font-semibold text-white">Доступно обновление</div>
+              <div className="text-xs text-[#9cb2c7]">Перезагрузите приложение, чтобы включить новую версию.</div>
             </div>
+            <button
+              className="rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] px-3 py-1 text-sm font-medium text-white"
+              onClick={() => {
+                toast.dismiss(toastInstance.id);
+                updateToastRef.current = null;
+                window.location.reload();
+              }}
+            >
+              Обновить
+            </button>
           </div>
-          <button
-            className="rounded-full bg-[#3390ec] px-3 py-1 text-sm font-medium text-white"
-            onClick={() => {
-              toast.dismiss(toastInstance.id);
-              updateToastRef.current = null;
-              window.location.reload();
-            }}
-          >
-            Обновить
-          </button>
-        </div>
-      ), { duration: Infinity });
+        ),
+        { duration: Infinity },
+      );
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
