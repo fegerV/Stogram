@@ -72,7 +72,7 @@ export default function RegisterPage() {
 
           <h1 className="text-3xl font-semibold tracking-tight text-white">Создать аккаунт</h1>
           <p className="mt-2 text-sm leading-6 text-[#9cb4ca]">
-            Присоединяйтесь к Stogram и сразу получайте PWA-мессенджер с аккуратным мобильным интерфейсом.
+            Подключайтесь к Stogram и открывайте переписку в красивом PWA-интерфейсе с мобильным ритмом и быстрым доступом к чатам.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -158,7 +158,7 @@ export default function RegisterPage() {
               disabled={isLoading}
               className="w-full rounded-[24px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] py-3.5 font-semibold text-white shadow-[0_18px_45px_rgba(47,140,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isLoading ? 'Создаем аккаунт…' : 'Создать аккаунт'}
+              {isLoading ? 'Создаем аккаунт...' : 'Создать аккаунт'}
             </button>
           </form>
 
@@ -178,18 +178,18 @@ export default function RegisterPage() {
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-[#8da4bb]">New account</p>
-                <h2 className="text-3xl font-semibold tracking-tight">Создайте свой визуально цельный мессенджер-опыт</h2>
+                <h2 className="text-3xl font-semibold tracking-tight">Вход в приложение должен ощущаться легко и ясно</h2>
               </div>
             </div>
 
             <p className="mt-8 max-w-xl text-base leading-7 text-[#a5bfd5]">
-              После регистрации пользователь сразу попадает в современный интерфейс с папками, быстрым поиском и PWA-установкой.
+              После регистрации пользователь сразу попадает в современный интерфейс с папками, быстрым поиском и установкой как PWA.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
               <AuthHint label="Telegram-like layout" />
               <AuthHint label="Чистый мобильный ритм" />
-              <AuthHint label="Готово к установке как app" />
+              <AuthHint label="Готово к установке как приложение" />
             </div>
           </div>
 

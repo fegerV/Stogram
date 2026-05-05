@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { clearAuthTokens, getAccessToken, getRefreshToken, refreshAccessToken } from '../utils/authTokens';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : '');
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,

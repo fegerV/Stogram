@@ -25,6 +25,22 @@
   .highlight {
     animation: highlight-pulse 2s ease-in-out;
   }
+
+  .animate-fade-in {
+    animation: fade-in 220ms ease-out;
+  }
+
+  .animate-sheet-left {
+    animation: sheet-left 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .animate-sheet-right {
+    animation: sheet-right 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .animate-panel-up {
+    animation: panel-up 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
   
   @keyframes highlight-pulse {
     0% {
@@ -35,6 +51,48 @@
     }
     100% {
       background-color: transparent;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes sheet-left {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes sheet-right {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes panel-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 }

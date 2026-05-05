@@ -167,11 +167,11 @@ function UserSettingsContent({ onClose }: UserSettingsProps) {
       }}
     >
       <div
-        className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 sm:items-center sm:p-4"
+        className="fixed inset-0 z-50 flex items-stretch justify-center bg-black/55 animate-fade-in sm:items-center sm:p-4"
         onClick={onClose}
       >
         <div
-          className={`flex h-full w-full flex-col overflow-hidden bg-white dark:bg-[#0b141a] sm:h-[min(92vh,860px)] sm:rounded-[28px] sm:shadow-2xl ${
+          className={`animate-panel-up flex h-full w-full flex-col overflow-hidden panel-glass-strong sm:h-[min(92vh,860px)] sm:rounded-[32px] sm:shadow-[0_32px_80px_rgba(3,9,17,0.44)] ${
             isRootSettingsView ? 'sm:max-w-[420px]' : 'sm:max-w-[1120px] lg:flex-row'
           }`}
           onClick={(event) => event.stopPropagation()}
@@ -405,10 +405,10 @@ function UserSettingsContent({ onClose }: UserSettingsProps) {
             </Suspense>
           )}
           {showFolderModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-[#17212b]">
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-[#202c33]">
-                  <h3 className="text-[17px] font-semibold text-[#222] dark:text-white">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 animate-fade-in">
+              <div className="animate-panel-up panel-glass-strong w-full max-w-md rounded-[28px]">
+                <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+                  <h3 className="text-[17px] font-semibold text-white">
                     {editingFolder ? t('settings.folderEdit') : t('settings.folderNew')}
                   </h3>
                   <button
@@ -416,33 +416,33 @@ function UserSettingsContent({ onClose }: UserSettingsProps) {
                       setShowFolderModal(false);
                       applyFolderFormReset();
                     }}
-                    className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-[#202b36]"
+                    className="panel-soft rounded-full p-2 hover:bg-white/10"
                   >
-                    <X className="h-4 w-4 text-[#8e8e93]" />
+                    <X className="h-4 w-4 text-[#9cb4ca]" />
                   </button>
                 </div>
                 <div className="space-y-4 p-5">
                   <div>
-                    <label className="mb-2 block text-[13px] font-medium text-[#8e8e93]">{t('settings.folderName')}</label>
+                    <label className="mb-2 block text-[13px] font-medium text-[#8fa8bf]">{t('settings.folderName')}</label>
                     <input
                       value={folderName}
                       onChange={(event) => setFolderName(event.target.value)}
                       placeholder={t('settings.folderNamePlaceholder')}
-                      className="w-full rounded-xl bg-[#efeff4] px-4 py-3 text-[15px] text-[#222] focus:outline-none focus:ring-2 focus:ring-[#3390ec] dark:bg-[#202b36] dark:text-white"
+                      className="w-full rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3 text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-[#3390ec]"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-[13px] font-medium text-[#8e8e93]">{t('settings.folderColor')}</label>
+                    <label className="mb-2 block text-[13px] font-medium text-[#8fa8bf]">{t('settings.folderColor')}</label>
                     <input
                       type="color"
                       value={folderColor}
                       onChange={(event) => setFolderColor(event.target.value)}
-                      className="h-12 w-full cursor-pointer rounded-xl bg-[#efeff4] p-1 dark:bg-[#202b36]"
+                      className="h-12 w-full cursor-pointer rounded-[20px] border border-white/10 bg-white/[0.04] p-1"
                     />
                   </div>
                   <button
                     onClick={handlePersistFolder}
-                    className="w-full rounded-xl bg-[#3390ec] py-3 font-medium text-white transition hover:bg-[#2b7fd4]"
+                    className="w-full rounded-[20px] bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] py-3 font-medium text-white transition hover:brightness-110"
                   >
                     {t('settings.folderSave')}
                   </button>

@@ -25,7 +25,7 @@ interface ChatProfileDrawerProps {
 
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-[#18242f] px-4 py-3">
+    <div className="panel-soft flex items-center justify-between rounded-[22px] px-4 py-3">
       <span className="text-sm text-[#8fa3b8]">{label}</span>
       <span className="text-sm font-medium text-white">{value}</span>
     </div>
@@ -46,7 +46,7 @@ function ActionCard({
   return (
     <button
       onClick={onClick}
-      className="rounded-2xl bg-[#18242f] px-3 py-3 text-sm font-medium text-white transition hover:bg-[#20303f]"
+      className="panel-soft rounded-[22px] px-3 py-3 text-sm font-medium text-white transition hover:bg-white/10"
     >
       <div className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full ${accentClass}`}>
         <Icon className="h-4 w-4 text-white" />
@@ -174,7 +174,7 @@ export default function ChatProfileDrawer({
     try {
       await userApi.removeContact(profileUserId);
       setContacts((prev) => prev.filter((item) => item.contactId !== profileUserId));
-      toast.success('Контакт удалён');
+      toast.success('Контакт удален');
     } catch (error: any) {
       console.error('Failed to remove contact from profile drawer:', error);
       toast.error(error?.response?.data?.error || 'Не удалось удалить контакт');
@@ -196,15 +196,15 @@ export default function ChatProfileDrawer({
 
   const panel = (
     <div
-      className={`flex h-full flex-col bg-[#111c26] text-white ${
-        isDocked ? 'w-full border-l border-[#1d2b38]' : 'w-full shadow-2xl sm:max-w-[392px]'
+      className={`flex h-full flex-col text-white ${
+        isDocked ? 'w-full border-l border-white/8 bg-[linear-gradient(180deg,rgba(13,23,34,0.96),rgba(10,18,28,0.98))]' : 'animate-sheet-right w-full panel-glass-strong sm:max-w-[400px]'
       }`}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex items-center justify-between border-b border-[#1d2b38] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-3.5">
         <div className="flex items-center gap-2">
           {!isDocked && (
-            <button onClick={onClose} className="rounded-full p-2 transition hover:bg-white/10 sm:hidden">
+            <button onClick={onClose} className="panel-soft rounded-full p-2 transition hover:bg-white/10 sm:hidden">
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
@@ -213,18 +213,18 @@ export default function ChatProfileDrawer({
             <p className="text-xs text-[#7f96ab]">Профиль, ссылки и быстрые действия</p>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-full p-2 transition hover:bg-white/10">
+        <button onClick={onClose} className="panel-soft rounded-full p-2 transition hover:bg-white/10">
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="border-b border-[#1d2b38] bg-[#172430] px-6 py-8 text-center">
+        <div className="border-b border-white/8 bg-[linear-gradient(180deg,rgba(30,49,69,0.88),rgba(17,29,42,0.92))] px-6 py-8 text-center">
           <div className="mx-auto flex w-full max-w-[240px] flex-col items-center">
             {profileAvatar ? (
-              <img src={profileAvatar} alt={title} className="h-28 w-28 rounded-full object-cover shadow-xl" />
+              <img src={profileAvatar} alt={title} className="h-28 w-28 rounded-full object-cover ring-4 ring-white/10 shadow-[0_22px_50px_rgba(7,17,27,0.3)]" />
             ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#3390ec] text-4xl font-semibold text-white shadow-xl">
+              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] text-4xl font-semibold text-white shadow-[0_22px_50px_rgba(47,140,255,0.3)]">
                 {getInitials(title)}
               </div>
             )}
@@ -234,13 +234,13 @@ export default function ChatProfileDrawer({
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             <ActionCard icon={Bell} label="Звук" accentClass="bg-[#506074]" />
-            <ActionCard icon={MessageCircle} label="Общение" accentClass="bg-[#3390ec]" />
-            <ActionCard icon={Gift} label="Подарок" accentClass="bg-[#8d6bff]" />
+            <ActionCard icon={MessageCircle} label="Общение" accentClass="bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)]" />
+            <ActionCard icon={Gift} label="Подарок" accentClass="bg-[linear-gradient(135deg,#8d6bff,#bb86fc)]" />
           </div>
         </div>
 
         <div className="space-y-4 px-4 py-4">
-          <div className="rounded-3xl bg-[#141f2a] p-4">
+          <div className="panel-soft rounded-[28px] p-4">
             <div className="mb-2 flex items-center gap-2 text-[#6bb3ff]">
               <LinkIcon className="h-4 w-4" />
               <span className="text-sm font-medium">
@@ -253,12 +253,12 @@ export default function ChatProfileDrawer({
           {chat.type === ChatType.PRIVATE && (
             <>
               <div className="grid grid-cols-3 gap-3">
-                <ActionCard icon={MessageCircle} label="Написать" accentClass="bg-[#3390ec]" />
-                <ActionCard icon={Phone} label="Звонок" accentClass="bg-[#3390ec]" onClick={() => onStartCall?.('AUDIO')} />
-                <ActionCard icon={Video} label="Видео" accentClass="bg-[#1c9b5f]" onClick={() => onStartCall?.('VIDEO')} />
+                <ActionCard icon={MessageCircle} label="Написать" accentClass="bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)]" />
+                <ActionCard icon={Phone} label="Звонок" accentClass="bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)]" onClick={() => onStartCall?.('AUDIO')} />
+                <ActionCard icon={Video} label="Видео" accentClass="bg-[linear-gradient(135deg,#33b36b,#1c9b5f)]" onClick={() => onStartCall?.('VIDEO')} />
               </div>
 
-              <div className="rounded-3xl bg-[#141f2a] p-4">
+              <div className="panel-soft rounded-[28px] p-4">
                 <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">Профиль</p>
                 <div className="space-y-3">
                   <StatRow
@@ -269,7 +269,7 @@ export default function ChatProfileDrawer({
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-[#141f2a] p-4">
+              <div className="panel-soft rounded-[28px] p-4">
                 <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">Контакты</p>
                 {isLoadingContacts ? (
                   <p className="text-sm text-[#8fa3b8]">Проверяем список контактов...</p>
@@ -286,7 +286,7 @@ export default function ChatProfileDrawer({
                   <button
                     onClick={handleAddContact}
                     disabled={isMutatingContact}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#3390ec] px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
                   >
                     <UserPlus className="h-4 w-4" />
                     Добавить в контакты
@@ -298,7 +298,7 @@ export default function ChatProfileDrawer({
 
           {chat.type !== ChatType.PRIVATE && (
             <>
-              <div className="rounded-3xl bg-[#141f2a] p-4">
+              <div className="panel-soft rounded-[28px] p-4">
                 <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">О чате</p>
                 <div className="space-y-3">
                   <StatRow label="Тип" value={chat.type === ChatType.GROUP ? 'Группа' : 'Канал'} />
@@ -306,7 +306,7 @@ export default function ChatProfileDrawer({
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-[#141f2a] p-4">
+              <div className="panel-soft rounded-[28px] p-4">
                 <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">Участники</p>
                 <div className="space-y-3">
                   {chat.members.map((member) => {
@@ -314,11 +314,11 @@ export default function ChatProfileDrawer({
                     const memberAvatar = getMediaUrl(member.user.avatar);
 
                     return (
-                      <div key={member.id} className="flex items-center gap-3 rounded-2xl bg-[#18242f] px-3 py-2.5">
+                      <div key={member.id} className="panel-soft flex items-center gap-3 rounded-[22px] px-3 py-2.5">
                         {memberAvatar ? (
-                          <img src={memberAvatar} alt={memberName} className="h-10 w-10 rounded-full object-cover" />
+                          <img src={memberAvatar} alt={memberName} className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10" />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3390ec] font-semibold text-white">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4ba3ff,#2f8cff)] font-semibold text-white">
                             {getInitials(memberName)}
                           </div>
                         )}
@@ -334,7 +334,7 @@ export default function ChatProfileDrawer({
             </>
           )}
 
-          <div className="rounded-3xl bg-[#141f2a] p-4">
+          <div className="panel-soft rounded-[28px] p-4">
             <p className="mb-3 text-xs uppercase tracking-[0.2em] text-[#7f96ab]">Медиа</p>
             <div className="space-y-3">
               <StatRow label="Фотографии" value={photoCount.toString()} />
@@ -353,7 +353,7 @@ export default function ChatProfileDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/55 animate-fade-in" onClick={onClose}>
       {panel}
     </div>
   );
