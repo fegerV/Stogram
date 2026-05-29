@@ -919,7 +919,7 @@ export default function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         <ChatSettingsDrawer
           chatId={chatId}
           chatName={chatName}
-          notificationLevel={chatSettings?.notificationLevel || 'ALL'}
+          notificationLevel={chatSettings?.notificationLevel ?? NotificationLevel.ALL}
           isMuted={chatSettings?.isMuted || false}
           onUpdateNotificationLevel={handleUpdateNotificationLevel}
           onClose={() => setShowChatSettings(false)}
