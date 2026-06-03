@@ -1,134 +1,194 @@
-# Stogram
+# Stogram 📨
 
-Stogram is a messenger project with:
+Modern PWA messenger with video/audio calls, end-to-end encryption, bot API, and Telegram integration.
 
-- `client/` - React + Vite PWA
-- `server/` - Node.js + Express + Prisma backend
-- `mobile/` - React Native client in progress
+<p align="center">
+  <img src="Stogram_logo_192.png" alt="Stogram Logo" width="192" height="192" />
+</p>
 
-The project already includes chat, folders, profile/settings flows, private calls, bot integrations, Telegram/n8n admin integrations, and an internal Bot API compatibility layer.
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-project-structure">Structure</a> •
+  <a href="#-development">Development</a>
+</p>
 
-## Current Status
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version"></a>
+  <a href="#"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+</p>
 
-- Web client: active
-- Backend API: active
-- Mobile app: in progress
-- Desktop-style web layout: active in the client
+---
 
-## Quick Start
+## ✨ Features
 
-Requirements:
+| Category | Capabilities |
+|----------|-------------|
+| 💬 **Chats & Groups** | Private chats, group chats, channels, secret chats, folders, pinned messages |
+| 📹 **Calls** | Audio/video calls (1-on-1 & group), WebRTC, screen sharing, recording |
+| 🔒 **Security** | E2E encryption (RSA-2048 + AES-256-GCM), 2FA (TOTP), rate limiting, IP blocking |
+| 🤖 **Bots** | Bot API, inline keyboards, callback queries, webhooks, n8n integration |
+| 📱 **Cross-platform** | PWA (React), mobile app (React Native – in progress), desktop (planned) |
+| 🎨 **UI** | Telegram-like design, dark/light themes, theme customizer, reactive UI |
+| ⚡ **Performance** | Redis caching, virtualized lists, lazy loading, infinite scroll |
+| 📊 **Analytics** | User analytics, bot analytics, system metrics, exportable dashboards |
+| 🔗 **Integrations** | Telegram admin bridge, n8n webhooks, webhook API with HMAC signing |
 
-- Node.js 18+
-- npm
-- PostgreSQL
+## 🚀 Quick Start
 
-Install dependencies:
+### Docker (recommended)
 
 ```bash
-npm install
-cd client && npm install
-cd ../server && npm install
+docker-compose up -d
 ```
 
-Set up environment files:
-
-- root: [`.env.example`](/c:/Project/Stogram/.env.example)
-- client: [`client/.env.example`](/c:/Project/Stogram/client/.env.example)
-- server: [`server/.env.example`](/c:/Project/Stogram/server/.env.example)
-
-Run in development:
+### Manual setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/fegerV/Stogram.git
+cd stogram
+
+# Install dependencies
+npm run install:all
+
+# Set up environment
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+
+# Run database migrations
+cd server && npx prisma migrate dev && cd ..
+
+# Start development servers
 npm run dev
 ```
 
-Build everything:
+### One-command Ubuntu install
 
 ```bash
-npm run build
+./install-ubuntu.sh --test
+./start-dev.sh
 ```
 
-## Database
+> 📖 See [docs/getting-started/installation.md](docs/getting-started/installation.md) for detailed instructions.
 
-The backend uses Prisma.
+## 🚢 Deployment
 
-Generate Prisma client:
+| Platform | Status | Guide |
+|----------|--------|-------|
+| [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new) | ✅ Supported | [docs/deployment/vercel.md](docs/deployment/vercel.md) |
+| [![Deploy to Render](https://render.com/button)](https://render.com/deploy) | ✅ Supported | [docs/deployment/render.md](docs/deployment/render.md) |
+| [![Deploy on Railway](https://railway.app/button)](https://railway.app) | ✅ Recommended | [docs/deployment/railway.md](docs/deployment/railway.md) |
+
+## 🛠 Tech Stack
+
+### Frontend (`client/`)
+- **React 18** with TypeScript
+- **Vite** for bundling
+- **TailwindCSS** for styling
+- **Zustand** for state management
+- **Socket.IO Client** for real-time
+- **Workbox** for PWA/Service Worker
+
+### Backend (`server/`)
+- **Node.js** + **Express**
+- **TypeScript**
+- **Prisma ORM** (PostgreSQL + SQLite)
+- **Socket.IO** for WebSocket
+- **Redis** for caching & pub/sub
+- **JWT** + **bcrypt** for auth
+- **Sharp** + **FFmpeg** for media processing
+
+### Mobile (`mobile/`)
+- **React Native 0.73**
+- **React Navigation**
+- **WebRTC** for calls
+
+## 📁 Project Structure
+
+```
+stogram/
+├── client/          # React PWA frontend
+│   ├── src/
+│   │   ├── components/   # UI components
+│   │   ├── pages/        # Page components
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── services/     # API & socket services
+│   │   ├── store/        # Zustand stores
+│   │   └── utils/        # Utilities
+│   └── public/           # Static assets
+├── server/          # Express backend
+│   ├── src/
+│   │   ├── controllers/  # Route handlers
+│   │   ├── middleware/    # Express middleware
+│   │   ├── routes/       # API routes
+│   │   ├── services/     # Business logic
+│   │   ├── socket/       # WebSocket handlers
+│   │   └── utils/        # Utilities
+│   └── prisma/           # Database schema & migrations
+├── mobile/          # React Native app (WIP)
+├── docs/            # Documentation
+│   ├── getting-started/
+│   ├── deployment/
+│   ├── api/
+│   └── guides/
+└── tests/           # Playwright E2E tests
+```
+
+## 📚 Documentation
+
+| Section | Contents |
+|---------|----------|
+| 📖 **Getting Started** | [Installation](docs/getting-started/installation.md), [Quick Start](docs/getting-started/quick-start.md) |
+| 🚢 **Deployment** | [Vercel](docs/deployment/vercel.md), [Render](docs/deployment/render.md), [Railway](docs/deployment/railway.md) |
+| 🔌 **API** | [Bot API](docs/api/BOT_API.md), [Telegram Integration](docs/api/TELEGRAM.md), [Chat Settings](CHAT_SETTINGS_API.md) |
+| 📱 **Mobile** | [Status](mobile/IMPLEMENTATION_STATUS.md), [Features](mobile/FEATURES_CHECKLIST.md) |
+| 🤝 **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 🔒 **Security** | [SECURITY.md](SECURITY.md) |
+| 🗺️ **Roadmap** | [ROADMAP.md](ROADMAP.md) |
+| 📋 **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
+
+## 👨‍💻 Development
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- PostgreSQL (or SQLite for development)
+- Redis (optional, for caching)
+
+### Scripts
+
+```bash
+npm run dev           # Start both client & server in dev mode
+npm run build         # Build for production
+npm run test:e2e      # Run Playwright E2E tests
+npm run docker:up     # Start Docker environment
+npm run docker:down   # Stop Docker environment
+```
+
+### Client scripts
+
+```bash
+cd client
+npm run dev           # Vite dev server (port 5173)
+npm run build         # Production build
+npm run test          # Vitest unit tests
+```
+
+### Server scripts
 
 ```bash
 cd server
-npm run prisma:generate
+npm run dev           # Dev server (port 3001)
+npm run build         # TypeScript compilation
+npm run test          # Run tests
+npm run prisma:generate  # Generate Prisma client
+npm run prisma:push      # Push schema to DB
 ```
 
-Apply schema changes locally:
+## 📄 License
 
-```bash
-cd server
-npm run prisma:push
-```
-
-For production deploys with migration history:
-
-```bash
-cd server
-npx prisma migrate deploy
-```
-
-Latest tracked migration:
-
-- [`server/prisma/migrations/0003_bot_api_compatibility/migration.sql`](/c:/Project/Stogram/server/prisma/migrations/0003_bot_api_compatibility/migration.sql)
-
-## Useful Scripts
-
-Root:
-
-- `npm run dev`
-- `npm run build`
-- `npm run test:e2e`
-
-Client:
-
-- `npm run dev`
-- `npm run build`
-- `npm run test`
-
-Server:
-
-- `npm run dev`
-- `npm run build`
-- `npm run test`
-- `npm run prisma:generate`
-- `npm run prisma:push`
-
-## Bots And Integrations
-
-Stogram currently has three integration directions:
-
-1. Internal bots via the Stogram bot API and webhook/runtime flow
-2. Telegram admin integration
-3. `n8n` integration
-
-Helpful docs:
-
-- [`BOTS_USAGE_GUIDE.md`](/c:/Project/Stogram/BOTS_USAGE_GUIDE.md)
-- [`docs/api/BOT_API.md`](/c:/Project/Stogram/docs/api/BOT_API.md)
-- [`docs/api/TELEGRAM.md`](/c:/Project/Stogram/docs/api/TELEGRAM.md)
-- [`docs/deployment/VERCEL_SETUP.md`](/c:/Project/Stogram/docs/deployment/VERCEL_SETUP.md)
-
-## Documentation
-
-Main documentation index:
-
-- [`docs/README.md`](/c:/Project/Stogram/docs/README.md)
-
-Other useful files:
-
-- [`ROADMAP.md`](/c:/Project/Stogram/ROADMAP.md)
-- [`CHANGELOG.md`](/c:/Project/Stogram/CHANGELOG.md)
-- [`INSTALLATION.md`](/c:/Project/Stogram/INSTALLATION.md)
-- [`SECURITY.md`](/c:/Project/Stogram/SECURITY.md)
-
-## Notes
-
-- The repository still contains historical reports and audit documents. They were kept, but the main entry documentation was cleaned up.
-- Some older markdown files may still contain outdated analysis snapshots; treat the new `README` and docs index as the current starting points.
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
