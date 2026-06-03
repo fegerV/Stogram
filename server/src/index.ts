@@ -11,6 +11,7 @@ import prisma from './utils/prisma';
 import { initScheduler } from './services/schedulerService';
 import { lenientIPRateLimit } from './middleware/ipRateLimit';
 import { getJwtSecret } from './utils/authConfig';
+import telegramBotService from './services/telegramBotService';
 
 dotenv.config();
 
@@ -82,6 +83,9 @@ app.use(errorHandler);
 
 initSocketHandlers(io);
 initScheduler();
+telegramBotService.initialize().catch((err) => {
+  console.error('Failed to initialize Telegram bot service:', err);
+});
 
 // Render automatically sets PORT, use it or fallback to 3001
 const PORT = Number(process.env.PORT) || 3001;

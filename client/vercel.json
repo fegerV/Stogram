@@ -1,6 +1,10 @@
 {
   "version": 2,
   "outputDirectory": "dist",
+  "env": {
+    "VITE_API_URL": "https://stogram-server.onrender.com",
+    "VITE_WS_URL": "wss://stogram-server.onrender.com"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
