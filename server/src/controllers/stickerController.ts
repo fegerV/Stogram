@@ -110,10 +110,34 @@ export const addStickerToPack = async (req: Request, res: Response) => {
   }
 };
 
-// Удалить стикер
-export const deleteSticker = async (req: Request, res: Response) => {
+// Удалить стикер (только владелец пака может удалить стикер)
+export const deleteSticker = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { stickerId } = req.params;
+
+    // Получаем стикер с информацией о паке
+    const sticker = await prisma.sticker.findUnique({
+      where: { id: stickerId },
+      include: {
+        pack: {
+          select: { creatorId: true }
+        }
+      }
+    });
+
+    if (!sticker) {
+      return res.status(404).json({ error: 'Sticker not found' });
+    }
+
+    // Проверяем, является ли пользователь владельцем пака
+    if (sticker.pack.creatorId !== userId) {
+      return res.status(403).json({ error: 'You can only delete stickers from your own packs' });
+    }
 
     await prisma.sticker.delete({
       where: { id: stickerId }

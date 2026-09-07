@@ -799,6 +799,39 @@ model N8nWebhookLog {
   @@index([deliveredAt])
 }
 
+// Модель для хранения пользовательских настроек n8n вебхуков
+model UserN8nWebhook {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  webhookUrl  String
+  events      String   // JSON array
+  enabled     Boolean  @default(true)
+  secret      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([enabled])
+}
+
+model UserN8nWebhookLog {
+  id          String   @id @default(cuid())
+  webhookId   String
+  event       String
+  payload     String
+  status      Int
+  response    String?
+  attempts    Int      @default(0)
+  deliveredAt DateTime @default(now())
+
+  @@index([webhookId])
+  @@index([event])
+  @@index([deliveredAt])
+}
+
 // Telegram Bot Models
 
 model TelegramBotConfig {
