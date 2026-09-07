@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Smile, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 
 interface Sticker {
   id: string;
@@ -34,7 +34,7 @@ export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelectSticker, o
 
   const loadStickerPacks = async () => {
     try {
-      const response = await axios.get('/api/stickers');
+      const response = await api.get('/stickers');
       setPacks(response.data);
       if (response.data.length > 0) {
         setSelectedPack(response.data[0].slug);

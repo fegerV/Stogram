@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Archive, MessageSquare, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 import { getMediaUrl } from '../utils/helpers';
 
 interface Chat {
@@ -26,10 +26,7 @@ export const ArchivedChats: React.FC<ArchivedChatsProps> = ({ onClose, onSelectC
 
   const loadArchivedChats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/chat-settings/archived/all', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get('/chat-settings/archived/all');
       setChats(response.data.chats);
     } catch (error) {
       console.error('Failed to load archived chats:', error);
@@ -41,14 +38,7 @@ export const ArchivedChats: React.FC<ArchivedChatsProps> = ({ onClose, onSelectC
   const handleUnarchive = async (chatId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `/api/chat-settings/${chatId}/unarchive`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await api.post(`/chat-settings/${chatId}/unarchive`);
       setChats((current) => current.filter((chat) => chat.id !== chatId));
     } catch (error) {
       console.error('Failed to unarchive chat:', error);
