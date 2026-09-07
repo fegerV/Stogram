@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import {
   getN8nConfig,
   saveN8nConfig,
@@ -21,13 +21,12 @@ router.post('/webhook', n8nWebhook);
 
 // All other routes require authentication
 router.use(authenticate);
-router.use(requireAdmin);
 
 // Configuration
 router.get('/config', getN8nConfig);
 router.post('/config', saveN8nConfig);
 
-// Webhooks CRUD
+// Webhooks CRUD - теперь каждый пользователь имеет свои вебхуки
 router.get('/webhooks', getWebhooks);
 router.post('/webhooks', createWebhook);
 router.put('/webhooks/:id', updateWebhook);

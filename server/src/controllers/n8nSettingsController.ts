@@ -3,6 +3,7 @@ import n8nService from '../services/n8nService';
 import prisma from '../utils/prisma';
 import { io } from '../index';
 import { validateOutgoingWebhookUrl } from '../utils/webhookValidation';
+import { AuthRequest } from '../middleware/auth';
 
 const getDistinctMemberIds = (memberIds: string[], ownerUserId: string) =>
   Array.from(
@@ -23,7 +24,7 @@ const ensureUsersExist = async (userIds: string[]) => {
   return new Set(users.map((user) => user.id));
 };
 
-// Get n8n configuration
+// Get n8n configuration (global admin config)
 export const getN8nConfig = async (req: Request, res: Response) => {
   try {
     const config = await n8nService.getConfigSettings();
@@ -34,7 +35,7 @@ export const getN8nConfig = async (req: Request, res: Response) => {
   }
 };
 
-// Save n8n configuration
+// Save n8n configuration (global admin config)
 export const saveN8nConfig = async (req: Request, res: Response) => {
   try {
     const { webhookUrl, apiKey, enabled } = req.body;
@@ -46,10 +47,18 @@ export const saveN8nConfig = async (req: Request, res: Response) => {
   }
 };
 
-// Get all webhooks
-export const getWebhooks = async (req: Request, res: Response) => {
+// Get all user webhooks (with ownership check)
+export const getWebhooks = async (req: AuthRequest, res: Response) => {
   try {
-    const webhooks = await n8nService.getWebhooks();
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const webhooks = await prisma.userN8nWebhook.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
     res.json({ webhooks });
   } catch (error) {
     console.error('Error getting webhooks:', error);
@@ -57,9 +66,14 @@ export const getWebhooks = async (req: Request, res: Response) => {
   }
 };
 
-// Create webhook
-export const createWebhook = async (req: Request, res: Response) => {
+// Create webhook (user-specific with ownership)
+export const createWebhook = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { name, webhookUrl, events, secret } = req.body;
 
     if (!name || !webhookUrl || !events || !Array.isArray(events)) {
@@ -71,7 +85,16 @@ export const createWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: urlValidation.error });
     }
 
-    const webhook = await n8nService.createWebhook({ name, webhookUrl, events, secret });
+    const webhook = await prisma.userN8nWebhook.create({
+      data: {
+        userId,
+        name,
+        webhookUrl,
+        events: JSON.stringify(events),
+        secret,
+        enabled: true,
+      },
+    });
     res.status(201).json(webhook);
   } catch (error) {
     console.error('Error creating webhook:', error);
@@ -79,11 +102,30 @@ export const createWebhook = async (req: Request, res: Response) => {
   }
 };
 
-// Update webhook
-export const updateWebhook = async (req: Request, res: Response) => {
+// Update webhook (with ownership check)
+export const updateWebhook = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { id } = req.params;
     const { name, webhookUrl, events, secret, enabled } = req.body;
+
+    // Проверяем, принадлежит ли вебхук пользователю
+    const existingWebhook = await prisma.userN8nWebhook.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingWebhook) {
+      return res.status(404).json({ error: 'Webhook not found' });
+    }
+
+    if (existingWebhook.userId !== userId) {
+      return res.status(403).json({ error: 'You can only update your own webhooks' });
+    }
 
     if (webhookUrl !== undefined) {
       const urlValidation = validateOutgoingWebhookUrl(webhookUrl);
@@ -92,7 +134,16 @@ export const updateWebhook = async (req: Request, res: Response) => {
       }
     }
 
-    const webhook = await n8nService.updateWebhook(id, { name, webhookUrl, events, secret, enabled });
+    const webhook = await prisma.userN8nWebhook.update({
+      where: { id },
+      data: {
+        name: name ?? undefined,
+        webhookUrl: webhookUrl ?? undefined,
+        events: events ? JSON.stringify(events) : undefined,
+        secret: secret ?? undefined,
+        enabled: enabled ?? undefined,
+      },
+    });
     res.json(webhook);
   } catch (error: any) {
     console.error('Error updating webhook:', error);
@@ -103,11 +154,33 @@ export const updateWebhook = async (req: Request, res: Response) => {
   }
 };
 
-// Delete webhook
-export const deleteWebhook = async (req: Request, res: Response) => {
+// Delete webhook (with ownership check)
+export const deleteWebhook = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { id } = req.params;
-    await n8nService.deleteWebhook(id);
+
+    // Проверяем, принадлежит ли вебхук пользователю
+    const existingWebhook = await prisma.userN8nWebhook.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingWebhook) {
+      return res.status(404).json({ error: 'Webhook not found' });
+    }
+
+    if (existingWebhook.userId !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own webhooks' });
+    }
+
+    await prisma.userN8nWebhook.delete({
+      where: { id },
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting webhook:', error);
@@ -116,7 +189,12 @@ export const deleteWebhook = async (req: Request, res: Response) => {
 };
 
 // Test webhook
-export const testWebhook = async (req: Request, res: Response) => {
+export const testWebhook = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
   try {
     const { webhookUrl, secret, apiKey } = req.body;
 
@@ -145,13 +223,37 @@ export const testWebhook = async (req: Request, res: Response) => {
   }
 };
 
-// Get webhook logs
-export const getWebhookLogs = async (req: Request, res: Response) => {
+// Get webhook logs (with ownership check)
+export const getWebhookLogs = async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { id } = req.params;
     const { limit } = req.query;
 
-    const logs = await n8nService.getWebhookLogs(id, limit ? parseInt(limit as string) : 50);
+    // Проверяем, принадлежит ли вебхук пользователю
+    const webhook = await prisma.userN8nWebhook.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook not found' });
+    }
+
+    if (webhook.userId !== userId) {
+      return res.status(403).json({ error: 'You can only view logs for your own webhooks' });
+    }
+
+    // Получаем логи из таблицы UserN8nWebhookLog
+    const logs = await prisma.userN8nWebhookLog.findMany({
+      where: { webhookId: id },
+      orderBy: { deliveredAt: 'desc' },
+      take: limit ? parseInt(limit as string) : 50,
+    });
     res.json({ logs });
   } catch (error) {
     console.error('Error getting webhook logs:', error);
