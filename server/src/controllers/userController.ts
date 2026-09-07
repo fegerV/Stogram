@@ -52,10 +52,12 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
 
 export const getUserById = async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const targetUserId = req.params.userId;
+    const currentUserId = req.userId!;
 
+    // Получаем настройки приватности целевого пользователя
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       select: {
         id: true,
         username: true,
@@ -65,6 +67,9 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
         status: true,
         lastSeen: true,
         createdAt: true,
+        showOnlineStatus: true,
+        showProfilePhoto: true,
+        showLastSeen: true,
       },
     });
 
@@ -72,7 +77,47 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    // Если пользователь запрашивает свой собственный профиль - возвращаем всё
+    if (targetUserId === currentUserId) {
+      const { showOnlineStatus, showProfilePhoto, showLastSeen, ...publicUser } = user;
+      return res.json(publicUser);
+    }
+
+    // Проверяем, являются ли пользователи контактами
+    const contact = await prisma.contact.findFirst({
+      where: {
+        userId: currentUserId,
+        contactId: targetUserId,
+      },
+    });
+
+    const isContact = !!contact;
+
+    // Применяем настройки приватности
+    const resultUser: any = {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      bio: user.bio,
+      createdAt: user.createdAt,
+    };
+
+    // Показываем аватар только если разрешено или это контакт
+    if (user.showProfilePhoto || isContact) {
+      resultUser.avatar = user.avatar;
+    }
+
+    // Показываем статус только если разрешено или это контакт
+    if (user.showOnlineStatus || isContact) {
+      resultUser.status = user.status;
+    }
+
+    // Показываем lastSeen только если разрешено или это контакт
+    if (user.showLastSeen || isContact) {
+      resultUser.lastSeen = user.lastSeen;
+    }
+
+    res.json(resultUser);
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });

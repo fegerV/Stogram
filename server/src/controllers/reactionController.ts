@@ -149,6 +149,29 @@ export const removeReaction = async (req: AuthRequest, res: Response) => {
 export const getReactions = async (req: AuthRequest, res: Response) => {
   try {
     const { messageId } = req.params;
+    const userId = req.userId!;
+
+    // Получаем сообщение с информацией о чате
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        chat: {
+          include: {
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Проверяем, является ли пользователь членом чата
+    const isMember = message.chat.members.some((m: { userId: string }) => m.userId === userId);
+    if (!isMember) {
+      return res.status(403).json({ error: 'Access denied. You must be a member of the chat to view reactions' });
+    }
 
     const reactions = await prisma.reaction.findMany({
       where: { messageId },
