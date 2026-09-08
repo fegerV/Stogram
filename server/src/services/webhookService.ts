@@ -21,7 +21,8 @@ const parseWebhookEvents = (rawEvents?: string | null) => {
   try {
     const parsed = JSON.parse(rawEvents);
     return Array.isArray(parsed) ? parsed.map((event) => String(event)) : [];
-  } catch {
+  } catch (error) {
+    console.error('Failed to parse webhook events:', error);
     return [];
   }
 };
