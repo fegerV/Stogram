@@ -2,26 +2,28 @@
 # Dependencies
 node_modules/
 
-# Build outputs
-dist/
-build/
-*.js.map
-*.tsbuildinfo
+# Prisma
+server/prisma/migrations/
+server/prisma/schema.prisma.bak
 
 # Environment
 .env
 .env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
+.env.*
 
 # Logs
 *.log
 
-# Temp files
+# Temporary files
 *.tmp
+*.swp
+
+# IDE
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+target/
 ```

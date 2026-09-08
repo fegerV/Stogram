@@ -66,6 +66,7 @@ model User {
   sessions               UserSession[]
   themes                 UserTheme[]
   readMessages           MessageRead[]
+  n8nWebhooks            UserN8nWebhook[]
 
   @@index([email])
   @@index([username])
@@ -102,6 +103,7 @@ model Chat {
   encryptionKeyId String?
   encryptionType  String?             @default("none")
   pinnedMessageId String?             @unique
+  permissions     Json?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   calls           Call[]
@@ -112,6 +114,7 @@ model Chat {
   messages        Message[]
   pinnedMessages  PinnedMessage[]
   pinnedMessage   Message?            @relation(fields: [pinnedMessageId], references: [id], onDelete: SetNull, name: "ChatPinnedMessage")
+  inviteLinks     ChatInviteLink[]
 
   @@index([type])
   @@index([isSecret])
@@ -123,6 +126,9 @@ model ChatMember {
   chatId   String
   role     MemberRole @default(MEMBER)
   joinedAt DateTime   @default(now())
+  mutedUntil DateTime?
+  permissions Json?
+  adminPermissions Json?
   chat     Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -394,6 +400,8 @@ model Bot {
   apiUpdates       BotApiUpdate[]
   messages         Message[]
   webhooks         Webhook[]
+  callbackAnswers  BotCallbackAnswer[]
+  inlineResults    BotInlineResult[]
 
   @@index([token])
   @@index([username])
@@ -887,4 +895,59 @@ model SearchHistory {
 
   @@index([userId, createdAt])
   @@index([userId])
+}
+
+// Enhanced Bot API Models
+
+model BotCallbackAnswer {
+  id              String   @id @default(cuid())
+  botId           String
+  callbackQueryId String
+  text            String?
+  showAlert       Boolean  @default(false)
+  url             String?
+  cacheTime       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  bot             Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+  @@index([callbackQueryId])
+}
+
+model BotInlineResult {
+  id              String   @id @default(cuid())
+  botId           String
+  inlineQueryId   String
+  results         String   // JSON array
+  cacheTime       Int      @default(300)
+  isPersonal      Boolean  @default(false)
+  nextOffset      String?
+  button          String?  // JSON
+  createdAt       DateTime @default(now())
+
+  bot             Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+  @@index([inlineQueryId])
+}
+
+model ChatInviteLink {
+  id                String    @id @default(cuid())
+  chatId            String
+  inviteCode        String    @unique
+  name              String?
+  expiresAt         DateTime?
+  maxUses           Int?
+  usedCount         Int       @default(0)
+  createsJoinRequest Boolean  @default(false)
+  revokedAt         DateTime?
+  createdBy         String
+  createdAt         DateTime  @default(now())
+
+  chat              Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([inviteCode])
+  @@index([revokedAt])
 }
