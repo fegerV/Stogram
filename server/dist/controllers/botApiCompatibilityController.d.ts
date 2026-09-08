@@ -1,0 +1,20 @@
+import { Request, Response } from 'express';
+export declare const getMe: (req: Request, res: Response) => Promise<void>;
+export declare const setWebhook: (req: Request, res: Response) => Promise<void>;
+export declare const deleteWebhook: (req: Request, res: Response) => Promise<void>;
+export declare const getWebhookInfo: (req: Request, res: Response) => Promise<void>;
+export declare const getUpdates: (req: Request, res: Response) => Promise<void>;
+export declare const setMyCommands: (req: Request, res: Response) => Promise<void>;
+export declare const getMyCommands: (req: Request, res: Response) => Promise<void>;
+export declare const setChatMenuButton: (req: Request, res: Response) => Promise<void>;
+export declare const getChatMenuButton: (req: Request, res: Response) => Promise<void>;
+export declare const sendMessage: (req: Request, res: Response) => Promise<void>;
+export declare const sendPhoto: (req: Request, res: Response) => Promise<void>;
+export declare const sendDocument: (req: Request, res: Response) => Promise<void>;
+export declare const sendVideo: (req: Request, res: Response) => Promise<void>;
+export declare const sendAudio: (req: Request, res: Response) => Promise<void>;
+export declare const editMessageText: (req: Request, res: Response) => Promise<void>;
+export declare const deleteMessage: (req: Request, res: Response) => Promise<void>;
+export declare const answerCallbackQuery: (req: Request, res: Response) => Promise<void>;
+export declare const answerInlineQuery: (req: Request, res: Response) => Promise<void>;
+//# sourceMappingURL=botApiCompatibilityController.d.ts.map

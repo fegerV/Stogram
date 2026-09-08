@@ -1,0 +1,30 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const botApiCompatibilityController_1 = require("../controllers/botApiCompatibilityController");
+const router = express_1.default.Router();
+router.get('/bot:token/getMe', botApiCompatibilityController_1.getMe);
+router.post('/bot:token/getMe', botApiCompatibilityController_1.getMe);
+router.get('/bot:token/getWebhookInfo', botApiCompatibilityController_1.getWebhookInfo);
+router.post('/bot:token/setWebhook', botApiCompatibilityController_1.setWebhook);
+router.post('/bot:token/deleteWebhook', botApiCompatibilityController_1.deleteWebhook);
+router.get('/bot:token/getUpdates', botApiCompatibilityController_1.getUpdates);
+router.post('/bot:token/getUpdates', botApiCompatibilityController_1.getUpdates);
+router.get('/bot:token/getMyCommands', botApiCompatibilityController_1.getMyCommands);
+router.post('/bot:token/setMyCommands', botApiCompatibilityController_1.setMyCommands);
+router.get('/bot:token/getChatMenuButton', botApiCompatibilityController_1.getChatMenuButton);
+router.post('/bot:token/setChatMenuButton', botApiCompatibilityController_1.setChatMenuButton);
+router.post('/bot:token/sendMessage', botApiCompatibilityController_1.sendMessage);
+router.post('/bot:token/sendPhoto', botApiCompatibilityController_1.sendPhoto);
+router.post('/bot:token/sendDocument', botApiCompatibilityController_1.sendDocument);
+router.post('/bot:token/sendVideo', botApiCompatibilityController_1.sendVideo);
+router.post('/bot:token/sendAudio', botApiCompatibilityController_1.sendAudio);
+router.post('/bot:token/editMessageText', botApiCompatibilityController_1.editMessageText);
+router.post('/bot:token/deleteMessage', botApiCompatibilityController_1.deleteMessage);
+router.post('/bot:token/answerCallbackQuery', botApiCompatibilityController_1.answerCallbackQuery);
+router.post('/bot:token/answerInlineQuery', botApiCompatibilityController_1.answerInlineQuery);
+exports.default = router;
+//# sourceMappingURL=botApiCompatibility.js.map

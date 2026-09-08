@@ -1,0 +1,630 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const crypto_1 = __importDefault(require("crypto"));
+const node_telegram_bot_api_1 = __importDefault(require("node-telegram-bot-api"));
+const prisma_1 = __importDefault(require("../utils/prisma"));
+const telegramBotTexts_1 = require("./telegramBotTexts");
+const resolveSecretValue = (incomingValue, existingValue) => {
+    if (typeof incomingValue !== 'string') {
+        return existingValue ?? undefined;
+    }
+    const trimmedValue = incomingValue.trim();
+    if (!trimmedValue) {
+        return existingValue ?? undefined;
+    }
+    if (existingValue && trimmedValue === `***${existingValue.slice(-4)}`) {
+        return existingValue;
+    }
+    return trimmedValue;
+};
+class TelegramBotService {
+    constructor() {
+        this.bot = null;
+        this.config = null;
+        this.commands = [];
+    }
+    async initialize() {
+        await this.loadConfig();
+        if (this.config?.enabled && this.config.botToken) {
+            this.initializeBot();
+        }
+    }
+    async loadConfig() {
+        this.config = await prisma_1.default.telegramBotConfig.findFirst();
+    }
+    getCommandConfigs() {
+        if (!this.config?.commands) {
+            return this.getDefaultCommands();
+        }
+        try {
+            return JSON.parse(this.config.commands);
+        }
+        catch {
+            return this.getDefaultCommands();
+        }
+    }
+    getDefaultCommands() {
+        return telegramBotTexts_1.DEFAULT_TELEGRAM_BOT_COMMANDS;
+    }
+    getWebhookSecretToken() {
+        return crypto_1.default
+            .createHash('sha256')
+            .update(this.config?.botToken || '')
+            .digest('hex')
+            .slice(0, 32);
+    }
+    initializeBot() {
+        if (!this.config?.botToken)
+            return;
+        if (this.bot) {
+            this.bot.removeAllListeners();
+            void this.bot.stopPolling().catch(() => undefined);
+        }
+        const useWebhook = Boolean(this.config.webhookUrl);
+        if (useWebhook) {
+            this.bot = new node_telegram_bot_api_1.default(this.config.botToken, { webHook: true });
+            if (this.config.webhookUrl) {
+                this.bot.setWebHook(this.config.webhookUrl, {
+                    secret_token: this.getWebhookSecretToken(),
+                });
+            }
+        }
+        else {
+            this.bot = new node_telegram_bot_api_1.default(this.config.botToken, { polling: true });
+        }
+        this.setupCommands();
+        this.setupHandlers();
+    }
+    setupCommands() {
+        const commandsConfig = this.getCommandConfigs();
+        if (this.bot) {
+            void this.bot.setMyCommands(commandsConfig);
+        }
+        this.commands = [
+            { command: 'start', description: 'Start the bot', handler: this.handleStart.bind(this) },
+            { command: 'help', description: 'Show help information', handler: this.handleHelp.bind(this) },
+            { command: 'status', description: 'Check account status', handler: this.handleStatus.bind(this) },
+            { command: 'chats', description: 'List your chats', handler: this.handleChats.bind(this) },
+            { command: 'unread', description: 'Show unread messages', handler: this.handleUnread.bind(this) },
+            { command: 'search', description: 'Search messages', handler: this.handleSearch.bind(this) },
+            { command: 'notify', description: 'Manage notifications', handler: this.handleNotify.bind(this) },
+            { command: 'connect', description: 'Connect Stogram account', handler: this.handleConnect.bind(this) },
+            { command: 'disconnect', description: 'Disconnect account', handler: this.handleDisconnect.bind(this) },
+        ];
+    }
+    setupHandlers() {
+        if (!this.bot)
+            return;
+        for (const cmd of this.commands) {
+            this.bot.onText(new RegExp(`/${cmd.command}(?: (.+))?`), (msg, match) => {
+                void cmd.handler(msg, match);
+            });
+        }
+        this.bot.on('inline_query', (query) => {
+            void this.handleInlineQuery(query);
+        });
+        this.bot.on('callback_query', (query) => {
+            void this.handleCallbackQuery(query);
+        });
+        this.bot.on('message', (message) => {
+            void this.handleMessage(message);
+        });
+    }
+    async getAuthorizedBotUser(telegramId) {
+        if (!telegramId)
+            return null;
+        return prisma_1.default.telegramBotUser.findUnique({
+            where: { telegramId },
+        });
+    }
+    async handleStart(msg) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        const firstName = msg.from?.first_name;
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (botUser?.isAuthorized) {
+            await this.bot?.sendMessage(chatId, (0, telegramBotTexts_1.buildStartConnectedText)(firstName));
+            return;
+        }
+        await this.bot?.sendMessage(chatId, (0, telegramBotTexts_1.buildStartDisconnectedText)(firstName));
+    }
+    async handleHelp(msg) {
+        const chatId = msg.chat.id;
+        const helpText = (0, telegramBotTexts_1.buildHelpText)(this.config?.botUsername);
+        await this.bot?.sendMessage(chatId, helpText, { parse_mode: 'Markdown' });
+    }
+    async handleStatus(msg) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId) {
+            await this.bot?.sendMessage(chatId, 'Your account is not connected.\n\nUse /connect to link your Stogram account.');
+            return;
+        }
+        const user = await prisma_1.default.user.findUnique({
+            where: { id: botUser.stogramUserId },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                displayName: true,
+                status: true,
+            },
+        });
+        if (!user) {
+            await this.bot?.sendMessage(chatId, 'Linked Stogram account not found. Use /connect to reconnect.');
+            return;
+        }
+        const unreadChats = await prisma_1.default.chatSettings.findMany({
+            where: {
+                userId: user.id,
+                unreadCount: { gt: 0 },
+            },
+        });
+        const totalUnread = unreadChats.reduce((sum, chat) => sum + chat.unreadCount, 0);
+        await this.bot?.sendMessage(chatId, `*Account Status*\n\n`
+            + `*User:* ${user.displayName || user.username}\n`
+            + `*Email:* ${user.email}\n`
+            + `*Chats with unread:* ${unreadChats.length}\n`
+            + `*Unread messages:* ${totalUnread}\n`
+            + `*Notifications:* ${this.config?.notifications ? 'Enabled' : 'Disabled'}\n`
+            + `*Status:* ${user.status}`, { parse_mode: 'Markdown' });
+    }
+    async handleChats(msg) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId) {
+            await this.bot?.sendMessage(chatId, 'Please connect your account first using /connect');
+            return;
+        }
+        const chatMembers = await prisma_1.default.chatMember.findMany({
+            where: { userId: botUser.stogramUserId },
+            include: {
+                chat: {
+                    include: {
+                        members: {
+                            include: {
+                                user: {
+                                    select: { id: true, username: true, displayName: true, avatar: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { joinedAt: 'desc' },
+            take: 10,
+        });
+        if (chatMembers.length === 0) {
+            await this.bot?.sendMessage(chatId, 'You have no chats yet');
+            return;
+        }
+        const unreadSettings = await prisma_1.default.chatSettings.findMany({
+            where: {
+                userId: botUser.stogramUserId,
+                chatId: { in: chatMembers.map((member) => member.chatId) },
+            },
+            select: {
+                chatId: true,
+                unreadCount: true,
+            },
+        });
+        const unreadMap = new Map(unreadSettings.map((settings) => [settings.chatId, settings.unreadCount]));
+        let response = '*Your Chats:*\n\n';
+        for (const membership of chatMembers) {
+            const chat = membership.chat;
+            const memberCount = chat.members.length;
+            const privatePeer = chat.members.find((member) => member.user.id !== botUser.stogramUserId)?.user;
+            const chatName = chat.type === 'PRIVATE'
+                ? privatePeer?.displayName || privatePeer?.username || 'Private chat'
+                : chat.name || 'Unnamed group';
+            response += `- *${chatName}* (${memberCount} members)`;
+            const unreadCount = unreadMap.get(membership.chatId);
+            if (unreadCount) {
+                response += ` - ${unreadCount} unread`;
+            }
+            response += '\n';
+        }
+        await this.bot?.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+    }
+    async handleUnread(msg) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId) {
+            await this.bot?.sendMessage(chatId, 'Please connect your account first using /connect');
+            return;
+        }
+        const unreadChats = await prisma_1.default.chatSettings.findMany({
+            where: {
+                userId: botUser.stogramUserId,
+                unreadCount: { gt: 0 },
+            },
+            include: {
+                chat: {
+                    include: {
+                        members: {
+                            include: {
+                                user: {
+                                    select: { id: true, username: true, displayName: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { unreadCount: 'desc' },
+            take: 10,
+        });
+        if (unreadChats.length === 0) {
+            await this.bot?.sendMessage(chatId, 'You have no unread messages.');
+            return;
+        }
+        let response = '*Unread Messages:*\n\n';
+        for (const unreadChat of unreadChats) {
+            const privatePeer = unreadChat.chat.members.find((member) => member.user.id !== botUser.stogramUserId)?.user;
+            const chatName = unreadChat.chat.type === 'PRIVATE'
+                ? privatePeer?.displayName || privatePeer?.username || 'Private chat'
+                : unreadChat.chat.name || 'Unnamed chat';
+            response += `- *${chatName}*: ${unreadChat.unreadCount} unread\n`;
+        }
+        await this.bot?.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+    }
+    async handleSearch(msg, match) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        const query = match?.[1]?.trim();
+        if (!telegramUserId)
+            return;
+        if (!query) {
+            await this.bot?.sendMessage(chatId, 'Please provide a search query.\nUsage: /search [query]');
+            return;
+        }
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId) {
+            await this.bot?.sendMessage(chatId, 'Please connect your account first using /connect');
+            return;
+        }
+        const messages = await prisma_1.default.message.findMany({
+            where: {
+                chat: {
+                    members: {
+                        some: { userId: botUser.stogramUserId },
+                    },
+                },
+                content: { contains: query, mode: 'insensitive' },
+                isDeleted: false,
+            },
+            include: {
+                sender: {
+                    select: { username: true, displayName: true },
+                },
+                chat: {
+                    select: { name: true, type: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+        });
+        if (messages.length === 0) {
+            await this.bot?.sendMessage(chatId, `No messages found for "${query}"`);
+            return;
+        }
+        let response = `*Search results for "${query}":*\n\n`;
+        for (const message of messages) {
+            const senderName = message.sender.displayName || message.sender.username || 'Unknown';
+            const chatName = message.chat.type === 'PRIVATE' ? 'Private chat' : message.chat.name || 'Group';
+            const content = message.content?.slice(0, 100) || '(no text)';
+            response += `- *${chatName}* from ${senderName}:\n"${content}"\n\n`;
+        }
+        await this.bot?.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+    }
+    async handleNotify(msg, match) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        const action = match?.[1]?.trim();
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId) {
+            await this.bot?.sendMessage(chatId, 'Please connect your account first using /connect');
+            return;
+        }
+        if (!action || !['on', 'off'].includes(action)) {
+            await this.bot?.sendMessage(chatId, (0, telegramBotTexts_1.buildNotifyUsageText)(), { parse_mode: 'Markdown' });
+            return;
+        }
+        const enabled = action === 'on';
+        if (this.config) {
+            await prisma_1.default.telegramBotConfig.update({
+                where: { id: this.config.id },
+                data: { notifications: enabled },
+            });
+            this.config.notifications = enabled;
+        }
+        await this.bot?.sendMessage(chatId, `Notifications ${enabled ? 'enabled' : 'disabled'}`);
+    }
+    async handleConnect(msg, match) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        const authCode = match?.[1]?.trim();
+        if (!telegramUserId)
+            return;
+        const existingUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (existingUser?.isAuthorized) {
+            await this.bot?.sendMessage(chatId, 'Your account is already connected.\n\nUse /disconnect to disconnect your account.');
+            return;
+        }
+        if (!authCode) {
+            await this.bot?.sendMessage(chatId, (0, telegramBotTexts_1.buildConnectUsageText)(), { parse_mode: 'Markdown' });
+            return;
+        }
+        const user = await prisma_1.default.user.findFirst({
+            where: {
+                OR: [
+                    { username: authCode },
+                    { email: authCode },
+                ],
+            },
+            select: {
+                id: true,
+                username: true,
+                displayName: true,
+            },
+        });
+        if (!user) {
+            await this.bot?.sendMessage(chatId, 'Invalid username or email. Please check and try again.');
+            return;
+        }
+        await prisma_1.default.telegramBotUser.upsert({
+            where: { telegramId: telegramUserId },
+            create: {
+                telegramId: telegramUserId,
+                stogramUserId: user.id,
+                username: msg.from?.username,
+                firstName: msg.from?.first_name,
+                lastName: msg.from?.last_name,
+                isAuthorized: true,
+            },
+            update: {
+                stogramUserId: user.id,
+                username: msg.from?.username,
+                firstName: msg.from?.first_name,
+                lastName: msg.from?.last_name,
+                isAuthorized: true,
+            },
+        });
+        await this.bot?.sendMessage(chatId, `Successfully connected to Stogram as ${user.displayName || user.username}.`);
+    }
+    async handleDisconnect(msg) {
+        const chatId = msg.chat.id;
+        const telegramUserId = msg.from?.id.toString();
+        if (!telegramUserId)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized) {
+            await this.bot?.sendMessage(chatId, 'Your account is not connected.');
+            return;
+        }
+        await prisma_1.default.telegramBotUser.update({
+            where: { telegramId: telegramUserId },
+            data: { isAuthorized: false, stogramUserId: null },
+        });
+        await this.bot?.sendMessage(chatId, 'Your account has been disconnected.');
+    }
+    async handleInlineQuery(query) {
+        const searchQuery = query.query.trim();
+        const telegramUserId = query.from?.id.toString();
+        if (!telegramUserId || !searchQuery)
+            return;
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId)
+            return;
+        const chatMembers = await prisma_1.default.chatMember.findMany({
+            where: {
+                userId: botUser.stogramUserId,
+                chat: {
+                    name: { contains: searchQuery },
+                },
+            },
+            include: {
+                chat: {
+                    include: {
+                        members: {
+                            include: {
+                                user: {
+                                    select: { id: true, username: true, displayName: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            take: 10,
+        });
+        const results = chatMembers.map((membership) => {
+            const privatePeer = membership.chat.members.find((member) => member.user.id !== botUser.stogramUserId)?.user;
+            return {
+                type: 'article',
+                id: membership.chat.id,
+                title: membership.chat.name || privatePeer?.displayName || privatePeer?.username || 'Chat',
+                description: membership.chat.type === 'PRIVATE'
+                    ? privatePeer?.displayName || privatePeer?.username || 'Private chat'
+                    : `${membership.chat.members.length} members`,
+                input_message_content: {
+                    message_text: `Chat: ${membership.chat.name || privatePeer?.displayName || 'Private chat'}`,
+                },
+            };
+        });
+        await this.bot?.answerInlineQuery(query.id, results, { cache_time: 0 });
+    }
+    async handleCallbackQuery(query) {
+        const data = query.data;
+        if (!data)
+            return;
+        if (data === 'notify_on' || data === 'notify_off') {
+            const enabled = data === 'notify_on';
+            if (this.config) {
+                await prisma_1.default.telegramBotConfig.update({
+                    where: { id: this.config.id },
+                    data: { notifications: enabled },
+                });
+                this.config.notifications = enabled;
+            }
+            await this.bot?.answerCallbackQuery(query.id, {
+                text: enabled ? 'Notifications enabled!' : 'Notifications disabled!',
+            });
+        }
+    }
+    async handleMessage(msg) {
+        if (msg.text?.startsWith('/'))
+            return;
+        if (!msg.from)
+            return;
+        const telegramUserId = msg.from.id.toString();
+        const botUser = await this.getAuthorizedBotUser(telegramUserId);
+        if (!botUser?.isAuthorized || !botUser.stogramUserId)
+            return;
+        await prisma_1.default.telegramBotMessage.create({
+            data: {
+                telegramBotId: this.config?.id || 'default',
+                telegramChatId: msg.chat.id.toString(),
+                telegramUserId,
+                messageId: msg.message_id,
+                direction: 'incoming',
+                content: msg.text,
+            },
+        });
+    }
+    async getConfig() {
+        return prisma_1.default.telegramBotConfig.findFirst();
+    }
+    async saveConfig(data) {
+        const existing = await prisma_1.default.telegramBotConfig.findFirst();
+        const resolvedBotToken = resolveSecretValue(data.botToken, existing?.botToken);
+        const payload = {
+            botToken: resolvedBotToken ?? '',
+            botUsername: data.botUsername ?? existing?.botUsername ?? null,
+            webhookUrl: data.webhookUrl ?? existing?.webhookUrl ?? null,
+            commands: JSON.stringify(data.commands ?? this.getCommandConfigs()),
+            notifications: data.notifications ?? existing?.notifications ?? true,
+            enabled: data.enabled ?? existing?.enabled ?? false,
+        };
+        const saved = existing
+            ? await prisma_1.default.telegramBotConfig.update({
+                where: { id: existing.id },
+                data: payload,
+            })
+            : await prisma_1.default.telegramBotConfig.create({
+                data: payload,
+            });
+        await this.loadConfig();
+        if (this.config?.enabled && this.config.botToken) {
+            this.initializeBot();
+        }
+        return saved;
+    }
+    async getStats() {
+        const [botUserCount, messageCount] = await Promise.all([
+            prisma_1.default.telegramBotUser.count({
+                where: { isAuthorized: true },
+            }),
+            prisma_1.default.telegramBotMessage.count(),
+        ]);
+        return {
+            authorizedUsers: botUserCount,
+            totalMessages: messageCount,
+            enabled: this.config?.enabled || false,
+            botUsername: this.config?.botUsername || '',
+        };
+    }
+    async getUsers() {
+        return prisma_1.default.telegramBotUser.findMany({
+            where: { isAuthorized: true },
+            orderBy: { updatedAt: 'desc' },
+        });
+    }
+    async authorizeUser(telegramId, stogramUserId) {
+        return prisma_1.default.telegramBotUser.upsert({
+            where: { telegramId },
+            create: {
+                telegramId,
+                stogramUserId,
+                isAuthorized: true,
+            },
+            update: {
+                stogramUserId,
+                isAuthorized: true,
+            },
+        });
+    }
+    async sendMessage(telegramUserId, content, options) {
+        if (!this.bot)
+            return false;
+        try {
+            await this.bot.sendMessage(telegramUserId, content, {
+                parse_mode: 'Markdown',
+                ...options,
+            });
+            return true;
+        }
+        catch (error) {
+            console.error('Failed to send message:', error);
+            return false;
+        }
+    }
+    async sendNotificationToUser(stogramUserId, message) {
+        if (!this.config?.notifications)
+            return false;
+        const botUser = await prisma_1.default.telegramBotUser.findFirst({
+            where: { stogramUserId, isAuthorized: true },
+        });
+        if (!botUser)
+            return false;
+        return this.sendMessage(botUser.telegramId, message);
+    }
+    async broadcastNotification(message) {
+        if (!this.config?.notifications)
+            return 0;
+        const users = await prisma_1.default.telegramBotUser.findMany({
+            where: { isAuthorized: true },
+            select: { telegramId: true },
+        });
+        let sentCount = 0;
+        for (const user of users) {
+            if (await this.sendMessage(user.telegramId, message)) {
+                sentCount++;
+            }
+        }
+        return sentCount;
+    }
+    isWebhookRequestAuthorized(secretTokenHeader) {
+        if (!this.config?.enabled || !this.config?.webhookUrl || !this.config?.botToken) {
+            return false;
+        }
+        const headerValue = Array.isArray(secretTokenHeader) ? secretTokenHeader[0] : secretTokenHeader;
+        if (!headerValue) {
+            return false;
+        }
+        return headerValue === this.getWebhookSecretToken();
+    }
+    processWebhookUpdate(update) {
+        if (!this.bot)
+            return;
+        this.bot.processUpdate(update);
+    }
+}
+exports.default = new TelegramBotService();
+//# sourceMappingURL=telegramBotService.js.map
