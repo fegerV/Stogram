@@ -326,15 +326,40 @@ class N8nService {
     }
   }
 
-  // Get active workflows (mock implementation - would require n8n API integration)
+  // Get active workflows from n8n API
   async getWorkflows(): Promise<{ id: string; name: string; active: boolean }[]> {
-    // This would need actual n8n API integration
-    // For now, return sample data
-    return [
-      { id: '1', name: 'New User Welcome', active: true },
-      { id: '2', name: 'Message Notifications', active: true },
-      { id: '3', name: 'Analytics Sync', active: false },
-    ];
+    const config = await this.getConfig();
+    if (!config?.webhookUrl || !config?.apiKey) {
+      // Return empty array if n8n is not configured instead of fake data
+      return [];
+    }
+
+    try {
+      // Extract base URL from webhook URL (e.g., https://n8n.example.com/webhook/... -> https://n8n.example.com)
+      const baseUrl = config.webhookUrl.split('/webhook')[0];
+      
+      const response = await axios.get(`${baseUrl}/api/v1/workflows`, {
+        headers: {
+          'X-N8N-API-KEY': config.apiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      // n8n API returns workflows in data.data or directly in data depending on version
+      const workflowsData = response.data?.data || response.data || [];
+      
+      return Array.isArray(workflowsData) 
+        ? workflowsData.map((wf: any) => ({
+            id: String(wf.id),
+            name: wf.name || 'Unnamed Workflow',
+            active: Boolean(wf.active),
+          }))
+        : [];
+    } catch (error: any) {
+      console.error('Failed to fetch workflows from n8n API:', error.message);
+      throw new Error(`Failed to fetch workflows: ${error.message}`);
+    }
   }
 
   // Send event directly to configured n8n webhook

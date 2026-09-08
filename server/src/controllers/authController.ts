@@ -5,7 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
-import { generateVerificationToken, sendVerificationEmail } from '../services/emailService';
+import { generateVerificationToken, sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
 import { AuditLogService, AuditAction } from '../services/auditLogService';
 import { TwoFactorService } from '../services/twoFactorService';
 import { SecurityService } from '../services/securityService';
@@ -387,6 +387,15 @@ const publicResendVerificationSchema = z.object({
   email: z.string().email(),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  password: z.string().min(8),
+});
+
 export const resendVerificationEmailPublic = async (req: Request, res: Response) => {
   try {
     const { email } = publicResendVerificationSchema.parse(req.body);
@@ -419,6 +428,99 @@ export const resendVerificationEmailPublic = async (req: Request, res: Response)
     }
     console.error('Public resend verification email error:', error);
     res.status(500).json({ error: 'Failed to process verification email request' });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      // Don't reveal if email exists or not
+      return res.json({
+        message: 'If an account exists for this email, a password reset link has been sent.',
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken,
+        resetTokenExpiresAt,
+      },
+    });
+
+    if (process.env.SMTP_USER) {
+      await sendPasswordResetEmail(user.email, resetToken, user.username);
+    }
+
+    res.json({
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      password,
+      parseInt(process.env.BCRYPT_ROUNDS || '12')
+    );
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiresAt: null,
+      },
+    });
+
+    // Audit log password reset
+    await AuditLogService.logAuth(
+      AuditAction.USER_LOGIN, // Reuse login action for password reset
+      user.id,
+      req.ip || req.socket.remoteAddress || 'unknown',
+      req.headers['user-agent'] || 'unknown',
+      true
+    );
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 };
 

@@ -6,6 +6,8 @@ import {
   verifyEmail, 
   resendVerificationEmail,
   resendVerificationEmailPublic,
+  forgotPassword,
+  resetPassword,
   refreshAccessToken,
   logout,
   logoutAll
@@ -18,6 +20,8 @@ const router = Router();
 // Strict rate limiting for auth endpoints (5 requests per 15 minutes per IP)
 router.post('/register', strictIPRateLimit, register);
 router.post('/login', strictIPRateLimit, login);
+router.post('/forgot-password', moderateIPRateLimit, forgotPassword);
+router.post('/reset-password', moderateIPRateLimit, resetPassword);
 router.get('/me', authenticate, getMe);
 router.post('/verify-email', moderateIPRateLimit, verifyEmail);
 router.post('/resend-verification-request', moderateIPRateLimit, resendVerificationEmailPublic);
