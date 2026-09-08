@@ -252,8 +252,25 @@ export const TelegramSettingsPage: React.FC = () => {
                         </p>
                       </div>
                       <button
-                        onClick={() => {
-                          /* TODO */
+                        onClick={async () => {
+                          const confirmed = await confirm({
+                            title: 'Удалить мост',
+                            message: 'Вы уверены, что хотите удалить этот мост? Синхронизация между чатами будет прекращена.',
+                            confirmText: 'Удалить',
+                            cancelText: 'Отмена',
+                            variant: 'danger'
+                          });
+
+                          if (!confirmed) return;
+
+                          try {
+                            await telegramService.deleteBridge(bridge.id);
+                            toast.success('Мост успешно удалён');
+                            await loadSettings();
+                          } catch (error) {
+                            console.error('Failed to delete bridge:', error);
+                            toast.error('Не удалось удалить мост. Попробуйте позже.');
+                          }
                         }}
                         className="rounded-xl bg-red-50 px-4 py-2 text-red-600 transition hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
                       >
